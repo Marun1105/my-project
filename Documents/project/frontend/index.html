@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+<title>Climby — Climb your way to success</title>
+<link rel="icon" href="../logo.png">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <span class="name">Climby</span>
+    <span class="tagline">Climb your way to success</span>
+  </div>
+  <button id="themeToggle" class="theme-toggle" aria-label="Смени темата">☀️</button>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-view="tutor">Учител</button>
+  <button class="tab" data-view="checklist">Чеклист</button>
+</nav>
+
+<main id="view-tutor" class="view">
+
+<div id="splash" class="splash">
+  <img src="../logo.png" alt="Climby лого">
+  <p class="loading-text">Зарежда камерата…</p>
+</div>
+
+<div id="stage" class="stage hidden">
+  <video id="video" autoplay playsinline muted></video>
+  <img id="result" class="result hidden" alt="сканирана страница">
+  <div id="status" class="status hidden"></div>
+</div>
+
+<div id="controls" class="controls hidden">
+  <button id="shootBtn" class="btn-primary">Снимай</button>
+  <button id="retakeBtn" class="btn-ghost hidden">Снимай пак</button>
+  <button id="useBtn" class="btn-primary hidden">Използвай тази</button>
+</div>
+
+<div class="controls" style="margin-top: 10px;">
+  <button id="uploadBtn" class="btn-ghost" type="button" onclick="document.getElementById('uploadInput').click()">Качи снимка от файл</button>
+  <input id="uploadInput" type="file" accept="image/*" class="hidden">
+</div>
+
+<p class="hint">Постави страницата така, че да се вижда цялата. Скенерът намира ръбовете и я изправя автоматично — ако не успее, ползва цялата снимка, без да спира работата ти.</p>
+
+<div id="qa" class="qa hidden">
+  <label for="question">Питай нещо за страницата</label>
+  <textarea id="question" placeholder="Напр. „Как се решава задача 5?“ или „Провери решението ми“"></textarea>
+  <div class="controls" style="margin-top: 12px;">
+    <button id="askBtn" class="btn-primary">Питай</button>
+  </div>
+</div>
+
+<div id="answer" class="answer hidden"></div>
+
+</main>
+
+<main id="view-checklist" class="view hidden">
+
+  <div class="explainer">
+    <strong>Как работи чеклистът:</strong> добавяш задача с предмет и срок. Най-спешните излизат най-отгоре. Отметни я, когато я довършиш.
+  </div>
+
+  <form id="taskForm" class="task-form">
+    <label for="taskText">Задача</label>
+    <input id="taskText" type="text" placeholder="Напр. „Реши задачи 4–8, стр. 32“" required>
+
+    <div class="task-form-row">
+      <div>
+        <label for="taskSubject">Предмет</label>
+        <input id="taskSubject" type="text" placeholder="Напр. Математика">
+      </div>
+      <div>
+        <label for="taskDeadline">Срок</label>
+        <input id="taskDeadline" type="date">
+      </div>
+    </div>
+
+    <button type="submit" class="btn-primary">Добави задача</button>
+  </form>
+
+  <ul id="taskList" class="task-list"></ul>
+  <p id="taskEmpty" class="hint">Няма добавени задачи още — добави първата отгоре.</p>
+
+  <div class="controls" style="margin-top: 20px;">
+    <button id="planBtn" class="btn-ghost" type="button">Помощ за плана</button>
+  </div>
+  <div id="planAdvice" class="answer hidden"></div>
+
+</main>
+
+<!-- opencv.js прави разпознаването на ръбове и изправянето на страницата в браузъра -->
+<script async src="https://docs.opencv.org/4.10.0/opencv.js" onload="onCvReady()"></script>
+<!-- marked превръща Markdown отговора в четимо форматиране -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<!-- KaTeX оформя математическите формули между $...$ и $$...$$ -->
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+<!-- скрити работни canvas-и, ползвани от scanner.js -->
+<canvas id="capture" class="hidden"></canvas>
+<canvas id="output" class="hidden"></canvas>
+
+<script src="theme.js"></script>
+<script src="nav.js"></script>
+<script src="scanner.js"></script>
+<script src="tutor.js"></script>
+<script src="checklist.js"></script>
+<script src="ai-planner.js"></script>
+</body>
+</html>

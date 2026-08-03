@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+climby.db
+node_modules/
+electron/dist/
+electron/out/
