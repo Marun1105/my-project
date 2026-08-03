@@ -1,0 +1,13 @@
+{
+  "name": "Climby — Climb your way to success",
+  "short_name": "Climby",
+  "description": "Учебен помощник за ученици 1–12 клас: AI учител, чеклист и история на домашните.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "lang": "bg",
+  "icons": [
+    { "src": "../logo.png", "sizes": "800x800", "type": "image/png", "purpose": "any" }
+  ]
+}

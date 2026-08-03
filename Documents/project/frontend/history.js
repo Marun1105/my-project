@@ -109,8 +109,9 @@ const History = (() => {
 
     const status = completionStatus(t);
     if (status) {
+      // задачата вече е свършена — дори със закъснение, тонът остава неутрален, не предупредителен
       const statusEl = document.createElement('span');
-      statusEl.className = 'deadline' + (status.late ? ' overdue' : ' soon');
+      statusEl.className = 'deadline' + (status.late ? '' : ' soon');
       statusEl.textContent = status.text;
       meta.appendChild(statusEl);
     } else if (t.completed_at) {
@@ -142,6 +143,11 @@ const History = (() => {
     if (!Auth.isLoggedIn()) return;
     const list = $('historyList');
     const empty = $('historyEmpty');
+
+    if (!list.children.length) {
+      empty.textContent = 'Зареждам…';
+      empty.classList.remove('hidden');
+    }
 
     let tasks;
     try {

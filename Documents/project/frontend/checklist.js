@@ -147,6 +147,11 @@ const Checklist = (() => {
     const list = $('taskList');
     const empty = $('taskEmpty');
 
+    if (!list.children.length) {
+      empty.textContent = 'Зареждам…';
+      empty.classList.remove('hidden');
+    }
+
     let allTasks;
     try {
       allTasks = await api('/tasks');

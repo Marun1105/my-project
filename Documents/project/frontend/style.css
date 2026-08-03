@@ -43,6 +43,28 @@
 html { color-scheme: dark; }
 html[data-theme="light"] { color-scheme: light; }
 
+@keyframes climby-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* видим фокус за навигация с клавиатура, в тон с дизайна */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -301,6 +323,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   padding: 20px 22px;
   line-height: 1.65;
   font-size: 15.5px;
+  animation: climby-rise 0.35s ease both;
 }
 .answer.thinking { color: var(--accent); font-style: italic; }
 .answer h1, .answer h2, .answer h3 {
@@ -384,6 +407,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   border-radius: 12px;
   padding: 14px 16px;
   transition: opacity 0.3s ease, transform 0.3s ease;
+  animation: climby-rise 0.3s ease both;
 }
 .task-completing {
   opacity: 0;
@@ -452,5 +476,6 @@ button:disabled { opacity: 0.4; cursor: default; }
   font-size: 14px;
   line-height: 1.55;
   color: var(--text);
+  animation: climby-rise 0.35s ease both;
 }
 .explainer strong { color: var(--accent); }
