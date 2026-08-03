@@ -15,7 +15,13 @@
     <span class="name">Climby</span>
     <span class="tagline">Climb your way to success</span>
   </div>
-  <button id="themeToggle" class="theme-toggle" aria-label="Смени темата">☀️</button>
+  <div class="header-actions">
+    <span id="userBadge" class="user-badge hidden">
+      <span id="userName"></span>
+      <button id="logoutBtn" class="logout-btn" type="button">Изход</button>
+    </span>
+    <button id="themeToggle" class="theme-toggle" aria-label="Смени темата">☀️</button>
+  </div>
 </header>
 
 <nav class="tabs">
@@ -63,35 +69,75 @@
 
 <main id="view-checklist" class="view hidden">
 
-  <div class="explainer">
-    <strong>Как работи чеклистът:</strong> добавяш задача с предмет и срок. Най-спешните излизат най-отгоре. Отметни я, когато я довършиш.
-  </div>
-
-  <form id="taskForm" class="task-form">
-    <label for="taskText">Задача</label>
-    <input id="taskText" type="text" placeholder="Напр. „Реши задачи 4–8, стр. 32“" required>
-
-    <div class="task-form-row">
-      <div>
-        <label for="taskSubject">Предмет</label>
-        <input id="taskSubject" type="text" placeholder="Напр. Математика">
-      </div>
-      <div>
-        <label for="taskDeadline">Срок</label>
-        <input id="taskDeadline" type="date">
-      </div>
+  <div id="authGate" class="auth-gate">
+    <div class="explainer">
+      <strong>Защо трябва да влезеш:</strong> чеклистът пази задачите ти в акаунт, за да ги виждаш от всяко устройство.
     </div>
 
-    <button type="submit" class="btn-primary">Добави задача</button>
-  </form>
+    <div id="loginForm" class="task-form">
+      <label for="loginEmail">Имейл</label>
+      <input id="loginEmail" type="email" placeholder="ти@пример.com">
+      <label for="loginPassword">Парола</label>
+      <input id="loginPassword" type="password" placeholder="Парола">
+      <button id="loginBtn" class="btn-primary" type="button">Влез</button>
+      <p class="auth-switch">Нямаш акаунт? <a href="#" id="showRegister">Регистрирай се</a></p>
+    </div>
 
-  <ul id="taskList" class="task-list"></ul>
-  <p id="taskEmpty" class="hint">Няма добавени задачи още — добави първата отгоре.</p>
+    <div id="registerForm" class="task-form hidden">
+      <label for="registerName">Как да те наричаме?</label>
+      <input id="registerName" type="text" placeholder="Име">
+      <label for="registerEmail">Имейл</label>
+      <input id="registerEmail" type="email" placeholder="ти@пример.com">
+      <label for="registerPassword">Парола</label>
+      <input id="registerPassword" type="password" placeholder="Поне 8 символа">
+      <button id="registerBtn" class="btn-primary" type="button">Регистрирай се</button>
+      <p class="auth-switch">Вече имаш акаунт? <a href="#" id="showLogin">Влез</a></p>
+    </div>
 
-  <div class="controls" style="margin-top: 20px;">
-    <button id="planBtn" class="btn-ghost" type="button">Помощ за плана</button>
+    <div id="verifyForm" class="task-form hidden">
+      <div class="explainer">Изпратихме ти код за потвърждение по имейл. Провери пощата си (и папка спам).</div>
+      <label for="verifyCode">Код за потвърждение</label>
+      <input id="verifyCode" type="text" inputmode="numeric" placeholder="123456">
+      <button id="verifyBtn" class="btn-primary" type="button">Потвърди</button>
+      <p class="auth-switch"><a href="#" id="resendCodeLink">Изпрати нов код</a></p>
+    </div>
+
+    <p id="authError" class="hint auth-error hidden"></p>
   </div>
-  <div id="planAdvice" class="answer hidden"></div>
+
+  <div id="checklistApp" class="hidden">
+
+    <div class="explainer">
+      <strong>Как работи чеклистът:</strong> добавяш задача с предмет и срок. Най-спешните излизат най-отгоре. Отметни я, когато я довършиш.
+    </div>
+
+    <form id="taskForm" class="task-form">
+      <label for="taskText">Задача</label>
+      <input id="taskText" type="text" placeholder="Напр. „Реши задачи 4–8, стр. 32“" required>
+
+      <div class="task-form-row">
+        <div>
+          <label for="taskSubject">Предмет</label>
+          <input id="taskSubject" type="text" placeholder="Напр. Математика">
+        </div>
+        <div>
+          <label for="taskDeadline">Срок</label>
+          <input id="taskDeadline" type="date">
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary">Добави задача</button>
+    </form>
+
+    <ul id="taskList" class="task-list"></ul>
+    <p id="taskEmpty" class="hint">Няма добавени задачи още — добави първата отгоре.</p>
+
+    <div class="controls" style="margin-top: 20px;">
+      <button id="planBtn" class="btn-ghost" type="button">Помощ за плана</button>
+    </div>
+    <div id="planAdvice" class="answer hidden"></div>
+
+  </div>
 
 </main>
 
@@ -111,6 +157,7 @@
 <script src="nav.js"></script>
 <script src="scanner.js"></script>
 <script src="tutor.js"></script>
+<script src="auth.js"></script>
 <script src="checklist.js"></script>
 <script src="ai-planner.js"></script>
 </body>

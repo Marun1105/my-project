@@ -50,7 +50,9 @@ def _consume_code(db: Session, user: User, purpose: CodePurpose, code: str) -> b
     )
     now = datetime.now(timezone.utc)
     for c in candidates:
-        if c.expires_at < now:
+        # SQLite не пази часова зона — expires_at се връща naive, макар да е записан в UTC
+        expires_at = c.expires_at if c.expires_at.tzinfo else c.expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < now:
             continue
         if security.verify_code(code, c.code_hash):
             c.used = True

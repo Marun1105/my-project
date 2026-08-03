@@ -1,30 +1,59 @@
-// checklist.js — списък с домашни: добавяне, отмятане, триене, групирани по срок
-// Пази задачите в localStorage засега — стъпка 4 от плана ще ги премести в базата данни.
+// checklist.js — списък с домашни: добавяне, отмятане, триене. Вързан към акаунта през /tasks API.
 const Checklist = (() => {
   const $ = id => document.getElementById(id);
-  const KEY = 'climby-tasks';
+  // Адресът на бекенда. Локално смени с http://127.0.0.1:8000
+  const BACKEND = 'https://my-project-0gyk.onrender.com';
 
-  function load() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || []; }
-    catch { return []; }
+  async function api(path, options = {}) {
+    const token = Auth.getToken();
+    let res;
+    try {
+      res = await fetch(BACKEND + path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+    } catch {
+      throw new Error('Не успях да се свържа със сървъра. Провери интернета си и опитай пак — нищо не е загубено.');
+    }
+    if (res.status === 401) {
+      Auth.logout();
+      throw new Error('Сесията е изтекла. Влез отново.');
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(_errorMessage(data.detail));
+    return data;
   }
-  function save(tasks) { localStorage.setItem(KEY, JSON.stringify(tasks)); }
+
+  function _errorMessage(detail) {
+    if (typeof detail === 'string' && detail) return detail;
+    if (Array.isArray(detail) && detail.length) return detail.map(d => d.msg).join(' ');
+    return 'Нещо се обърка. Опитай пак.';
+  }
 
   function addTask(text, subject, deadline) {
-    const tasks = load();
-    tasks.push({ id: Date.now() + Math.random(), text, subject, deadline, done: false });
-    save(tasks);
-    render();
+    return api('/tasks', {
+      method: 'POST',
+      body: JSON.stringify({ text, subject: subject || null, deadline: deadline || null }),
+    });
   }
 
-  function toggleDone(id) {
-    save(load().map(t => t.id === id ? { ...t, done: !t.done } : t));
-    render();
+  function setDone(id, done) {
+    return api(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ done }) });
   }
 
   function removeTask(id) {
-    save(load().filter(t => t.id !== id));
-    render();
+    return api(`/tasks/${id}`, { method: 'DELETE' });
+  }
+
+  // всички задачи, необходими на AI помощника за плана — само неотметнатите
+  async function getPendingTasks() {
+    const tasks = await api('/tasks');
+    return tasks
+      .filter(t => !t.done)
+      .map(({ text, subject, deadline }) => ({ text, subject, deadline }));
   }
 
   function daysUntil(dateStr) {
@@ -45,91 +74,111 @@ const Checklist = (() => {
     return { text: `След ${d} ${plural(d)}`, overdue: false, soon: false };
   }
 
-  function render() {
-    const tasks = load();
+  function buildTaskItem(t) {
+    const dl = deadlineLabel(t.deadline);
+    const li = document.createElement('li');
+    li.className = 'task' + (t.done ? ' task-done' : '');
+
+    const check = document.createElement('label');
+    check.className = 'task-check';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = t.done;
+    checkbox.addEventListener('change', () => {
+      setDone(t.id, checkbox.checked).then(render).catch(showListError);
+    });
+    check.appendChild(checkbox);
+
+    const body = document.createElement('div');
+    body.className = 'task-body';
+    const textEl = document.createElement('div');
+    textEl.className = 'task-text';
+    textEl.textContent = t.text;
+    const meta = document.createElement('div');
+    meta.className = 'task-meta';
+    if (t.subject) {
+      const pill = document.createElement('span');
+      pill.className = 'pill';
+      pill.textContent = t.subject;
+      meta.appendChild(pill);
+    }
+    const deadline = document.createElement('span');
+    deadline.className = 'deadline' + (dl.overdue ? ' overdue' : '') + (dl.soon ? ' soon' : '');
+    deadline.textContent = dl.text;
+    meta.appendChild(deadline);
+    body.appendChild(textEl);
+    body.appendChild(meta);
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'task-delete';
+    del.setAttribute('aria-label', 'Изтрий задачата');
+    del.textContent = '✕';
+    del.addEventListener('click', () => {
+      removeTask(t.id).then(render).catch(showListError);
+    });
+
+    li.appendChild(check);
+    li.appendChild(body);
+    li.appendChild(del);
+    return li;
+  }
+
+  function showListError(err) {
+    const empty = $('taskEmpty');
+    $('taskList').innerHTML = '';
+    empty.textContent = err.message || 'Не успях да заредя задачите.';
+    empty.classList.remove('hidden');
+  }
+
+  async function render() {
+    if (!Auth.isLoggedIn()) return;
     const list = $('taskList');
     const empty = $('taskEmpty');
-    list.innerHTML = '';
 
+    let tasks;
+    try {
+      tasks = await api('/tasks');
+    } catch (err) {
+      showListError(err);
+      return;
+    }
+
+    list.innerHTML = '';
     if (tasks.length === 0) {
+      empty.textContent = 'Няма добавени задачи още — добави първата отгоре.';
       empty.classList.remove('hidden');
       return;
     }
     empty.classList.add('hidden');
-
-    // недовършените първо, после по срок — най-спешното най-отгоре
-    const sorted = [...tasks].sort((a, b) => {
-      if (a.done !== b.done) return a.done ? 1 : -1;
-      if (!a.deadline) return 1;
-      if (!b.deadline) return -1;
-      return a.deadline.localeCompare(b.deadline);
-    });
-
-    for (const t of sorted) {
-      const dl = deadlineLabel(t.deadline);
-      const li = document.createElement('li');
-      li.className = 'task' + (t.done ? ' task-done' : '');
-
-      const check = document.createElement('label');
-      check.className = 'task-check';
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = t.done;
-      checkbox.addEventListener('change', () => toggleDone(t.id));
-      check.appendChild(checkbox);
-
-      const body = document.createElement('div');
-      body.className = 'task-body';
-      const textEl = document.createElement('div');
-      textEl.className = 'task-text';
-      textEl.textContent = t.text;
-      const meta = document.createElement('div');
-      meta.className = 'task-meta';
-      if (t.subject) {
-        const pill = document.createElement('span');
-        pill.className = 'pill';
-        pill.textContent = t.subject;
-        meta.appendChild(pill);
-      }
-      const deadline = document.createElement('span');
-      deadline.className = 'deadline' + (dl.overdue ? ' overdue' : '') + (dl.soon ? ' soon' : '');
-      deadline.textContent = dl.text;
-      meta.appendChild(deadline);
-      body.appendChild(textEl);
-      body.appendChild(meta);
-
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'task-delete';
-      del.setAttribute('aria-label', 'Изтрий задачата');
-      del.textContent = '✕';
-      del.addEventListener('click', () => removeTask(t.id));
-
-      li.appendChild(check);
-      li.appendChild(body);
-      li.appendChild(del);
-      list.appendChild(li);
-    }
+    for (const t of tasks) list.appendChild(buildTaskItem(t));
   }
 
-  function handleAdd(e) {
+  async function handleAdd(e) {
     e.preventDefault();
     const text = $('taskText').value.trim();
     if (!text) return;
-    addTask(text, $('taskSubject').value.trim(), $('taskDeadline').value);
-    $('taskForm').reset();
-    $('taskText').focus();
+    try {
+      await addTask(text, $('taskSubject').value.trim(), $('taskDeadline').value);
+      $('taskForm').reset();
+      $('taskText').focus();
+      await render();
+    } catch (err) {
+      showListError(err);
+    }
   }
 
-  function getPendingTasks() {
-    return load()
-      .filter(t => !t.done)
-      .map(({ text, subject, deadline }) => ({ text, subject: subject || null, deadline: deadline || null }));
+  function updateGate() {
+    const loggedIn = Auth.isLoggedIn();
+    $('authGate').classList.toggle('hidden', loggedIn);
+    $('checklistApp').classList.toggle('hidden', !loggedIn);
+    if (loggedIn) render();
   }
 
   function init() {
     $('taskForm').addEventListener('submit', handleAdd);
-    render();
+    window.addEventListener('climby:auth-changed', updateGate);
+    updateGate();
   }
 
   return { init, getPendingTasks };

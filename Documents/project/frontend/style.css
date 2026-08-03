@@ -84,6 +84,8 @@ header.app-header {
   margin-top: 2px;
 }
 
+.header-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
 .theme-toggle {
   width: 42px;
   height: 42px;
@@ -101,6 +103,36 @@ header.app-header {
 }
 .theme-toggle:active { transform: scale(0.92); }
 .theme-toggle:hover { border-color: var(--accent); }
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.logout-btn {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+}
+.logout-btn:hover { color: var(--warn); border-color: var(--warn); }
+
+/* ---------- auth forms ---------- */
+.auth-switch {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+}
+.auth-switch a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.auth-switch a:hover { text-decoration: underline; }
+.auth-error { color: var(--warn); }
 
 /* ---------- tab navigation ---------- */
 .tabs {

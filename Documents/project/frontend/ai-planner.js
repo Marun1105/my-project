@@ -24,7 +24,7 @@ const Planner = (() => {
     el.textContent = 'Мисля как да ти помогна…';
 
     try {
-      const tasks = Checklist.getPendingTasks();
+      const tasks = await Checklist.getPendingTasks();
       const res = await fetch(BACKEND + '/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

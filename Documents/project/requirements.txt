@@ -4,6 +4,7 @@ anthropic
 sqlalchemy
 psycopg2-binary
 passlib[bcrypt]
+bcrypt<4.1  # passlib 1.7.4's self-test breaks on bcrypt>=4.1 (unmaintained passlib, known incompatibility)
 pyjwt
 resend
 twilio
