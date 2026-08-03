@@ -70,7 +70,7 @@
 <main id="view-checklist" class="view hidden">
 
   <div id="authGate" class="auth-gate">
-    <div class="explainer">
+    <div id="authIntro" class="explainer">
       <strong>Защо трябва да влезеш:</strong> чеклистът пази задачите ти в акаунт, за да ги виждаш от всяко устройство.
     </div>
 
@@ -81,6 +81,7 @@
       <input id="loginPassword" type="password" placeholder="Парола">
       <button id="loginBtn" class="btn-primary" type="button">Влез</button>
       <p class="auth-switch">Нямаш акаунт? <a href="#" id="showRegister">Регистрирай се</a></p>
+      <p class="auth-switch"><a href="#" id="showForgot">Забравена парола?</a></p>
     </div>
 
     <div id="registerForm" class="task-form hidden">
@@ -100,6 +101,24 @@
       <input id="verifyCode" type="text" inputmode="numeric" placeholder="123456">
       <button id="verifyBtn" class="btn-primary" type="button">Потвърди</button>
       <p class="auth-switch"><a href="#" id="resendCodeLink">Изпрати нов код</a></p>
+    </div>
+
+    <div id="forgotForm" class="task-form hidden">
+      <div class="explainer">Няма страшно — случва се на всеки. Въведи имейла си и ще ти пратим код за нова парола.</div>
+      <label for="forgotEmail">Имейл</label>
+      <input id="forgotEmail" type="email" placeholder="ти@пример.com">
+      <button id="forgotBtn" class="btn-primary" type="button">Изпрати код</button>
+      <p class="auth-switch"><a href="#" id="showLoginFromForgot">Влез</a></p>
+    </div>
+
+    <div id="resetForm" class="task-form hidden">
+      <div class="explainer">Изпратихме код на имейла ти (ако има акаунт с него). Въведи го тук заедно с новата си парола.</div>
+      <label for="resetCode">Код</label>
+      <input id="resetCode" type="text" inputmode="numeric" placeholder="123456">
+      <label for="resetPassword">Нова парола</label>
+      <input id="resetPassword" type="password" placeholder="Поне 8 символа">
+      <button id="resetBtn" class="btn-primary" type="button">Смени паролата</button>
+      <p class="auth-switch"><a href="#" id="resendResetLink">Изпрати нов код</a></p>
     </div>
 
     <p id="authError" class="hint auth-error hidden"></p>

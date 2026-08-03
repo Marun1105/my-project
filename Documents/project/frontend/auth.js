@@ -69,14 +69,24 @@ const Auth = (() => {
     return data;
   }
 
+  async function forgotPassword(email) {
+    return _post('/auth/forgot-password', { channel: 'email', contact: email });
+  }
+
+  async function resetPassword(email, code, newPassword) {
+    return _post('/auth/reset-password', { channel: 'email', contact: email, code, new_password: newPassword });
+  }
+
   // ---------- UI ----------
 
   let pendingVerifyEmail = null;
+  let pendingResetEmail = null;
 
   function showForm(name) {
-    ['login', 'register', 'verify'].forEach(f => {
+    ['login', 'register', 'verify', 'forgot', 'reset'].forEach(f => {
       $(`${f}Form`).classList.toggle('hidden', f !== name);
     });
+    $('authIntro').classList.toggle('hidden', name !== 'login' && name !== 'register');
     clearError();
   }
 
@@ -160,16 +170,64 @@ const Auth = (() => {
     }
   }
 
+  async function handleForgot() {
+    clearError();
+    const email = $('forgotEmail').value.trim();
+    if (!email) {
+      setError('Въведи имейла си.');
+      return;
+    }
+    try {
+      await forgotPassword(email);
+      pendingResetEmail = email;
+      showForm('reset');
+      setError('Ако имейлът е свързан с акаунт, изпратихме код.');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleReset() {
+    clearError();
+    const code = $('resetCode').value.trim();
+    const password = $('resetPassword').value;
+    if (!pendingResetEmail || !code || !password) {
+      setError('Попълни кода и новата парола.');
+      return;
+    }
+    try {
+      await resetPassword(pendingResetEmail, code, password);
+      pendingResetEmail = null;
+      $('loginEmail').value = '';
+      showForm('login');
+      setError('Паролата е сменена — вече можеш да влезеш с новата.');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleResendReset() {
+    if (!pendingResetEmail) return;
+    clearError();
+    try {
+      await forgotPassword(pendingResetEmail);
+      setError('Изпратихме нов код.');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   function handleLogout() {
     logout();
   }
 
   function resetFormsOnLogout(e) {
     if (e.detail.loggedIn) return;
-    ['loginForm', 'registerForm', 'verifyForm'].forEach(id => {
+    ['loginForm', 'registerForm', 'verifyForm', 'forgotForm', 'resetForm'].forEach(id => {
       $(id).querySelectorAll('input').forEach(i => { i.value = ''; });
     });
     pendingVerifyEmail = null;
+    pendingResetEmail = null;
     showForm('login');
   }
 
@@ -180,11 +238,16 @@ const Auth = (() => {
 
     $('showRegister').addEventListener('click', e => { e.preventDefault(); showForm('register'); });
     $('showLogin').addEventListener('click', e => { e.preventDefault(); showForm('login'); });
+    $('showForgot').addEventListener('click', e => { e.preventDefault(); showForm('forgot'); });
+    $('showLoginFromForgot').addEventListener('click', e => { e.preventDefault(); showForm('login'); });
     $('resendCodeLink').addEventListener('click', e => { e.preventDefault(); handleResend(); });
+    $('resendResetLink').addEventListener('click', e => { e.preventDefault(); handleResendReset(); });
 
     $('loginBtn').addEventListener('click', handleLogin);
     $('registerBtn').addEventListener('click', handleRegister);
     $('verifyBtn').addEventListener('click', handleVerify);
+    $('forgotBtn').addEventListener('click', handleForgot);
+    $('resetBtn').addEventListener('click', handleReset);
     $('logoutBtn').addEventListener('click', handleLogout);
   }
 
