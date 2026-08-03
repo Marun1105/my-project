@@ -21,6 +21,7 @@
     <span class="tagline">Climb your way to success</span>
   </div>
   <div class="header-actions">
+    <span id="focusBadge" class="user-badge hidden">🎥 Фокус сесия тече</span>
     <span id="userBadge" class="user-badge hidden">
       <span id="userName"></span>
       <button id="logoutBtn" class="logout-btn" type="button">Изход</button>
@@ -33,6 +34,7 @@
   <button class="tab active" data-view="tutor">Учител</button>
   <button class="tab" data-view="checklist">Чеклист</button>
   <button class="tab" data-view="history">История</button>
+  <button class="tab" data-view="focus">Фокус</button>
 </nav>
 
 <main id="view-tutor" class="view">
@@ -187,6 +189,53 @@
 
 </main>
 
+<main id="view-focus" class="view hidden">
+
+  <div class="explainer">
+    <strong>Как работи фокус камерата:</strong> следи тихо колко време си на бюрото, докато учиш. Не те прекъсва и не те подсеща по време на сесията — само брои. Разпознаването става изцяло на твоето устройство — снимки никога не се качват никъде и не се пазят.
+  </div>
+
+  <div class="focus-toggle-row">
+    <label class="switch">
+      <input type="checkbox" id="focusEnableToggle">
+      <span class="switch-track"></span>
+    </label>
+    <span id="focusToggleLabel">Фокус камерата е изключена</span>
+  </div>
+
+  <p id="focusOff" class="hint">Включи превключвателя отгоре, за да пробваш. Изцяло по избор — много ученици предпочитат да учат без камера, и това е напълно наред.</p>
+
+  <div id="focusIdle" class="focus-stage hidden">
+    <div class="controls">
+      <button id="focusStartBtn" class="btn-primary" type="button">Започни сесия</button>
+    </div>
+  </div>
+
+  <div id="focusLoading" class="focus-stage hidden">
+    <p class="hint">Подготвям камерата…</p>
+  </div>
+
+  <div id="focusRunning" class="focus-stage hidden">
+    <div class="focus-preview">
+      <video id="focusVideo" autoplay playsinline muted></video>
+    </div>
+    <p class="focus-status">Сесията тече — работи спокойно, ще преброя вместо теб.</p>
+    <div class="controls">
+      <button id="focusStopBtn" class="btn-ghost" type="button">Приключи сесията</button>
+    </div>
+  </div>
+
+  <div id="focusSummary" class="hidden">
+    <div id="focusSummaryCard" class="answer"></div>
+    <div class="controls" style="margin-top: 14px;">
+      <button id="focusAgainBtn" class="btn-primary" type="button">Нова сесия</button>
+    </div>
+  </div>
+
+  <p id="focusError" class="hint auth-error hidden"></p>
+
+</main>
+
 <!-- opencv.js прави разпознаването на ръбове и изправянето на страницата в браузъра -->
 <script async src="https://docs.opencv.org/4.10.0/opencv.js" onload="onCvReady()"></script>
 <!-- marked превръща Markdown отговора в четимо форматиране -->
@@ -194,6 +243,8 @@
 <!-- KaTeX оформя математическите формули между $...$ и $$...$$ -->
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<!-- face-api.js разпознава дали има лице в кадъра — изцяло в браузъра, снимката никога не напуска устройството -->
+<script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
 
 <!-- скрити работни canvas-и, ползвани от scanner.js -->
 <canvas id="capture" class="hidden"></canvas>
@@ -207,5 +258,6 @@
 <script src="checklist.js"></script>
 <script src="ai-planner.js"></script>
 <script src="history.js"></script>
+<script src="focus.js"></script>
 </body>
 </html>
