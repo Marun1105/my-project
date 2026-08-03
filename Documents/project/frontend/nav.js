@@ -7,6 +7,7 @@
     document.querySelectorAll('.tab').forEach(el => {
       el.classList.toggle('active', el.dataset.view === view);
     });
+    window.dispatchEvent(new CustomEvent('climby:view-shown', { detail: { view } }));
   }
 
   function init() {

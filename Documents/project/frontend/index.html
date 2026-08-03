@@ -27,6 +27,7 @@
 <nav class="tabs">
   <button class="tab active" data-view="tutor">Учител</button>
   <button class="tab" data-view="checklist">Чеклист</button>
+  <button class="tab" data-view="history">История</button>
 </nav>
 
 <main id="view-tutor" class="view">
@@ -160,6 +161,27 @@
 
 </main>
 
+<main id="view-history" class="view hidden">
+
+  <div id="historyGate" class="auth-gate">
+    <div class="explainer">
+      <strong>Защо трябва да влезеш:</strong> историята пази какво вече си свършил, в акаунта ти.
+    </div>
+    <div class="controls">
+      <button id="goToChecklistBtn" class="btn-primary" type="button">Влез през чеклиста</button>
+    </div>
+  </div>
+
+  <div id="historyApp" class="hidden">
+    <div class="explainer">
+      <strong>Тук е всичко, което вече си свършил.</strong> Виждаш кога си го добавил, какъв е бил срокът и дали си успял навреме.
+    </div>
+    <ul id="historyList" class="task-list"></ul>
+    <p id="historyEmpty" class="hint">Още нямаш довършени задачи — довърши нещо от чеклиста и ще се появи тук.</p>
+  </div>
+
+</main>
+
 <!-- opencv.js прави разпознаването на ръбове и изправянето на страницата в браузъра -->
 <script async src="https://docs.opencv.org/4.10.0/opencv.js" onload="onCvReady()"></script>
 <!-- marked превръща Markdown отговора в четимо форматиране -->
@@ -179,5 +201,6 @@
 <script src="auth.js"></script>
 <script src="checklist.js"></script>
 <script src="ai-planner.js"></script>
+<script src="history.js"></script>
 </body>
 </html>

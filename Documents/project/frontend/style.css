@@ -383,6 +383,12 @@ button:disabled { opacity: 0.4; cursor: default; }
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px 16px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.task-completing {
+  opacity: 0;
+  transform: scale(0.97) translateX(6px);
+  border-color: var(--accent);
 }
 .task-done { opacity: 0.55; }
 .task-done .task-text { text-decoration: line-through; }

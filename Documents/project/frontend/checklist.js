@@ -33,19 +33,24 @@ const Checklist = (() => {
     return 'Нещо се обърка. Опитай пак.';
   }
 
+  function _announceChange(result) {
+    window.dispatchEvent(new CustomEvent('climby:tasks-changed'));
+    return result;
+  }
+
   function addTask(text, subject, deadline) {
     return api('/tasks', {
       method: 'POST',
       body: JSON.stringify({ text, subject: subject || null, deadline: deadline || null }),
-    });
+    }).then(_announceChange);
   }
 
   function setDone(id, done) {
-    return api(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ done }) });
+    return api(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ done }) }).then(_announceChange);
   }
 
   function removeTask(id) {
-    return api(`/tasks/${id}`, { method: 'DELETE' });
+    return api(`/tasks/${id}`, { method: 'DELETE' }).then(_announceChange);
   }
 
   // всички задачи, необходими на AI помощника за плана — само неотметнатите
@@ -77,7 +82,7 @@ const Checklist = (() => {
   function buildTaskItem(t) {
     const dl = deadlineLabel(t.deadline);
     const li = document.createElement('li');
-    li.className = 'task' + (t.done ? ' task-done' : '');
+    li.className = 'task';
 
     const check = document.createElement('label');
     check.className = 'task-check';
@@ -85,7 +90,13 @@ const Checklist = (() => {
     checkbox.type = 'checkbox';
     checkbox.checked = t.done;
     checkbox.addEventListener('change', () => {
-      setDone(t.id, checkbox.checked).then(render).catch(showListError);
+      if (checkbox.checked) {
+        // кратка анимация, после задачата "заминава" към Историята (render идва от climby:tasks-changed)
+        li.classList.add('task-completing');
+        setTimeout(() => setDone(t.id, true).catch(showListError), 320);
+      } else {
+        setDone(t.id, false).catch(showListError);
+      }
     });
     check.appendChild(checkbox);
 
@@ -115,7 +126,7 @@ const Checklist = (() => {
     del.setAttribute('aria-label', 'Изтрий задачата');
     del.textContent = '✕';
     del.addEventListener('click', () => {
-      removeTask(t.id).then(render).catch(showListError);
+      removeTask(t.id).catch(showListError);
     });
 
     li.appendChild(check);
@@ -136,22 +147,26 @@ const Checklist = (() => {
     const list = $('taskList');
     const empty = $('taskEmpty');
 
-    let tasks;
+    let allTasks;
     try {
-      tasks = await api('/tasks');
+      allTasks = await api('/tasks');
     } catch (err) {
       showListError(err);
       return;
     }
 
+    const pending = allTasks.filter(t => !t.done);
     list.innerHTML = '';
-    if (tasks.length === 0) {
-      empty.textContent = 'Няма добавени задачи още — добави първата отгоре.';
+
+    if (pending.length === 0) {
+      empty.textContent = allTasks.length === 0
+        ? 'Няма добавени задачи още — добави първата отгоре.'
+        : 'Всичко е отметнато — чисто небе! Виж „История“, за да видиш какво си свършил.';
       empty.classList.remove('hidden');
       return;
     }
     empty.classList.add('hidden');
-    for (const t of tasks) list.appendChild(buildTaskItem(t));
+    for (const t of pending) list.appendChild(buildTaskItem(t));
   }
 
   async function handleAdd(e) {
@@ -162,7 +177,6 @@ const Checklist = (() => {
       await addTask(text, $('taskSubject').value.trim(), $('taskDeadline').value);
       $('taskForm').reset();
       $('taskText').focus();
-      await render();
     } catch (err) {
       showListError(err);
     }
@@ -178,6 +192,7 @@ const Checklist = (() => {
   function init() {
     $('taskForm').addEventListener('submit', handleAdd);
     window.addEventListener('climby:auth-changed', updateGate);
+    window.addEventListener('climby:tasks-changed', render);
     updateGate();
   }
 
