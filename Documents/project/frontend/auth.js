@@ -36,7 +36,7 @@ const Auth = (() => {
         body: JSON.stringify(body),
       });
     } catch {
-      throw new Error('Не успях да се свържа със сървъра. Провери интернета си и опитай пак.');
+      throw new Error(t('auth.errOffline'));
     }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(_errorMessage(data.detail));
@@ -46,7 +46,7 @@ const Auth = (() => {
   function _errorMessage(detail) {
     if (typeof detail === 'string' && detail) return detail;
     if (Array.isArray(detail) && detail.length) return detail.map(d => d.msg).join(' ');
-    return 'Нещо се обърка. Опитай пак.';
+    return t('auth.errGeneric');
   }
 
   async function register(displayName, email, password) {
@@ -117,7 +117,7 @@ const Auth = (() => {
     const email = $('registerEmail').value.trim();
     const password = $('registerPassword').value;
     if (!name || !email || !password) {
-      setError('Попълни всички полета, за да продължиш.');
+      setError(t('auth.errFillAll'));
       return;
     }
     try {
@@ -134,7 +134,7 @@ const Auth = (() => {
     const email = $('loginEmail').value.trim();
     const password = $('loginPassword').value;
     if (!email || !password) {
-      setError('Попълни имейл и парола.');
+      setError(t('auth.errFillLogin'));
       return;
     }
     try {
@@ -148,7 +148,7 @@ const Auth = (() => {
     clearError();
     const code = $('verifyCode').value.trim();
     if (!code || !pendingVerifyEmail) {
-      setError('Въведи кода от имейла си.');
+      setError(t('auth.errEnterCode'));
       return;
     }
     try {
@@ -164,7 +164,7 @@ const Auth = (() => {
     clearError();
     try {
       await resendCode(pendingVerifyEmail);
-      setError('Изпратихме нов код — провери пощата си.');
+      setError(t('auth.newCodeSent'));
     } catch (err) {
       setError(err.message);
     }
@@ -174,14 +174,14 @@ const Auth = (() => {
     clearError();
     const email = $('forgotEmail').value.trim();
     if (!email) {
-      setError('Въведи имейла си.');
+      setError(t('auth.errEnterEmail'));
       return;
     }
     try {
       await forgotPassword(email);
       pendingResetEmail = email;
       showForm('reset');
-      setError('Ако имейлът е свързан с акаунт, изпратихме код.');
+      setError(t('auth.resetCodeSentMaybe'));
     } catch (err) {
       setError(err.message);
     }
@@ -192,7 +192,7 @@ const Auth = (() => {
     const code = $('resetCode').value.trim();
     const password = $('resetPassword').value;
     if (!pendingResetEmail || !code || !password) {
-      setError('Попълни кода и новата парола.');
+      setError(t('auth.errFillReset'));
       return;
     }
     try {
@@ -200,7 +200,7 @@ const Auth = (() => {
       pendingResetEmail = null;
       $('loginEmail').value = '';
       showForm('login');
-      setError('Паролата е сменена — вече можеш да влезеш с новата.');
+      setError(t('auth.passwordChanged'));
     } catch (err) {
       setError(err.message);
     }
@@ -211,7 +211,7 @@ const Auth = (() => {
     clearError();
     try {
       await forgotPassword(pendingResetEmail);
-      setError('Изпратихме нов код.');
+      setError(t('auth.resetCodeSent'));
     } catch (err) {
       setError(err.message);
     }

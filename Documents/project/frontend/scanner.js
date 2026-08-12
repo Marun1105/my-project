@@ -25,8 +25,7 @@ const Scanner = (() => {
       $('stage').classList.remove('hidden');
       $('controls').classList.remove('hidden');
     } catch (err) {
-      $('splash').querySelector('.loading-text').textContent =
-        'Няма достъп до камерата. Провери разрешенията в браузъра — можеш и да качиш снимка вместо това.';
+      $('splash').querySelector('.loading-text').textContent = t('scanner.noCameraAccess');
     }
   }
 
@@ -121,7 +120,7 @@ const Scanner = (() => {
     $('shootBtn').classList.add('hidden');
     $('retakeBtn').classList.remove('hidden');
     $('useBtn').classList.remove('hidden');
-    showStatus('Снимката е качена ✓');
+    showStatus(t('scanner.uploaded'));
   }
 
   function capture() {
@@ -141,15 +140,15 @@ const Scanner = (() => {
         cv.imshow(out, warped);
         resultDataUrl = out.toDataURL('image/jpeg', 0.9);
         warped.delete();
-        showStatus('Намерих страницата и я изправих ✓');
+        showStatus(t('scanner.foundEdges'));
       } else {
         resultDataUrl = cap.toDataURL('image/jpeg', 0.9);
-        showStatus('Не намерих ясни ръбове — използвам цялата снимка');
+        showStatus(t('scanner.noEdges'));
       }
       src.delete();
     } else {
       resultDataUrl = cap.toDataURL('image/jpeg', 0.9);
-      showStatus('Готово');
+      showStatus(t('scanner.ready'));
     }
 
     $('video').classList.add('hidden');

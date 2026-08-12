@@ -21,14 +21,14 @@ const Planner = (() => {
     const el = $('planAdvice');
     el.classList.remove('hidden', 'error');
     el.classList.add('thinking');
-    el.textContent = 'Мисля как да ти помогна…';
+    el.textContent = t('checklist.planThinking');
 
     try {
       const tasks = await Checklist.getPendingTasks();
       const res = await fetch(BACKEND + '/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tasks }),
+        body: JSON.stringify({ tasks, lang: I18n.get() }),
       });
       if (!res.ok) throw new Error('bad status');
       const data = await res.json();
@@ -36,10 +36,10 @@ const Planner = (() => {
       if (data.advice) {
         renderAdvice(data.advice);
       } else {
-        showError('Не се получи съвет — опитай пак след малко.');
+        showError(t('checklist.planErrEmpty'));
       }
     } catch (err) {
-      showError('Не успях да се свържа със сървъра. Провери интернета си и опитай пак — нищо не е загубено.');
+      showError(t('checklist.planErrOffline'));
     }
   }
 

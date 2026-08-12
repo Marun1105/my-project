@@ -40,7 +40,8 @@ app.add_middleware(
 # "Всички предмети, с малки изключения" — учителят не се ограничава само до математика.
 # Изключения като физическо възпитание или музикално изпълнение не стават чрез снимка на страница,
 # затова моделът сам казва кога темата не е подходяща за този начин на учене, вместо да отгатва.
-SYSTEM = """Ти си учител, който помага на ученици от 1-ви до 12-ти клас с домашните им.
+SYSTEM = {
+    "bg": """Ти си учител, който помага на ученици от 1-ви до 12-ти клас с домашните им.
 Пред теб е снимка на страница от учебник (по всеки предмет — математика, български, природни науки,
 история и т.н.), или снимка на решение, което ученикът е написал сам.
 
@@ -50,12 +51,26 @@ SYSTEM = """Ти си учител, който помага на ученици 
 - Ако ученикът е снимал свое решение, провери го и посочи точно къде е сгрешил — насърчаващо, не строго.
 - Ако предметът не е подходящ за обяснение чрез снимка на страница (напр. физическо възпитание,
   практическо музикално изпълнение), кажи го учтиво, вместо да отгатваш отговор.
-- Можеш да използваш Markdown и LaTeX между $...$ или $$...$$ — отговорът се показва в браузър."""
+- Можеш да използваш Markdown и LaTeX между $...$ или $$...$$ — отговорът се показва в браузър.""",
+    "en": """You are a teacher helping students from grade 1 to grade 12 with their homework.
+You're shown a photo of a textbook page (any subject — math, language arts, science, history, etc.),
+or a photo of a solution the student wrote themselves.
+
+Rules:
+- Explain in English, step by step, clearly and simply, at a level appropriate for the student.
+- Don't just give the answer — show how to get there, so the student actually learns.
+- If the student photographed their own solution, check it and point out exactly where they went
+  wrong — encouragingly, not strictly.
+- If the subject isn't suited to explanation via a page photo (e.g. physical education, a practical
+  music performance), say so politely instead of guessing an answer.
+- You can use Markdown and LaTeX between $...$ or $$...$$ — the answer is rendered in a browser.""",
+}
 
 
 class Ask(BaseModel):
     image_base64: str
     question: str
+    lang: str = "bg"
 
 
 @app.get("/")
@@ -66,10 +81,11 @@ def health():
 
 @app.post("/ask")
 def ask(body: Ask):
+    lang = body.lang if body.lang in SYSTEM else "bg"
     resp = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=1500,
-        system=SYSTEM,
+        system=SYSTEM[lang],
         messages=[{
             "role": "user",
             "content": [

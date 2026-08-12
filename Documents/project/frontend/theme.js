@@ -8,7 +8,7 @@ const Theme = (() => {
     const btn = document.getElementById('themeToggle');
     if (!btn) return;
     btn.textContent = theme === 'light' ? '🌙' : '☀️';
-    btn.setAttribute('aria-label', theme === 'light' ? 'Включи тъмна тема' : 'Включи светла тема');
+    btn.setAttribute('aria-label', window.t ? window.t(theme === 'light' ? 'theme.toDark' : 'theme.toLight') : '');
   }
 
   function toggle() {
@@ -22,6 +22,9 @@ const Theme = (() => {
     apply(localStorage.getItem(KEY) === 'light' ? 'light' : 'dark');
     const btn = document.getElementById('themeToggle');
     if (btn) btn.addEventListener('click', toggle);
+    window.addEventListener('climby:lang-changed', () => {
+      apply(root.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+    });
   }
 
   return { init };

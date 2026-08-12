@@ -15,33 +15,57 @@
 </head>
 <body>
 
-<header class="app-header">
-  <div class="brand">
-    <span class="name">Climby</span>
-    <span class="tagline">Climb your way to success</span>
-  </div>
-  <div class="header-actions">
-    <span id="focusBadge" class="user-badge hidden">🎥 Фокус сесия тече</span>
-    <span id="userBadge" class="user-badge hidden">
-      <span id="userName"></span>
-      <button id="logoutBtn" class="logout-btn" type="button">Изход</button>
-    </span>
-    <button id="themeToggle" class="theme-toggle" aria-label="Смени темата">☀️</button>
-  </div>
-</header>
+<div class="app-shell">
 
-<nav class="tabs">
-  <button class="tab active" data-view="tutor">Учител</button>
-  <button class="tab" data-view="checklist">Чеклист</button>
-  <button class="tab" data-view="history">История</button>
-  <button class="tab" data-view="focus">Фокус</button>
-</nav>
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-brand">
+      <img src="logo.png" alt="" class="sidebar-logo">
+      <div class="brand">
+        <span class="name">Climby</span>
+        <span class="tagline">Climb your way to success</span>
+      </div>
+    </div>
+
+    <nav class="side-nav">
+      <button class="nav-link active" data-view="tutor" data-i18n="nav.tutor">Учител</button>
+      <button class="nav-link" data-view="checklist" data-i18n="nav.checklist">Чеклист</button>
+      <button class="nav-link" data-view="history" data-i18n="nav.history">История</button>
+      <button class="nav-link" data-view="focus" data-i18n="nav.focus">Фокус</button>
+    </nav>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="sidebar-user">
+      <span id="focusBadge" class="user-badge hidden">🎥 <span data-i18n="focus.badge">Фокус сесия тече</span></span>
+      <span id="userBadge" class="user-badge hidden">
+        <span id="userName"></span>
+        <button id="logoutBtn" class="logout-btn" type="button" data-i18n="auth.logout">Изход</button>
+      </span>
+    </div>
+
+    <div class="sidebar-settings">
+      <select id="langSelect" class="lang-select" aria-label="Language / Език">
+        <option value="bg">Български</option>
+        <option value="en">English</option>
+      </select>
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Смени темата">☀️</button>
+    </div>
+  </aside>
+
+  <div id="sidebarOverlay" class="sidebar-overlay hidden"></div>
+
+  <div class="main-area">
+
+    <header class="mobile-bar">
+      <button id="menuToggle" class="menu-toggle" type="button" data-i18n-aria="menu.open" aria-label="Отвори менюто">☰</button>
+      <span class="mobile-brand">Climby</span>
+    </header>
 
 <main id="view-tutor" class="view">
 
 <div id="splash" class="splash">
   <img src="logo.png" alt="Climby лого">
-  <p class="loading-text">Зарежда камерата…</p>
+  <p class="loading-text" data-i18n="scanner.loadingCamera">Зарежда камерата…</p>
 </div>
 
 <div id="stage" class="stage hidden">
@@ -51,23 +75,23 @@
 </div>
 
 <div id="controls" class="controls hidden">
-  <button id="shootBtn" class="btn-primary">Снимай</button>
-  <button id="retakeBtn" class="btn-ghost hidden">Снимай пак</button>
-  <button id="useBtn" class="btn-primary hidden">Използвай тази</button>
+  <button id="shootBtn" class="btn-primary" data-i18n="scanner.shootBtn">Снимай</button>
+  <button id="retakeBtn" class="btn-ghost hidden" data-i18n="scanner.retakeBtn">Снимай пак</button>
+  <button id="useBtn" class="btn-primary hidden" data-i18n="scanner.useBtn">Използвай тази</button>
 </div>
 
 <div class="controls" style="margin-top: 10px;">
-  <button id="uploadBtn" class="btn-ghost" type="button" onclick="document.getElementById('uploadInput').click()">Качи снимка от файл</button>
+  <button id="uploadBtn" class="btn-ghost" type="button" data-i18n="scanner.uploadBtn" onclick="document.getElementById('uploadInput').click()">Качи снимка от файл</button>
   <input id="uploadInput" type="file" accept="image/*" class="hidden">
 </div>
 
-<p class="hint">Постави страницата така, че да се вижда цялата. Скенерът намира ръбовете и я изправя автоматично — ако не успее, ползва цялата снимка, без да спира работата ти.</p>
+<p class="hint" data-i18n="scanner.hint">Постави страницата така, че да се вижда цялата. Скенерът намира ръбовете и я изправя автоматично — ако не успее, ползва цялата снимка, без да спира работата ти.</p>
 
 <div id="qa" class="qa hidden">
-  <label for="question">Питай нещо за страницата</label>
-  <textarea id="question" placeholder="Напр. „Как се решава задача 5?“ или „Провери решението ми“"></textarea>
+  <label for="question" data-i18n="scanner.questionLabel">Питай нещо за страницата</label>
+  <textarea id="question" data-i18n-placeholder="scanner.questionPlaceholder" placeholder="Напр. „Как се решава задача 5?“ или „Провери решението ми“"></textarea>
   <div class="controls" style="margin-top: 12px;">
-    <button id="askBtn" class="btn-primary">Питай</button>
+    <button id="askBtn" class="btn-primary" data-i18n="scanner.askBtn">Питай</button>
   </div>
 </div>
 
@@ -79,54 +103,54 @@
 
   <div id="authGate" class="auth-gate">
     <div id="authIntro" class="explainer">
-      <strong>Защо трябва да влезеш:</strong> чеклистът пази задачите ти в акаунт, за да ги виждаш от всяко устройство.
+      <strong data-i18n="auth.why">Защо трябва да влезеш:</strong> <span data-i18n="auth.whyBodyChecklist">чеклистът пази задачите ти в акаунт, за да ги виждаш от всяко устройство.</span>
     </div>
 
     <div id="loginForm" class="task-form">
-      <label for="loginEmail">Имейл</label>
-      <input id="loginEmail" type="email" placeholder="ти@пример.com">
-      <label for="loginPassword">Парола</label>
-      <input id="loginPassword" type="password" placeholder="Парола">
-      <button id="loginBtn" class="btn-primary" type="button">Влез</button>
-      <p class="auth-switch">Нямаш акаунт? <a href="#" id="showRegister">Регистрирай се</a></p>
-      <p class="auth-switch"><a href="#" id="showForgot">Забравена парола?</a></p>
+      <label for="loginEmail" data-i18n="auth.email">Имейл</label>
+      <input id="loginEmail" type="email" data-i18n-placeholder="auth.emailPlaceholder" placeholder="ти@пример.com">
+      <label for="loginPassword" data-i18n="auth.password">Парола</label>
+      <input id="loginPassword" type="password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Парола">
+      <button id="loginBtn" class="btn-primary" type="button" data-i18n="auth.loginBtn">Влез</button>
+      <p class="auth-switch"><span data-i18n="auth.noAccount">Нямаш акаунт?</span> <a href="#" id="showRegister" data-i18n="auth.registerLink">Регистрирай се</a></p>
+      <p class="auth-switch"><a href="#" id="showForgot" data-i18n="auth.forgotLink">Забравена парола?</a></p>
     </div>
 
     <div id="registerForm" class="task-form hidden">
-      <label for="registerName">Как да те наричаме?</label>
-      <input id="registerName" type="text" placeholder="Име">
-      <label for="registerEmail">Имейл</label>
-      <input id="registerEmail" type="email" placeholder="ти@пример.com">
-      <label for="registerPassword">Парола</label>
-      <input id="registerPassword" type="password" placeholder="Поне 8 символа">
-      <button id="registerBtn" class="btn-primary" type="button">Регистрирай се</button>
-      <p class="auth-switch">Вече имаш акаунт? <a href="#" id="showLogin">Влез</a></p>
+      <label for="registerName" data-i18n="auth.nameLabel">Как да те наричаме?</label>
+      <input id="registerName" type="text" data-i18n-placeholder="auth.namePlaceholder" placeholder="Име">
+      <label for="registerEmail" data-i18n="auth.email">Имейл</label>
+      <input id="registerEmail" type="email" data-i18n-placeholder="auth.emailPlaceholder" placeholder="ти@пример.com">
+      <label for="registerPassword" data-i18n="auth.password">Парола</label>
+      <input id="registerPassword" type="password" data-i18n-placeholder="auth.passwordHintPlaceholder" placeholder="Поне 8 символа">
+      <button id="registerBtn" class="btn-primary" type="button" data-i18n="auth.registerBtn">Регистрирай се</button>
+      <p class="auth-switch"><span data-i18n="auth.haveAccount">Вече имаш акаунт?</span> <a href="#" id="showLogin" data-i18n="auth.loginLink">Влез</a></p>
     </div>
 
     <div id="verifyForm" class="task-form hidden">
-      <div class="explainer">Изпратихме ти код за потвърждение по имейл. Провери пощата си (и папка спам).</div>
-      <label for="verifyCode">Код за потвърждение</label>
+      <div class="explainer" data-i18n="auth.verifyInfo">Изпратихме ти код за потвърждение по имейл. Провери пощата си (и папка спам).</div>
+      <label for="verifyCode" data-i18n="auth.codeLabel">Код за потвърждение</label>
       <input id="verifyCode" type="text" inputmode="numeric" placeholder="123456">
-      <button id="verifyBtn" class="btn-primary" type="button">Потвърди</button>
-      <p class="auth-switch"><a href="#" id="resendCodeLink">Изпрати нов код</a></p>
+      <button id="verifyBtn" class="btn-primary" type="button" data-i18n="auth.verifyBtn">Потвърди</button>
+      <p class="auth-switch"><a href="#" id="resendCodeLink" data-i18n="auth.resendCode">Изпрати нов код</a></p>
     </div>
 
     <div id="forgotForm" class="task-form hidden">
-      <div class="explainer">Няма страшно — случва се на всеки. Въведи имейла си и ще ти пратим код за нова парола.</div>
-      <label for="forgotEmail">Имейл</label>
-      <input id="forgotEmail" type="email" placeholder="ти@пример.com">
-      <button id="forgotBtn" class="btn-primary" type="button">Изпрати код</button>
-      <p class="auth-switch"><a href="#" id="showLoginFromForgot">Влез</a></p>
+      <div class="explainer" data-i18n="auth.forgotInfo">Няма страшно — случва се на всеки. Въведи имейла си и ще ти пратим код за нова парола.</div>
+      <label for="forgotEmail" data-i18n="auth.email">Имейл</label>
+      <input id="forgotEmail" type="email" data-i18n-placeholder="auth.emailPlaceholder" placeholder="ти@пример.com">
+      <button id="forgotBtn" class="btn-primary" type="button" data-i18n="auth.forgotBtn">Изпрати код</button>
+      <p class="auth-switch"><a href="#" id="showLoginFromForgot" data-i18n="auth.loginLink">Влез</a></p>
     </div>
 
     <div id="resetForm" class="task-form hidden">
-      <div class="explainer">Изпратихме код на имейла ти (ако има акаунт с него). Въведи го тук заедно с новата си парола.</div>
-      <label for="resetCode">Код</label>
+      <div class="explainer" data-i18n="auth.resetInfo">Изпратихме код на имейла ти (ако има акаунт с него). Въведи го тук заедно с новата си парола.</div>
+      <label for="resetCode" data-i18n="auth.resetCodeLabel">Код</label>
       <input id="resetCode" type="text" inputmode="numeric" placeholder="123456">
-      <label for="resetPassword">Нова парола</label>
-      <input id="resetPassword" type="password" placeholder="Поне 8 символа">
-      <button id="resetBtn" class="btn-primary" type="button">Смени паролата</button>
-      <p class="auth-switch"><a href="#" id="resendResetLink">Изпрати нов код</a></p>
+      <label for="resetPassword" data-i18n="auth.newPasswordLabel">Нова парола</label>
+      <input id="resetPassword" type="password" data-i18n-placeholder="auth.passwordHintPlaceholder" placeholder="Поне 8 символа">
+      <button id="resetBtn" class="btn-primary" type="button" data-i18n="auth.resetBtn">Смени паролата</button>
+      <p class="auth-switch"><a href="#" id="resendResetLink" data-i18n="auth.resendCode">Изпрати нов код</a></p>
     </div>
 
     <p id="authError" class="hint auth-error hidden"></p>
@@ -135,32 +159,32 @@
   <div id="checklistApp" class="hidden">
 
     <div class="explainer">
-      <strong>Как работи чеклистът:</strong> добавяш задача с предмет и срок. Най-спешните излизат най-отгоре. Отметни я, когато я довършиш.
+      <strong data-i18n="checklist.how">Как работи чеклистът:</strong> <span data-i18n="checklist.howBody">добавяш задача с предмет и срок. Най-спешните излизат най-отгоре. Отметни я, когато я довършиш.</span>
     </div>
 
     <form id="taskForm" class="task-form">
-      <label for="taskText">Задача</label>
-      <input id="taskText" type="text" placeholder="Напр. „Реши задачи 4–8, стр. 32“" required>
+      <label for="taskText" data-i18n="checklist.taskLabel">Задача</label>
+      <input id="taskText" type="text" data-i18n-placeholder="checklist.taskPlaceholder" placeholder="Напр. „Реши задачи 4–8, стр. 32“" required>
 
       <div class="task-form-row">
         <div>
-          <label for="taskSubject">Предмет</label>
-          <input id="taskSubject" type="text" placeholder="Напр. Математика">
+          <label for="taskSubject" data-i18n="checklist.subjectLabel">Предмет</label>
+          <input id="taskSubject" type="text" data-i18n-placeholder="checklist.subjectPlaceholder" placeholder="Напр. Математика">
         </div>
         <div>
-          <label for="taskDeadline">Срок</label>
+          <label for="taskDeadline" data-i18n="checklist.deadlineLabel">Срок</label>
           <input id="taskDeadline" type="date">
         </div>
       </div>
 
-      <button type="submit" class="btn-primary">Добави задача</button>
+      <button type="submit" class="btn-primary" data-i18n="checklist.addBtn">Добави задача</button>
     </form>
 
     <ul id="taskList" class="task-list"></ul>
-    <p id="taskEmpty" class="hint">Няма добавени задачи още — добави първата отгоре.</p>
+    <p id="taskEmpty" class="hint" data-i18n="checklist.emptyDefault">Няма добавени задачи още — добави първата отгоре.</p>
 
     <div class="controls" style="margin-top: 20px;">
-      <button id="planBtn" class="btn-ghost" type="button">Помощ за плана</button>
+      <button id="planBtn" class="btn-ghost" type="button" data-i18n="checklist.planBtn">Помощ за плана</button>
     </div>
     <div id="planAdvice" class="answer hidden"></div>
 
@@ -172,19 +196,19 @@
 
   <div id="historyGate" class="auth-gate">
     <div class="explainer">
-      <strong>Защо трябва да влезеш:</strong> историята пази какво вече си свършил, в акаунта ти.
+      <strong data-i18n="history.why">Защо трябва да влезеш:</strong> <span data-i18n="history.whyBody">историята пази какво вече си свършил, в акаунта ти.</span>
     </div>
     <div class="controls">
-      <button id="goToChecklistBtn" class="btn-primary" type="button">Влез през чеклиста</button>
+      <button id="goToChecklistBtn" class="btn-primary" type="button" data-i18n="history.goToChecklist">Влез през чеклиста</button>
     </div>
   </div>
 
   <div id="historyApp" class="hidden">
     <div class="explainer">
-      <strong>Тук е всичко, което вече си свършил.</strong> Виждаш кога си го добавил, какъв е бил срокът и дали си успял навреме.
+      <strong data-i18n="history.intro">Тук е всичко, което вече си свършил.</strong> <span data-i18n="history.introBody">Виждаш кога си го добавил, какъв е бил срокът и дали си успял навреме.</span>
     </div>
     <ul id="historyList" class="task-list"></ul>
-    <p id="historyEmpty" class="hint">Още нямаш довършени задачи — довърши нещо от чеклиста и ще се появи тук.</p>
+    <p id="historyEmpty" class="hint" data-i18n="history.emptyDefault">Още нямаш довършени задачи — довърши нещо от чеклиста и ще се появи тук.</p>
   </div>
 
 </main>
@@ -192,7 +216,7 @@
 <main id="view-focus" class="view hidden">
 
   <div class="explainer">
-    <strong>Как работи фокус камерата:</strong> следи тихо колко време си на бюрото, докато учиш. Не те прекъсва и не те подсеща по време на сесията — само брои. Разпознаването става изцяло на твоето устройство — снимки никога не се качват никъде и не се пазят.
+    <strong data-i18n="focus.how">Как работи фокус камерата:</strong> <span data-i18n="focus.howBody">следи тихо колко време си на бюрото, докато учиш. Не те прекъсва и не те подсеща по време на сесията — само брои. Разпознаването става изцяло на твоето устройство — снимки никога не се качват никъде и не се пазят.</span>
   </div>
 
   <div class="focus-toggle-row">
@@ -200,41 +224,44 @@
       <input type="checkbox" id="focusEnableToggle">
       <span class="switch-track"></span>
     </label>
-    <span id="focusToggleLabel">Фокус камерата е изключена</span>
+    <span id="focusToggleLabel" data-i18n="focus.offLabel">Фокус камерата е изключена</span>
   </div>
 
-  <p id="focusOff" class="hint">Включи превключвателя отгоре, за да пробваш. Изцяло по избор — много ученици предпочитат да учат без камера, и това е напълно наред.</p>
+  <p id="focusOff" class="hint" data-i18n="focus.offHint">Включи превключвателя отгоре, за да пробваш. Изцяло по избор — много ученици предпочитат да учат без камера, и това е напълно наред.</p>
 
   <div id="focusIdle" class="focus-stage hidden">
     <div class="controls">
-      <button id="focusStartBtn" class="btn-primary" type="button">Започни сесия</button>
+      <button id="focusStartBtn" class="btn-primary" type="button" data-i18n="focus.startBtn">Започни сесия</button>
     </div>
   </div>
 
   <div id="focusLoading" class="focus-stage hidden">
-    <p class="hint">Подготвям камерата…</p>
+    <p class="hint" data-i18n="focus.loading">Подготвям камерата…</p>
   </div>
 
   <div id="focusRunning" class="focus-stage hidden">
     <div class="focus-preview">
       <video id="focusVideo" autoplay playsinline muted></video>
     </div>
-    <p class="focus-status">Сесията тече — работи спокойно, ще преброя вместо теб.</p>
+    <p class="focus-status" data-i18n="focus.runningStatus">Сесията тече — работи спокойно, ще преброя вместо теб.</p>
     <div class="controls">
-      <button id="focusStopBtn" class="btn-ghost" type="button">Приключи сесията</button>
+      <button id="focusStopBtn" class="btn-ghost" type="button" data-i18n="focus.stopBtn">Приключи сесията</button>
     </div>
   </div>
 
   <div id="focusSummary" class="hidden">
     <div id="focusSummaryCard" class="answer"></div>
     <div class="controls" style="margin-top: 14px;">
-      <button id="focusAgainBtn" class="btn-primary" type="button">Нова сесия</button>
+      <button id="focusAgainBtn" class="btn-primary" type="button" data-i18n="focus.againBtn">Нова сесия</button>
     </div>
   </div>
 
   <p id="focusError" class="hint auth-error hidden"></p>
 
 </main>
+
+  </div>
+</div>
 
 <!-- opencv.js прави разпознаването на ръбове и изправянето на страницата в браузъра -->
 <script async src="https://docs.opencv.org/4.10.0/opencv.js" onload="onCvReady()"></script>
@@ -250,6 +277,7 @@
 <canvas id="capture" class="hidden"></canvas>
 <canvas id="output" class="hidden"></canvas>
 
+<script src="i18n.js"></script>
 <script src="theme.js"></script>
 <script src="nav.js"></script>
 <script src="scanner.js"></script>

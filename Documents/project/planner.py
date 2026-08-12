@@ -8,7 +8,8 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/plan", tags=["plan"])
 client = Anthropic()  # чете ANTHROPIC_API_KEY от средата
 
-SYSTEM = """Ти си вдъхновяващ помощник, който помага на ученик (1-12 клас) да организира домашните си.
+SYSTEM = {
+    "bg": """Ти си вдъхновяващ помощник, който помага на ученик (1-12 клас) да организира домашните си.
 Пред теб е списък със задачите на ученика: текст, предмет (ако е зададен) и срок (ако е зададен).
 
 Дай кратък, конкретен съвет:
@@ -17,7 +18,23 @@ SYSTEM = """Ти си вдъхновяващ помощник, който пом
 - Насърчаващ, топъл тон — никога строг или притеснен
 
 Пиши кратко (3-6 изречения), на български, директно към ученика (напр. "Започни с...", "Раздели...").
-Можеш да ползваш Markdown за структура (напр. списък), но без заглавия."""
+Можеш да ползваш Markdown за структура (напр. списък), но без заглавия.""",
+    "en": """You are an encouraging assistant helping a student (grades 1-12) organize their homework.
+You're given a list of the student's tasks: text, subject (if given), and deadline (if given).
+
+Give brief, concrete advice:
+- What to start with first and why (most urgent or biggest)
+- How to break a big task into smaller parts, if it looks large
+- Encouraging, warm tone — never strict or anxious
+
+Write briefly (3-6 sentences), in English, speaking directly to the student (e.g. "Start with...", "Break...").
+You can use Markdown for structure (e.g. a list), but no headings.""",
+}
+
+NO_TASKS_MESSAGE = {
+    "bg": "Няма чакащи задачи в чеклиста — добави някоя, за да получиш съвет как да я организираш.",
+    "en": "There are no pending tasks in the checklist — add one to get advice on how to organize it.",
+}
 
 
 class TaskIn(BaseModel):
@@ -28,28 +45,31 @@ class TaskIn(BaseModel):
 
 class PlanRequest(BaseModel):
     tasks: List[TaskIn]
+    lang: str = "bg"
 
 
 @router.post("")
 def plan(body: PlanRequest):
+    lang = body.lang if body.lang in SYSTEM else "bg"
+
     if not body.tasks:
-        return {"advice": "Няма чакащи задачи в чеклиста — добави някоя, за да получиш съвет как да я организираш."}
+        return {"advice": NO_TASKS_MESSAGE[lang]}
 
     lines = []
     for t in body.tasks:
         parts = [t.text]
         if t.subject:
-            parts.append(f"предмет: {t.subject}")
+            parts.append(f"subject: {t.subject}")
         if t.deadline:
-            parts.append(f"срок: {t.deadline}")
+            parts.append(f"deadline: {t.deadline}")
         lines.append("- " + ", ".join(parts))
     tasks_text = "\n".join(lines)
 
     resp = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=500,
-        system=SYSTEM,
-        messages=[{"role": "user", "content": f"Задачите ми:\n{tasks_text}"}],
+        system=SYSTEM[lang],
+        messages=[{"role": "user", "content": f"My tasks:\n{tasks_text}"}],
     )
     advice = "".join(b.text for b in resp.content if b.type == "text")
     return {"advice": advice}

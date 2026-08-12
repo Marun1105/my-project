@@ -40,13 +40,13 @@ const Tutor = (() => {
     const answerEl = $('answer');
     answerEl.classList.remove('hidden', 'error');
     answerEl.classList.add('thinking');
-    answerEl.textContent = 'Мисля…';
+    answerEl.textContent = t('scanner.thinking');
 
     try {
       const res = await fetch(BACKEND + '/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: scannedBase64, question }),
+        body: JSON.stringify({ image_base64: scannedBase64, question, lang: I18n.get() }),
       });
       if (!res.ok) throw new Error('bad status');
       const data = await res.json();
@@ -54,10 +54,10 @@ const Tutor = (() => {
       if (data.answer) {
         renderAnswer(data.answer);
       } else {
-        showError('Не се получи отговор — опитай да зададеш въпроса малко по-ясно.');
+        showError(t('scanner.errNoAnswer'));
       }
     } catch (err) {
-      showError('Не успях да се свържа със сървъра. Провери интернета си и опитай пак — нищо не е загубено.');
+      showError(t('scanner.errOffline'));
     }
   }
 

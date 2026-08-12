@@ -16,14 +16,14 @@ const History = (() => {
         },
       });
     } catch {
-      throw new Error('Не успях да се свържа със сървъра. Провери интернета си и опитай пак.');
+      throw new Error(t('history.errOffline'));
     }
     if (res.status === 401) {
       Auth.logout();
-      throw new Error('Сесията е изтекла. Влез отново.');
+      throw new Error(t('history.errSession'));
     }
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error('Нещо се обърка. Опитай пак.');
+    if (!res.ok) throw new Error(t('history.errGeneric'));
     return data;
   }
 
@@ -39,7 +39,7 @@ const History = (() => {
     return api(`/tasks/${id}`, { method: 'DELETE' }).then(_announceChange);
   }
 
-  function plural(n) { return n === 1 ? 'ден' : 'дни'; }
+  function plural(n) { return n === 1 ? t('history.dayOne') : t('history.dayMany'); }
 
   function toDateOnly(d) {
     const x = new Date(d);
@@ -53,21 +53,22 @@ const History = (() => {
 
   function relativeAgo(dateStr) {
     const n = daysBetween(new Date(dateStr), new Date());
-    if (n <= 0) return 'днес';
-    if (n === 1) return 'вчера';
-    return `преди ${n} ${plural(n)}`;
+    if (n <= 0) return t('history.today');
+    if (n === 1) return t('history.yesterday');
+    return t('history.daysAgo', { n, days: plural(n) });
   }
 
   function formatDate(dateStr) {
     const d = new Date(dateStr);
-    return d.toLocaleDateString('bg-BG', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const locale = I18n.get() === 'en' ? 'en-GB' : 'bg-BG';
+    return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
   function completionStatus(t) {
     if (!t.deadline || !t.completed_at) return null;
     const diff = daysBetween(t.deadline, t.completed_at);
-    if (diff <= 0) return { text: 'Довършена навреме', late: false };
-    return { text: `Довършена ${diff} ${plural(diff)} след срока`, late: true };
+    if (diff <= 0) return { text: window.t('history.doneOnTime'), late: false };
+    return { text: window.t('history.doneLate', { n: diff, days: plural(diff) }), late: true };
   }
 
   function buildHistoryItem(t) {
@@ -79,7 +80,7 @@ const History = (() => {
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = true;
-    checkbox.title = 'Върни в чеклиста';
+    checkbox.title = window.t('history.undoTitle');
     checkbox.addEventListener('change', () => {
       if (!checkbox.checked) {
         li.classList.add('task-completing');
@@ -104,7 +105,7 @@ const History = (() => {
     }
     const added = document.createElement('span');
     added.className = 'deadline';
-    added.textContent = `Добавена ${formatDate(t.created_at)}`;
+    added.textContent = window.t('history.addedOn', { date: formatDate(t.created_at) });
     meta.appendChild(added);
 
     const status = completionStatus(t);
@@ -117,7 +118,7 @@ const History = (() => {
     } else if (t.completed_at) {
       const doneEl = document.createElement('span');
       doneEl.className = 'deadline soon';
-      doneEl.textContent = `Довършена ${relativeAgo(t.completed_at)}`;
+      doneEl.textContent = window.t('history.doneAgo', { ago: relativeAgo(t.completed_at) });
       meta.appendChild(doneEl);
     }
 
@@ -127,7 +128,7 @@ const History = (() => {
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'task-delete';
-    del.setAttribute('aria-label', 'Премахни от историята');
+    del.setAttribute('aria-label', window.t('history.deleteAria'));
     del.textContent = '✕';
     del.addEventListener('click', () => {
       removeTask(t.id).catch(() => render());
@@ -145,7 +146,7 @@ const History = (() => {
     const empty = $('historyEmpty');
 
     if (!list.children.length) {
-      empty.textContent = 'Зареждам…';
+      empty.textContent = t('history.loading');
       empty.classList.remove('hidden');
     }
 
@@ -154,7 +155,7 @@ const History = (() => {
       tasks = await api('/tasks');
     } catch (err) {
       list.innerHTML = '';
-      empty.textContent = err.message || 'Не успях да заредя историята.';
+      empty.textContent = err.message || t('history.errLoad');
       empty.classList.remove('hidden');
       return;
     }
@@ -165,7 +166,7 @@ const History = (() => {
 
     list.innerHTML = '';
     if (done.length === 0) {
-      empty.textContent = 'Още нямаш довършени задачи — довърши нещо от чеклиста и ще се появи тук.';
+      empty.textContent = t('history.emptyDefault');
       empty.classList.remove('hidden');
       return;
     }
@@ -182,10 +183,11 @@ const History = (() => {
 
   function init() {
     $('goToChecklistBtn').addEventListener('click', () => {
-      document.querySelector('.tab[data-view="checklist"]').click();
+      document.querySelector('.nav-link[data-view="checklist"]').click();
     });
     window.addEventListener('climby:auth-changed', updateGate);
     window.addEventListener('climby:tasks-changed', render);
+    window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) render(); });
     window.addEventListener('climby:view-shown', e => {
       if (e.detail.view === 'history') updateGate();
     });

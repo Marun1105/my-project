@@ -16,11 +16,11 @@ const Checklist = (() => {
         },
       });
     } catch {
-      throw new Error('Не успях да се свържа със сървъра. Провери интернета си и опитай пак — нищо не е загубено.');
+      throw new Error(t('checklist.errOffline'));
     }
     if (res.status === 401) {
       Auth.logout();
-      throw new Error('Сесията е изтекла. Влез отново.');
+      throw new Error(t('checklist.errSession'));
     }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(_errorMessage(data.detail));
@@ -30,7 +30,7 @@ const Checklist = (() => {
   function _errorMessage(detail) {
     if (typeof detail === 'string' && detail) return detail;
     if (Array.isArray(detail) && detail.length) return detail.map(d => d.msg).join(' ');
-    return 'Нещо се обърка. Опитай пак.';
+    return t('checklist.errGeneric');
   }
 
   function _announceChange(result) {
@@ -68,15 +68,15 @@ const Checklist = (() => {
     return Math.round((due - today) / 86400000);
   }
 
-  function plural(n) { return n === 1 ? 'ден' : 'дни'; }
+  function plural(n) { return n === 1 ? t('checklist.dayOne') : t('checklist.dayMany'); }
 
   function deadlineLabel(dateStr) {
     const d = daysUntil(dateStr);
-    if (d === null) return { text: 'Без срок', overdue: false, soon: false };
-    if (d < 0) return { text: `Просрочено с ${Math.abs(d)} ${plural(Math.abs(d))}`, overdue: true, soon: false };
-    if (d === 0) return { text: 'Днес', overdue: false, soon: true };
-    if (d === 1) return { text: 'Утре', overdue: false, soon: true };
-    return { text: `След ${d} ${plural(d)}`, overdue: false, soon: false };
+    if (d === null) return { text: t('checklist.noDeadline'), overdue: false, soon: false };
+    if (d < 0) return { text: t('checklist.overdue', { n: Math.abs(d), days: plural(Math.abs(d)) }), overdue: true, soon: false };
+    if (d === 0) return { text: t('checklist.dueToday'), overdue: false, soon: true };
+    if (d === 1) return { text: t('checklist.dueTomorrow'), overdue: false, soon: true };
+    return { text: t('checklist.dueIn', { n: d, days: plural(d) }), overdue: false, soon: false };
   }
 
   function buildTaskItem(t) {
@@ -123,7 +123,7 @@ const Checklist = (() => {
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'task-delete';
-    del.setAttribute('aria-label', 'Изтрий задачата');
+    del.setAttribute('aria-label', window.t('checklist.deleteAria'));
     del.textContent = '✕';
     del.addEventListener('click', () => {
       removeTask(t.id).catch(showListError);
@@ -138,9 +138,11 @@ const Checklist = (() => {
   function showListError(err) {
     const empty = $('taskEmpty');
     $('taskList').innerHTML = '';
-    empty.textContent = err.message || 'Не успях да заредя задачите.';
+    empty.textContent = err.message || t('checklist.errLoad');
     empty.classList.remove('hidden');
   }
+
+  let lastTasks = null;
 
   async function render() {
     if (!Auth.isLoggedIn()) return;
@@ -148,7 +150,7 @@ const Checklist = (() => {
     const empty = $('taskEmpty');
 
     if (!list.children.length) {
-      empty.textContent = 'Зареждам…';
+      empty.textContent = t('checklist.loading');
       empty.classList.remove('hidden');
     }
 
@@ -159,14 +161,15 @@ const Checklist = (() => {
       showListError(err);
       return;
     }
+    lastTasks = allTasks;
 
     const pending = allTasks.filter(t => !t.done);
     list.innerHTML = '';
 
     if (pending.length === 0) {
       empty.textContent = allTasks.length === 0
-        ? 'Няма добавени задачи още — добави първата отгоре.'
-        : 'Всичко е отметнато — чисто небе! Виж „История“, за да видиш какво си свършил.';
+        ? t('checklist.emptyDefault')
+        : t('checklist.emptyAllDone');
       empty.classList.remove('hidden');
       return;
     }
@@ -198,6 +201,7 @@ const Checklist = (() => {
     $('taskForm').addEventListener('submit', handleAdd);
     window.addEventListener('climby:auth-changed', updateGate);
     window.addEventListener('climby:tasks-changed', render);
+    window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) render(); });
     updateGate();
   }
 

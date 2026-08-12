@@ -1,0 +1,340 @@
+// i18n.js — превод на интерфейса (засега български/английски). Пази избора между посещения
+// и казва на бекенда на какъв език да отговаря AI учителят/планерът (виж tutor.js, ai-planner.js).
+const I18n = (() => {
+  const KEY = 'climby-lang';
+
+  const STR = {
+    bg: {
+      'nav.tutor': 'Учител',
+      'nav.checklist': 'Чеклист',
+      'nav.history': 'История',
+      'nav.focus': 'Фокус',
+
+      'auth.logout': 'Изход',
+      'auth.why': 'Защо трябва да влезеш:',
+      'auth.whyBodyChecklist': 'чеклистът пази задачите ти в акаунт, за да ги виждаш от всяко устройство.',
+      'auth.email': 'Имейл',
+      'auth.emailPlaceholder': 'ти@пример.com',
+      'auth.password': 'Парола',
+      'auth.passwordPlaceholder': 'Парола',
+      'auth.loginBtn': 'Влез',
+      'auth.noAccount': 'Нямаш акаунт?',
+      'auth.registerLink': 'Регистрирай се',
+      'auth.forgotLink': 'Забравена парола?',
+      'auth.nameLabel': 'Как да те наричаме?',
+      'auth.namePlaceholder': 'Име',
+      'auth.passwordHintPlaceholder': 'Поне 8 символа',
+      'auth.registerBtn': 'Регистрирай се',
+      'auth.haveAccount': 'Вече имаш акаунт?',
+      'auth.loginLink': 'Влез',
+      'auth.verifyInfo': 'Изпратихме ти код за потвърждение по имейл. Провери пощата си (и папка спам).',
+      'auth.codeLabel': 'Код за потвърждение',
+      'auth.verifyBtn': 'Потвърди',
+      'auth.resendCode': 'Изпрати нов код',
+      'auth.forgotInfo': 'Няма страшно — случва се на всеки. Въведи имейла си и ще ти пратим код за нова парола.',
+      'auth.forgotBtn': 'Изпрати код',
+      'auth.resetInfo': 'Изпратихме код на имейла ти (ако има акаунт с него). Въведи го тук заедно с новата си парола.',
+      'auth.resetCodeLabel': 'Код',
+      'auth.newPasswordLabel': 'Нова парола',
+      'auth.resetBtn': 'Смени паролата',
+      'auth.errFillAll': 'Попълни всички полета, за да продължиш.',
+      'auth.errFillLogin': 'Попълни имейл и парола.',
+      'auth.errEnterCode': 'Въведи кода от имейла си.',
+      'auth.errEnterEmail': 'Въведи имейла си.',
+      'auth.errFillReset': 'Попълни кода и новата парола.',
+      'auth.errGeneric': 'Нещо се обърка. Опитай пак.',
+      'auth.errOffline': 'Не успях да се свържа със сървъра. Провери интернета си и опитай пак.',
+      'auth.newCodeSent': 'Изпратихме нов код — провери пощата си.',
+      'auth.resetCodeSentMaybe': 'Ако имейлът е свързан с акаунт, изпратихме код.',
+      'auth.resetCodeSent': 'Изпратихме нов код.',
+      'auth.passwordChanged': 'Паролата е сменена — вече можеш да влезеш с новата.',
+
+      'checklist.how': 'Как работи чеклистът:',
+      'checklist.howBody': 'добавяш задача с предмет и срок. Най-спешните излизат най-отгоре. Отметни я, когато я довършиш.',
+      'checklist.taskLabel': 'Задача',
+      'checklist.taskPlaceholder': 'Напр. „Реши задачи 4–8, стр. 32“',
+      'checklist.subjectLabel': 'Предмет',
+      'checklist.subjectPlaceholder': 'Напр. Математика',
+      'checklist.deadlineLabel': 'Срок',
+      'checklist.addBtn': 'Добави задача',
+      'checklist.emptyDefault': 'Няма добавени задачи още — добави първата отгоре.',
+      'checklist.emptyAllDone': 'Всичко е отметнато — чисто небе! Виж „История“, за да видиш какво си свършил.',
+      'checklist.loading': 'Зареждам…',
+      'checklist.errLoad': 'Не успях да заредя задачите.',
+      'checklist.planBtn': 'Помощ за плана',
+      'checklist.deleteAria': 'Изтрий задачата',
+      'checklist.errOffline': 'Не успях да се свържа със сървъра. Провери интернета си и опитай пак — нищо не е загубено.',
+      'checklist.errSession': 'Сесията е изтекла. Влез отново.',
+      'checklist.errGeneric': 'Нещо се обърка. Опитай пак.',
+      'checklist.planThinking': 'Мисля как да ти помогна…',
+      'checklist.planErrEmpty': 'Не се получи съвет — опитай пак след малко.',
+      'checklist.planErrOffline': 'Не успях да се свържа със сървъра. Провери интернета си и опитай пак — нищо не е загубено.',
+      'checklist.noDeadline': 'Без срок',
+      'checklist.overdue': 'Просрочено с {n} {days}',
+      'checklist.dueToday': 'Днес',
+      'checklist.dueTomorrow': 'Утре',
+      'checklist.dueIn': 'След {n} {days}',
+      'checklist.dayOne': 'ден',
+      'checklist.dayMany': 'дни',
+
+      'history.why': 'Защо трябва да влезеш:',
+      'history.whyBody': 'историята пази какво вече си свършил, в акаунта ти.',
+      'history.goToChecklist': 'Влез през чеклиста',
+      'history.intro': 'Тук е всичко, което вече си свършил.',
+      'history.introBody': 'Виждаш кога си го добавил, какъв е бил срокът и дали си успял навреме.',
+      'history.emptyDefault': 'Още нямаш довършени задачи — довърши нещо от чеклиста и ще се появи тук.',
+      'history.loading': 'Зареждам…',
+      'history.errLoad': 'Не успях да заредя историята.',
+      'history.errOffline': 'Не успях да се свържа със сървъра. Провери интернета си и опитай пак.',
+      'history.errSession': 'Сесията е изтекла. Влез отново.',
+      'history.errGeneric': 'Нещо се обърка. Опитай пак.',
+      'history.deleteAria': 'Премахни от историята',
+      'history.undoTitle': 'Върни в чеклиста',
+      'history.addedOn': 'Добавена {date}',
+      'history.doneOnTime': 'Довършена навреме',
+      'history.doneLate': 'Довършена {n} {days} след срока',
+      'history.doneAgo': 'Довършена {ago}',
+      'history.today': 'днес',
+      'history.yesterday': 'вчера',
+      'history.daysAgo': 'преди {n} {days}',
+      'history.dayOne': 'ден',
+      'history.dayMany': 'дни',
+
+      'focus.how': 'Как работи фокус камерата:',
+      'focus.howBody': 'следи тихо колко време си на бюрото, докато учиш. Не те прекъсва и не те подсеща по време на сесията — само брои. Разпознаването става изцяло на твоето устройство — снимки никога не се качват никъде и не се пазят.',
+      'focus.offLabel': 'Фокус камерата е изключена',
+      'focus.onLabel': 'Фокус камерата е включена',
+      'focus.offHint': 'Включи превключвателя отгоре, за да пробваш. Изцяло по избор — много ученици предпочитат да учат без камера, и това е напълно наред.',
+      'focus.startBtn': 'Започни сесия',
+      'focus.loading': 'Подготвям камерата…',
+      'focus.runningStatus': 'Сесията тече — работи спокойно, ще преброя вместо теб.',
+      'focus.stopBtn': 'Приключи сесията',
+      'focus.badge': 'Фокус сесия тече',
+      'focus.againBtn': 'Нова сесия',
+      'focus.errModelLoading': 'Разпознаването още се зарежда — изчакай малко и опитай пак.',
+      'focus.errNoCamera': 'Нямам достъп до камерата — провери разрешенията на браузъра и опитай пак.',
+      'focus.errModel': 'Не успях да заредя разпознаването. Провери интернета си и опитай пак.',
+      'focus.underMinute': 'под минута',
+      'focus.minuteOne': 'минута',
+      'focus.minuteMany': 'минути',
+      'focus.summaryShort': 'Работи {time}. Сесията беше твърде кратка, за да преброя точно — но всяко започване е крачка напред!',
+      'focus.summaryGreat': 'Страхотна сесия! Работи {time} и беше на бюрото си през по-голямата част от времето (~{pct}%). Продължавай все така.',
+      'focus.summaryGood': 'Работи {time}, от които около {pct}% на бюрото. Добро начало — следващия път пробвай по-кратки, съсредоточени части.',
+      'focus.summaryLow': 'Работи {time}. Изглежда е било трудно да останеш на бюрото днес (~{pct}% от времето) — това се случва на всеки. Следващия път пробвай кратка сесия от 10-15 минути, без да се притесняваш.',
+
+      'scanner.hint': 'Постави страницата така, че да се вижда цялата. Скенерът намира ръбовете и я изправя автоматично — ако не успее, ползва цялата снимка, без да спира работата ти.',
+      'scanner.uploadBtn': 'Качи снимка от файл',
+      'scanner.loadingCamera': 'Зарежда камерата…',
+      'scanner.noCameraAccess': 'Няма достъп до камерата. Провери разрешенията в браузъра — можеш и да качиш снимка вместо това.',
+      'scanner.shootBtn': 'Снимай',
+      'scanner.retakeBtn': 'Снимай пак',
+      'scanner.useBtn': 'Използвай тази',
+      'scanner.questionLabel': 'Питай нещо за страницата',
+      'scanner.questionPlaceholder': 'Напр. „Как се решава задача 5?“ или „Провери решението ми“',
+      'scanner.askBtn': 'Питай',
+      'scanner.uploaded': 'Снимката е качена ✓',
+      'scanner.foundEdges': 'Намерих страницата и я изправих ✓',
+      'scanner.noEdges': 'Не намерих ясни ръбове — използвам цялата снимка',
+      'scanner.ready': 'Готово',
+      'scanner.thinking': 'Мисля…',
+      'scanner.errNoAnswer': 'Не се получи отговор — опитай да зададеш въпроса малко по-ясно.',
+      'scanner.errOffline': 'Не успях да се свържа със сървъра. Провери интернета си и опитай пак — нищо не е загубено.',
+
+      'theme.toLight': 'Включи светла тема',
+      'theme.toDark': 'Включи тъмна тема',
+      'menu.open': 'Отвори менюто',
+      'menu.close': 'Затвори менюто',
+    },
+    en: {
+      'nav.tutor': 'Teacher',
+      'nav.checklist': 'Checklist',
+      'nav.history': 'History',
+      'nav.focus': 'Focus',
+
+      'auth.logout': 'Log out',
+      'auth.why': 'Why you need to log in:',
+      'auth.whyBodyChecklist': 'the checklist keeps your tasks in your account so you can see them from any device.',
+      'auth.email': 'Email',
+      'auth.emailPlaceholder': 'you@example.com',
+      'auth.password': 'Password',
+      'auth.passwordPlaceholder': 'Password',
+      'auth.loginBtn': 'Log in',
+      'auth.noAccount': "Don't have an account?",
+      'auth.registerLink': 'Sign up',
+      'auth.forgotLink': 'Forgot password?',
+      'auth.nameLabel': 'What should we call you?',
+      'auth.namePlaceholder': 'Name',
+      'auth.passwordHintPlaceholder': 'At least 8 characters',
+      'auth.registerBtn': 'Sign up',
+      'auth.haveAccount': 'Already have an account?',
+      'auth.loginLink': 'Log in',
+      'auth.verifyInfo': 'We sent you a confirmation code by email. Check your inbox (and spam folder).',
+      'auth.codeLabel': 'Confirmation code',
+      'auth.verifyBtn': 'Confirm',
+      'auth.resendCode': 'Send a new code',
+      'auth.forgotInfo': "No worries — it happens to everyone. Enter your email and we'll send you a code to reset your password.",
+      'auth.forgotBtn': 'Send code',
+      'auth.resetInfo': 'We sent a code to your email (if an account exists). Enter it below along with your new password.',
+      'auth.resetCodeLabel': 'Code',
+      'auth.newPasswordLabel': 'New password',
+      'auth.resetBtn': 'Change password',
+      'auth.errFillAll': 'Fill in all fields to continue.',
+      'auth.errFillLogin': 'Enter your email and password.',
+      'auth.errEnterCode': 'Enter the code from your email.',
+      'auth.errEnterEmail': 'Enter your email.',
+      'auth.errFillReset': 'Fill in the code and your new password.',
+      'auth.errGeneric': 'Something went wrong. Try again.',
+      'auth.errOffline': "Couldn't reach the server. Check your connection and try again.",
+      'auth.newCodeSent': 'We sent a new code — check your inbox.',
+      'auth.resetCodeSentMaybe': "If that email is linked to an account, we've sent a code.",
+      'auth.resetCodeSent': 'We sent a new code.',
+      'auth.passwordChanged': 'Password changed — you can log in with the new one now.',
+
+      'checklist.how': 'How the checklist works:',
+      'checklist.howBody': 'add a task with a subject and deadline. The most urgent ones show up first. Check it off when you finish it.',
+      'checklist.taskLabel': 'Task',
+      'checklist.taskPlaceholder': 'E.g. "Solve problems 4–8, p. 32"',
+      'checklist.subjectLabel': 'Subject',
+      'checklist.subjectPlaceholder': 'E.g. Math',
+      'checklist.deadlineLabel': 'Deadline',
+      'checklist.addBtn': 'Add task',
+      'checklist.emptyDefault': 'No tasks yet — add your first one above.',
+      'checklist.emptyAllDone': 'Everything is checked off — clear skies! Check "History" to see what you finished.',
+      'checklist.loading': 'Loading…',
+      'checklist.errLoad': "Couldn't load your tasks.",
+      'checklist.planBtn': 'Plan help',
+      'checklist.deleteAria': 'Delete task',
+      'checklist.errOffline': "Couldn't reach the server. Check your connection and try again — nothing was lost.",
+      'checklist.errSession': 'Your session expired. Log in again.',
+      'checklist.errGeneric': 'Something went wrong. Try again.',
+      'checklist.planThinking': 'Thinking about how to help…',
+      'checklist.planErrEmpty': "Couldn't get advice — try again shortly.",
+      'checklist.planErrOffline': "Couldn't reach the server. Check your connection and try again — nothing was lost.",
+      'checklist.noDeadline': 'No deadline',
+      'checklist.overdue': 'Overdue by {n} {days}',
+      'checklist.dueToday': 'Today',
+      'checklist.dueTomorrow': 'Tomorrow',
+      'checklist.dueIn': 'In {n} {days}',
+      'checklist.dayOne': 'day',
+      'checklist.dayMany': 'days',
+
+      'history.why': 'Why you need to log in:',
+      'history.whyBody': 'history keeps track of what you’ve already finished, in your account.',
+      'history.goToChecklist': 'Log in via checklist',
+      'history.intro': "Here's everything you've already finished.",
+      'history.introBody': 'You can see when you added it, what the deadline was, and whether you made it on time.',
+      'history.emptyDefault': "You haven't finished any tasks yet — finish something from the checklist and it'll show up here.",
+      'history.loading': 'Loading…',
+      'history.errLoad': "Couldn't load your history.",
+      'history.errOffline': "Couldn't reach the server. Check your connection and try again.",
+      'history.errSession': 'Your session expired. Log in again.',
+      'history.errGeneric': 'Something went wrong. Try again.',
+      'history.deleteAria': 'Remove from history',
+      'history.undoTitle': 'Move back to checklist',
+      'history.addedOn': 'Added {date}',
+      'history.doneOnTime': 'Finished on time',
+      'history.doneLate': 'Finished {n} {days} after the deadline',
+      'history.doneAgo': 'Finished {ago}',
+      'history.today': 'today',
+      'history.yesterday': 'yesterday',
+      'history.daysAgo': '{n} {days} ago',
+      'history.dayOne': 'day',
+      'history.dayMany': 'days',
+
+      'focus.how': 'How the focus camera works:',
+      'focus.howBody': "quietly tracks how much time you spend at your desk while studying. It doesn't interrupt or notify you during the session — it only counts. Detection happens entirely on your device — frames are never uploaded or saved anywhere.",
+      'focus.offLabel': 'Focus camera is off',
+      'focus.onLabel': 'Focus camera is on',
+      'focus.offHint': "Turn the switch above on to try it. It's entirely optional — many students prefer to study without the camera, and that's completely fine.",
+      'focus.startBtn': 'Start session',
+      'focus.loading': 'Preparing the camera…',
+      'focus.runningStatus': "Session running — work calmly, I'll do the counting for you.",
+      'focus.stopBtn': 'End session',
+      'focus.badge': 'Focus session running',
+      'focus.againBtn': 'New session',
+      'focus.errModelLoading': 'Detection is still loading — wait a moment and try again.',
+      'focus.errNoCamera': "Couldn't access the camera — check your browser permissions and try again.",
+      'focus.errModel': "Couldn't load detection. Check your connection and try again.",
+      'focus.underMinute': 'under a minute',
+      'focus.minuteOne': 'minute',
+      'focus.minuteMany': 'minutes',
+      'focus.summaryShort': 'You worked for {time}. The session was too short to count accurately — but every start is a step forward!',
+      'focus.summaryGreat': "Great session! You worked for {time} and were at your desk for most of it (~{pct}%). Keep it up.",
+      'focus.summaryGood': 'You worked for {time}, about {pct}% of it at your desk. Good start — next time try shorter, more focused stretches.',
+      'focus.summaryLow': "You worked for {time}. It looks like it was hard to stay at your desk today (~{pct}% of the time) — that happens to everyone. Next time try a short 10-15 minute session, no pressure.",
+
+      'scanner.hint': "Place the page so it's fully visible. The scanner finds the edges and straightens it automatically — if it can't, it uses the whole photo without interrupting your work.",
+      'scanner.uploadBtn': 'Upload a photo instead',
+      'scanner.loadingCamera': 'Loading camera…',
+      'scanner.noCameraAccess': "No camera access. Check your browser permissions — or upload a photo instead.",
+      'scanner.shootBtn': 'Take photo',
+      'scanner.retakeBtn': 'Retake',
+      'scanner.useBtn': 'Use this one',
+      'scanner.questionLabel': 'Ask something about the page',
+      'scanner.questionPlaceholder': 'E.g. "How do I solve problem 5?" or "Check my solution"',
+      'scanner.askBtn': 'Ask',
+      'scanner.uploaded': 'Photo uploaded ✓',
+      'scanner.foundEdges': 'Found the page and straightened it ✓',
+      'scanner.noEdges': "Couldn't find clear edges — using the whole photo",
+      'scanner.ready': 'Ready',
+      'scanner.thinking': 'Thinking…',
+      'scanner.errNoAnswer': "Didn't get an answer — try phrasing the question a bit more clearly.",
+      'scanner.errOffline': "Couldn't reach the server. Check your connection and try again — nothing was lost.",
+
+      'theme.toLight': 'Switch to light theme',
+      'theme.toDark': 'Switch to dark theme',
+      'menu.open': 'Open menu',
+      'menu.close': 'Close menu',
+    },
+  };
+
+  function get() {
+    const saved = localStorage.getItem(KEY);
+    if (saved && STR[saved]) return saved;
+    return 'bg';
+  }
+
+  function t(key, vars) {
+    const lang = get();
+    let s = (STR[lang] && STR[lang][key]) || STR.bg[key] || key;
+    if (vars) {
+      for (const k in vars) s = s.split(`{${k}}`).join(vars[k]);
+    }
+    return s;
+  }
+
+  function applyToDom() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      el.textContent = t(el.dataset.i18n);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder));
+    });
+    document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+      el.setAttribute('aria-label', t(el.dataset.i18nAria));
+    });
+    document.documentElement.lang = get();
+    const sel = document.getElementById('langSelect');
+    if (sel) sel.value = get();
+  }
+
+  function setLang(lang) {
+    if (!STR[lang]) return;
+    localStorage.setItem(KEY, lang);
+    applyToDom();
+    window.dispatchEvent(new CustomEvent('climby:lang-changed', { detail: { lang } }));
+  }
+
+  function init() {
+    applyToDom();
+    const sel = document.getElementById('langSelect');
+    if (sel) sel.addEventListener('change', () => setLang(sel.value));
+  }
+
+  return { t, get, setLang, applyToDom, init };
+})();
+
+// глобален пряк път, ползван от другите скриптове: t('key')
+window.t = I18n.t;
+
+document.addEventListener('DOMContentLoaded', I18n.init);

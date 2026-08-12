@@ -25,7 +25,7 @@ const Focus = (() => {
   function updateToggleUI() {
     const enabled = isEnabled();
     $('focusEnableToggle').checked = enabled;
-    $('focusToggleLabel').textContent = enabled ? 'Фокус камерата е включена' : 'Фокус камерата е изключена';
+    $('focusToggleLabel').textContent = enabled ? t('focus.onLabel') : t('focus.offLabel');
     $('focusOff').classList.toggle('hidden', enabled);
     if (enabled) {
       showStage('Idle');
@@ -52,7 +52,7 @@ const Focus = (() => {
   async function ensureModel() {
     if (modelReady) return;
     if (typeof faceapi === 'undefined') {
-      throw new Error('Разпознаването още се зарежда — изчакай малко и опитай пак.');
+      throw new Error(t('focus.errModelLoading'));
     }
     await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
     modelReady = true;
@@ -65,7 +65,7 @@ const Focus = (() => {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { width: 240, height: 180 }, audio: false });
     } catch {
-      setError('Нямам достъп до камерата — провери разрешенията на браузъра и опитай пак.');
+      setError(t('focus.errNoCamera'));
       showStage('Idle');
       return;
     }
@@ -73,7 +73,7 @@ const Focus = (() => {
     try {
       await ensureModel();
     } catch (err) {
-      setError(err.message || 'Не успях да заредя разпознаването. Провери интернета си и опитай пак.');
+      setError(err.message || t('focus.errModel'));
       stream.getTracks().forEach(t => t.stop());
       stream = null;
       showStage('Idle');
@@ -123,8 +123,8 @@ const Focus = (() => {
 
   function formatMinutes(ms) {
     const mins = Math.round(ms / 60000);
-    if (mins < 1) return 'под минута';
-    return `${mins} ${mins === 1 ? 'минута' : 'минути'}`;
+    if (mins < 1) return t('focus.underMinute');
+    return `${mins} ${mins === 1 ? t('focus.minuteOne') : t('focus.minuteMany')}`;
   }
 
   function showSummary(totalMs) {
@@ -135,13 +135,13 @@ const Focus = (() => {
 
     let message;
     if (totalTicks === 0) {
-      message = `Работи ${time}. Сесията беше твърде кратка, за да преброя точно — но всяко започване е крачка напред!`;
+      message = t('focus.summaryShort', { time });
     } else if (pct >= 80) {
-      message = `Страхотна сесия! Работи ${time} и беше на бюрото си през по-голямата част от времето (~${pct}%). Продължавай все така.`;
+      message = t('focus.summaryGreat', { time, pct });
     } else if (pct >= 50) {
-      message = `Работи ${time}, от които около ${pct}% на бюрото. Добро начало — следващия път пробвай по-кратки, съсредоточени части.`;
+      message = t('focus.summaryGood', { time, pct });
     } else {
-      message = `Работи ${time}. Изглежда е било трудно да останеш на бюрото днес (~${pct}% от времето) — това се случва на всеки. Следващия път пробвай кратка сесия от 10-15 минути, без да се притесняваш.`;
+      message = t('focus.summaryLow', { time, pct });
     }
 
     $('focusSummaryCard').innerHTML = `<p>${message}</p>`;
@@ -153,6 +153,7 @@ const Focus = (() => {
     $('focusStartBtn').addEventListener('click', startSession);
     $('focusStopBtn').addEventListener('click', () => stopSession(false));
     $('focusAgainBtn').addEventListener('click', () => showStage('Idle'));
+    window.addEventListener('climby:lang-changed', updateToggleUI);
     updateToggleUI();
   }
 
