@@ -21,6 +21,7 @@ const Scanner = (() => {
   let screenCorners = null;      // {tl,tr,br,bl} в пиксели спрямо #adjustWrap, докато потребителят влачи
   let dispRect = null;           // изчислен правоъгълник къде точно се показва снимката вътре в #adjustWrap (object-fit: contain)
   let warpedMat = null;          // cv.Mat на изправената страница (след потвърждаване на ъглите), преди филтър
+  let rawCropCanvas = null;      // резервен вариант: обикновен canvas с изрязаната снимка, ако opencv.js още не се е заредило
   let currentFilter = 'original';
   let pendingDataUrl = null;     // резултат от текущия филтър — това се добавя към pages[] при "Добави страница"
 
@@ -231,10 +232,27 @@ const Scanner = (() => {
       br: screenToNatural(screenCorners.br),
       bl: screenToNatural(screenCorners.bl),
     };
-    const src = cv.imread($('capture'));
+
     if (warpedMat) { warpedMat.delete(); warpedMat = null; }
-    warpedMat = warpToPage(src, natural);
-    src.delete();
+    rawCropCanvas = null;
+
+    if (cvReady && window.cv) {
+      const src = cv.imread($('capture'));
+      warpedMat = warpToPage(src, natural);
+      src.delete();
+    } else {
+      // opencv.js още не се е заредило (голям файл) — изрязваме правоъгълника около
+      // избраните ъгли вместо перспективна корекция, без да спираме ученика да продължи
+      const xs = [natural.tl.x, natural.tr.x, natural.br.x, natural.bl.x];
+      const ys = [natural.tl.y, natural.tr.y, natural.br.y, natural.bl.y];
+      const bx = Math.min(...xs), by = Math.min(...ys);
+      const bw = Math.max(1, Math.round(Math.max(...xs) - bx));
+      const bh = Math.max(1, Math.round(Math.max(...ys) - by));
+      rawCropCanvas = document.createElement('canvas');
+      rawCropCanvas.width = bw;
+      rawCropCanvas.height = bh;
+      rawCropCanvas.getContext('2d').drawImage($('capture'), bx, by, bw, bh, 0, 0, bw, bh);
+    }
 
     currentFilter = 'original';
     document.querySelectorAll('.filter-swatch').forEach(b => b.classList.toggle('active', b.dataset.filter === 'original'));
@@ -262,20 +280,44 @@ const Scanner = (() => {
 
   // ---------- стъпка 3: филтър ----------
   function renderFilterPreview() {
-    if (!warpedMat) return;
     const out = $('output');
-    if (currentFilter === 'bw') {
-      const gray = new cv.Mat();
-      cv.cvtColor(warpedMat, gray, cv.COLOR_RGBA2GRAY);
-      cv.imshow(out, gray);
-      gray.delete();
-    } else if (currentFilter === 'enhanced') {
-      const enhanced = new cv.Mat();
-      warpedMat.convertTo(enhanced, -1, 1.25, 12);
-      cv.imshow(out, enhanced);
-      enhanced.delete();
+    if (warpedMat) {
+      if (currentFilter === 'bw') {
+        const gray = new cv.Mat();
+        cv.cvtColor(warpedMat, gray, cv.COLOR_RGBA2GRAY);
+        cv.imshow(out, gray);
+        gray.delete();
+      } else if (currentFilter === 'enhanced') {
+        const enhanced = new cv.Mat();
+        warpedMat.convertTo(enhanced, -1, 1.25, 12);
+        cv.imshow(out, enhanced);
+        enhanced.delete();
+      } else {
+        cv.imshow(out, warpedMat);
+      }
+    } else if (rawCropCanvas) {
+      // резервен вариант без opencv.js: същите филтри, но през обикновен canvas пиксел по пиксел
+      out.width = rawCropCanvas.width;
+      out.height = rawCropCanvas.height;
+      const ctx = out.getContext('2d');
+      ctx.drawImage(rawCropCanvas, 0, 0);
+      if (currentFilter !== 'original') {
+        const imgData = ctx.getImageData(0, 0, out.width, out.height);
+        const d = imgData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          if (currentFilter === 'bw') {
+            const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+            d[i] = d[i + 1] = d[i + 2] = g;
+          } else {
+            d[i] = Math.min(255, d[i] * 1.25 + 12);
+            d[i + 1] = Math.min(255, d[i + 1] * 1.25 + 12);
+            d[i + 2] = Math.min(255, d[i + 2] * 1.25 + 12);
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      }
     } else {
-      cv.imshow(out, warpedMat);
+      return;
     }
     pendingDataUrl = out.toDataURL('image/jpeg', 0.9);
     $('filterPreview').src = pendingDataUrl;
@@ -291,6 +333,7 @@ const Scanner = (() => {
     if (!pendingDataUrl) return;
     pages.push({ dataUrl: pendingDataUrl });
     if (warpedMat) { warpedMat.delete(); warpedMat = null; }
+    rawCropCanvas = null;
     pendingDataUrl = null;
     renderPageStrip();
     showStage('cameraStage');
@@ -298,6 +341,7 @@ const Scanner = (() => {
 
   function retakeToCamera() {
     if (warpedMat) { warpedMat.delete(); warpedMat = null; }
+    rawCropCanvas = null;
     pendingDataUrl = null;
     showStage('cameraStage');
   }
