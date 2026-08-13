@@ -7,8 +7,8 @@
 <meta name="description" content="Climby помага на ученици 1–12 клас да разберат уроците си, да си организират домашните и да се изкачат до върха, стъпка по стъпка.">
 <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#faf8f3" media="(prefers-color-scheme: light)">
-<link rel="icon" href="logo.png">
-<link rel="apple-touch-icon" href="logo.png">
+<link rel="icon" href="logo-favicon.png">
+<link rel="apple-touch-icon" href="logo-favicon.png">
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -19,10 +19,10 @@
 
   <aside id="sidebar" class="sidebar">
     <div class="sidebar-brand">
-      <img src="logo.png" alt="" class="sidebar-logo">
+      <span class="sidebar-logo"><img src="logo-icon.png" alt=""></span>
       <div class="brand">
         <span class="name">Climby</span>
-        <span class="tagline">Climb your way to success</span>
+        <span class="tagline" data-i18n="brand.tagline">Изкачи се към успеха</span>
       </div>
     </div>
 
@@ -68,30 +68,69 @@
   <p class="loading-text" data-i18n="scanner.loadingCamera">Зарежда камерата…</p>
 </div>
 
-<div id="stage" class="stage hidden">
+<div id="cameraStage" class="stage hidden">
   <video id="video" autoplay playsinline muted></video>
-  <img id="result" class="result hidden" alt="сканирана страница">
-  <div id="status" class="status hidden"></div>
 </div>
 
 <div id="controls" class="controls hidden">
-  <button id="shootBtn" class="btn-primary" data-i18n="scanner.shootBtn">Снимай</button>
-  <button id="retakeBtn" class="btn-ghost hidden" data-i18n="scanner.retakeBtn">Снимай пак</button>
-  <button id="useBtn" class="btn-primary hidden" data-i18n="scanner.useBtn">Използвай тази</button>
+  <button id="shootBtn" class="btn-primary" type="button" data-i18n="scanner.shootBtn">Снимай</button>
 </div>
 
-<div class="controls" style="margin-top: 10px;">
+<div class="controls" id="uploadRow" style="margin-top: 10px;">
   <button id="uploadBtn" class="btn-ghost" type="button" data-i18n="scanner.uploadBtn" onclick="document.getElementById('uploadInput').click()">Качи снимка от файл</button>
   <input id="uploadInput" type="file" accept="image/*" class="hidden">
 </div>
 
-<p class="hint" data-i18n="scanner.hint">Постави страницата така, че да се вижда цялата. Скенерът намира ръбовете и я изправя автоматично — ако не успее, ползва цялата снимка, без да спира работата ти.</p>
+<p class="hint" id="scannerHint" data-i18n="scanner.hint">Постави страницата така, че да се вижда цялата. Скенерът намира ръбовете и я изправя автоматично — ако не успее, ползва цялата снимка, без да спира работата ти.</p>
+
+<!-- multi-page batch: thumbnail strip of confirmed pages + "ask about all of them" -->
+<div id="pageStrip" class="page-strip hidden">
+  <div id="pageThumbs" class="page-thumbs"></div>
+  <button id="pagesDoneBtn" class="btn-ai" type="button">
+    <span class="spark"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span>
+    <span id="pagesDoneLabel"></span>
+  </button>
+</div>
+
+<!-- step 2: drag the 4 corners to correct the auto-detected edges -->
+<div id="adjustStage" class="adjust-stage hidden">
+  <div id="adjustWrap" class="adjust-wrap">
+    <img id="adjustImg" alt="">
+    <svg id="adjustSvg" class="adjust-svg" preserveAspectRatio="none"><polygon id="adjustPoly" class="adjust-poly"></polygon></svg>
+    <button type="button" class="corner-handle" id="cornerTL" data-i18n-aria="scanner.cornerHandle" aria-label="Ъгъл"></button>
+    <button type="button" class="corner-handle" id="cornerTR" data-i18n-aria="scanner.cornerHandle" aria-label="Ъгъл"></button>
+    <button type="button" class="corner-handle" id="cornerBR" data-i18n-aria="scanner.cornerHandle" aria-label="Ъгъл"></button>
+    <button type="button" class="corner-handle" id="cornerBL" data-i18n-aria="scanner.cornerHandle" aria-label="Ъгъл"></button>
+  </div>
+  <p class="hint" data-i18n="scanner.adjustHint">Провлачи ъглите, ако скенерът не е познал ръбовете точно.</p>
+  <div class="controls">
+    <button id="adjustRetakeBtn" class="btn-ghost" type="button" data-i18n="scanner.retakeBtn">Снимай пак</button>
+    <button id="adjustAutoBtn" class="btn-ghost" type="button" data-i18n="scanner.autoEdges">Автоматично</button>
+    <button id="adjustConfirmBtn" class="btn-primary" type="button" data-i18n="scanner.confirmCrop">Продължи</button>
+  </div>
+</div>
+
+<!-- step 3: pick a filter for the cropped page -->
+<div id="filterStage" class="filter-stage hidden">
+  <div class="stage">
+    <img id="filterPreview" class="result" alt="">
+  </div>
+  <div class="filter-row" id="filterRow">
+    <button type="button" class="filter-swatch active" data-filter="original" data-i18n="scanner.filterOriginal">Оригинал</button>
+    <button type="button" class="filter-swatch" data-filter="bw" data-i18n="scanner.filterBw">Черно-бяло</button>
+    <button type="button" class="filter-swatch" data-filter="enhanced" data-i18n="scanner.filterEnhanced">Подобрено</button>
+  </div>
+  <div class="controls">
+    <button id="filterRetakeBtn" class="btn-ghost" type="button" data-i18n="scanner.retakeBtn">Снимай пак</button>
+    <button id="filterAddBtn" class="btn-primary" type="button" data-i18n="scanner.addPage">Добави страница</button>
+  </div>
+</div>
 
 <div id="qa" class="qa hidden">
   <label for="question" data-i18n="scanner.questionLabel">Питай нещо за страницата</label>
   <textarea id="question" data-i18n-placeholder="scanner.questionPlaceholder" placeholder="Напр. „Как се решава задача 5?“ или „Провери решението ми“"></textarea>
   <div class="controls" style="margin-top: 12px;">
-    <button id="askBtn" class="btn-primary" data-i18n="scanner.askBtn">Питай</button>
+    <button id="askBtn" class="btn-ai" type="button"><span class="spark"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span><span data-i18n="scanner.askBtn">Питай</span></button>
   </div>
 </div>
 
@@ -102,58 +141,95 @@
 <main id="view-checklist" class="view hidden">
 
   <div id="authGate" class="auth-gate">
+   <div class="auth-card">
     <div id="authIntro" class="explainer">
       <strong data-i18n="auth.why">Защо трябва да влезеш:</strong> <span data-i18n="auth.whyBodyChecklist">чеклистът пази задачите ти в акаунт, за да ги виждаш от всяко устройство.</span>
     </div>
 
-    <div id="loginForm" class="task-form">
-      <label for="loginEmail" data-i18n="auth.email">Имейл</label>
-      <input id="loginEmail" type="email" data-i18n-placeholder="auth.emailPlaceholder" placeholder="ти@пример.com">
-      <label for="loginPassword" data-i18n="auth.password">Парола</label>
-      <input id="loginPassword" type="password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Парола">
+    <div id="loginForm" class="auth-form">
+      <div class="field">
+        <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+        <input id="loginEmail" type="email" placeholder=" " autocomplete="email">
+        <label for="loginEmail" data-i18n="auth.email">Имейл</label>
+      </div>
+      <div class="field">
+        <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+        <input id="loginPassword" type="password" placeholder=" " autocomplete="current-password">
+        <label for="loginPassword" data-i18n="auth.password">Парола</label>
+      </div>
       <button id="loginBtn" class="btn-primary" type="button" data-i18n="auth.loginBtn">Влез</button>
       <p class="auth-switch"><span data-i18n="auth.noAccount">Нямаш акаунт?</span> <a href="#" id="showRegister" data-i18n="auth.registerLink">Регистрирай се</a></p>
       <p class="auth-switch"><a href="#" id="showForgot" data-i18n="auth.forgotLink">Забравена парола?</a></p>
     </div>
 
-    <div id="registerForm" class="task-form hidden">
-      <label for="registerName" data-i18n="auth.nameLabel">Как да те наричаме?</label>
-      <input id="registerName" type="text" data-i18n-placeholder="auth.namePlaceholder" placeholder="Име">
-      <label for="registerEmail" data-i18n="auth.email">Имейл</label>
-      <input id="registerEmail" type="email" data-i18n-placeholder="auth.emailPlaceholder" placeholder="ти@пример.com">
-      <label for="registerPassword" data-i18n="auth.password">Парола</label>
-      <input id="registerPassword" type="password" data-i18n-placeholder="auth.passwordHintPlaceholder" placeholder="Поне 8 символа">
+    <div id="registerForm" class="auth-form hidden">
+      <div class="field">
+        <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg></span>
+        <input id="registerName" type="text" placeholder=" " autocomplete="given-name">
+        <label for="registerName" data-i18n="auth.nameLabel">Как да те наричаме?</label>
+      </div>
+      <div class="field">
+        <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+        <input id="registerEmail" type="email" placeholder=" " autocomplete="email">
+        <label for="registerEmail" data-i18n="auth.email">Имейл</label>
+      </div>
+      <div class="field">
+        <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+        <input id="registerPassword" type="password" placeholder=" " autocomplete="new-password">
+        <label for="registerPassword" data-i18n="auth.password">Парола</label>
+      </div>
+      <div id="registerPwStrength" class="pw-strength hidden">
+        <div class="pw-strength-track"><span id="registerPwBar" class="pw-strength-fill"></span></div>
+        <span id="registerPwLabel" class="pw-strength-label"></span>
+      </div>
       <button id="registerBtn" class="btn-primary" type="button" data-i18n="auth.registerBtn">Регистрирай се</button>
       <p class="auth-switch"><span data-i18n="auth.haveAccount">Вече имаш акаунт?</span> <a href="#" id="showLogin" data-i18n="auth.loginLink">Влез</a></p>
     </div>
 
-    <div id="verifyForm" class="task-form hidden">
+    <div id="verifyForm" class="auth-form hidden">
       <div class="explainer" data-i18n="auth.verifyInfo">Изпратихме ти код за потвърждение по имейл. Провери пощата си (и папка спам).</div>
-      <label for="verifyCode" data-i18n="auth.codeLabel">Код за потвърждение</label>
-      <input id="verifyCode" type="text" inputmode="numeric" placeholder="123456">
+      <div class="field">
+        <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="m9.5 12 2 2 3-3.5"/></svg></span>
+        <input id="verifyCode" type="text" inputmode="numeric" placeholder=" " autocomplete="one-time-code">
+        <label for="verifyCode" data-i18n="auth.codeLabel">Код за потвърждение</label>
+      </div>
       <button id="verifyBtn" class="btn-primary" type="button" data-i18n="auth.verifyBtn">Потвърди</button>
       <p class="auth-switch"><a href="#" id="resendCodeLink" data-i18n="auth.resendCode">Изпрати нов код</a></p>
     </div>
 
-    <div id="forgotForm" class="task-form hidden">
+    <div id="forgotForm" class="auth-form hidden">
       <div class="explainer" data-i18n="auth.forgotInfo">Няма страшно — случва се на всеки. Въведи имейла си и ще ти пратим код за нова парола.</div>
-      <label for="forgotEmail" data-i18n="auth.email">Имейл</label>
-      <input id="forgotEmail" type="email" data-i18n-placeholder="auth.emailPlaceholder" placeholder="ти@пример.com">
+      <div class="field">
+        <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+        <input id="forgotEmail" type="email" placeholder=" " autocomplete="email">
+        <label for="forgotEmail" data-i18n="auth.email">Имейл</label>
+      </div>
       <button id="forgotBtn" class="btn-primary" type="button" data-i18n="auth.forgotBtn">Изпрати код</button>
       <p class="auth-switch"><a href="#" id="showLoginFromForgot" data-i18n="auth.loginLink">Влез</a></p>
     </div>
 
-    <div id="resetForm" class="task-form hidden">
+    <div id="resetForm" class="auth-form hidden">
       <div class="explainer" data-i18n="auth.resetInfo">Изпратихме код на имейла ти (ако има акаунт с него). Въведи го тук заедно с новата си парола.</div>
-      <label for="resetCode" data-i18n="auth.resetCodeLabel">Код</label>
-      <input id="resetCode" type="text" inputmode="numeric" placeholder="123456">
-      <label for="resetPassword" data-i18n="auth.newPasswordLabel">Нова парола</label>
-      <input id="resetPassword" type="password" data-i18n-placeholder="auth.passwordHintPlaceholder" placeholder="Поне 8 символа">
+      <div class="field">
+        <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="m9.5 12 2 2 3-3.5"/></svg></span>
+        <input id="resetCode" type="text" inputmode="numeric" placeholder=" " autocomplete="one-time-code">
+        <label for="resetCode" data-i18n="auth.resetCodeLabel">Код</label>
+      </div>
+      <div class="field">
+        <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+        <input id="resetPassword" type="password" placeholder=" " autocomplete="new-password">
+        <label for="resetPassword" data-i18n="auth.newPasswordLabel">Нова парола</label>
+      </div>
+      <div id="resetPwStrength" class="pw-strength hidden">
+        <div class="pw-strength-track"><span id="resetPwBar" class="pw-strength-fill"></span></div>
+        <span id="resetPwLabel" class="pw-strength-label"></span>
+      </div>
       <button id="resetBtn" class="btn-primary" type="button" data-i18n="auth.resetBtn">Смени паролата</button>
       <p class="auth-switch"><a href="#" id="resendResetLink" data-i18n="auth.resendCode">Изпрати нов код</a></p>
     </div>
 
     <p id="authError" class="hint auth-error hidden"></p>
+   </div>
   </div>
 
   <div id="checklistApp" class="hidden">
@@ -184,7 +260,7 @@
     <p id="taskEmpty" class="hint" data-i18n="checklist.emptyDefault">Няма добавени задачи още — добави първата отгоре.</p>
 
     <div class="controls" style="margin-top: 20px;">
-      <button id="planBtn" class="btn-ghost" type="button" data-i18n="checklist.planBtn">Помощ за плана</button>
+      <button id="planBtn" class="btn-ai" type="button"><span class="spark"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span><span data-i18n="checklist.planBtn">Помощ за плана</span></button>
     </div>
     <div id="planAdvice" class="answer hidden"></div>
 

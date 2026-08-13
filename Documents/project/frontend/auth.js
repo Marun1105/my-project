@@ -90,14 +90,54 @@ const Auth = (() => {
     clearError();
   }
 
-  function setError(msg) {
+  // kind 'error' (red, something went wrong) vs 'success' (green, informational — code sent, password changed)
+  function setError(msg, kind) {
     const el = $('authError');
     el.textContent = msg;
     el.classList.remove('hidden');
+    el.classList.toggle('is-error', kind !== 'success');
+    el.classList.toggle('is-success', kind === 'success');
+  }
+
+  function setNotice(msg) {
+    setError(msg, 'success');
   }
 
   function clearError() {
     $('authError').classList.add('hidden');
+  }
+
+  // ---------- password strength meter (register + reset) ----------
+
+  function pwScore(pw) {
+    if (!pw) return 0;
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+    if (/\d/.test(pw)) score++;
+    if (/[^a-zA-Z0-9]/.test(pw)) score++;
+    return score;
+  }
+
+  function updatePwStrength(inputId, wrapId, barId, labelId) {
+    const pw = $(inputId).value;
+    const wrap = $(wrapId);
+    if (!pw) { wrap.classList.add('hidden'); return; }
+    wrap.classList.remove('hidden');
+    const score = pwScore(pw);
+    const bar = $(barId);
+    const label = $(labelId);
+    const pct = Math.min(100, (score / 5) * 100);
+    bar.style.width = pct + '%';
+    let color, text;
+    if (score <= 1) { color = 'var(--danger)'; text = t('auth.pwWeak'); }
+    else if (score <= 2) { color = 'var(--warn)'; text = t('auth.pwFair'); }
+    else if (score <= 3) { color = 'var(--blue)'; text = t('auth.pwGood'); }
+    else { color = 'var(--accent)'; text = t('auth.pwStrong'); }
+    bar.style.background = color;
+    label.style.color = color;
+    label.textContent = text;
   }
 
   function updateHeaderBadge() {
@@ -164,7 +204,7 @@ const Auth = (() => {
     clearError();
     try {
       await resendCode(pendingVerifyEmail);
-      setError(t('auth.newCodeSent'));
+      setNotice(t('auth.newCodeSent'));
     } catch (err) {
       setError(err.message);
     }
@@ -181,7 +221,7 @@ const Auth = (() => {
       await forgotPassword(email);
       pendingResetEmail = email;
       showForm('reset');
-      setError(t('auth.resetCodeSentMaybe'));
+      setNotice(t('auth.resetCodeSentMaybe'));
     } catch (err) {
       setError(err.message);
     }
@@ -200,7 +240,7 @@ const Auth = (() => {
       pendingResetEmail = null;
       $('loginEmail').value = '';
       showForm('login');
-      setError(t('auth.passwordChanged'));
+      setNotice(t('auth.passwordChanged'));
     } catch (err) {
       setError(err.message);
     }
@@ -226,6 +266,8 @@ const Auth = (() => {
     ['loginForm', 'registerForm', 'verifyForm', 'forgotForm', 'resetForm'].forEach(id => {
       $(id).querySelectorAll('input').forEach(i => { i.value = ''; });
     });
+    $('registerPwStrength').classList.add('hidden');
+    $('resetPwStrength').classList.add('hidden');
     pendingVerifyEmail = null;
     pendingResetEmail = null;
     showForm('login');
@@ -249,6 +291,11 @@ const Auth = (() => {
     $('forgotBtn').addEventListener('click', handleForgot);
     $('resetBtn').addEventListener('click', handleReset);
     $('logoutBtn').addEventListener('click', handleLogout);
+
+    $('registerPassword').addEventListener('input', () =>
+      updatePwStrength('registerPassword', 'registerPwStrength', 'registerPwBar', 'registerPwLabel'));
+    $('resetPassword').addEventListener('input', () =>
+      updatePwStrength('resetPassword', 'resetPwStrength', 'resetPwBar', 'resetPwLabel'));
   }
 
   return { getToken, getUser, isLoggedIn, logout, init };

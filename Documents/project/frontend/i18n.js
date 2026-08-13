@@ -5,6 +5,7 @@ const I18n = (() => {
 
   const STR = {
     bg: {
+      'brand.tagline': 'Изкачи се към успеха',
       'nav.tutor': 'Учител',
       'nav.checklist': 'Чеклист',
       'nav.history': 'История',
@@ -48,6 +49,10 @@ const I18n = (() => {
       'auth.resetCodeSentMaybe': 'Ако имейлът е свързан с акаунт, изпратихме код.',
       'auth.resetCodeSent': 'Изпратихме нов код.',
       'auth.passwordChanged': 'Паролата е сменена — вече можеш да влезеш с новата.',
+      'auth.pwWeak': 'Слаба',
+      'auth.pwFair': 'Средна',
+      'auth.pwGood': 'Добра',
+      'auth.pwStrong': 'Силна',
 
       'checklist.how': 'Как работи чеклистът:',
       'checklist.howBody': 'добавяш задача с предмет и срок. Най-спешните излизат най-отгоре. Отметни я, когато я довършиш.',
@@ -139,13 +144,28 @@ const I18n = (() => {
       'scanner.thinking': 'Мисля…',
       'scanner.errNoAnswer': 'Не се получи отговор — опитай да зададеш въпроса малко по-ясно.',
       'scanner.errOffline': 'Не успях да се свържа със сървъра. Провери интернета си и опитай пак — нищо не е загубено.',
+      'scanner.cornerHandle': 'Ъгъл на страницата',
+      'scanner.adjustHint': 'Провлачи ъглите, ако скенерът не е познал ръбовете точно.',
+      'scanner.autoEdges': 'Автоматично',
+      'scanner.confirmCrop': 'Продължи',
+      'scanner.filterOriginal': 'Оригинал',
+      'scanner.filterBw': 'Черно-бяло',
+      'scanner.filterEnhanced': 'Подобрено',
+      'scanner.addPage': 'Добави страница',
+      'scanner.askAboutPages': 'Питай за {n} {pages}',
+      'scanner.pageOne': 'страница',
+      'scanner.pageMany': 'страници',
+      'scanner.removePage': 'Премахни страницата',
+      'scanner.addAnother': 'Добави още',
 
       'theme.toLight': 'Включи светла тема',
       'theme.toDark': 'Включи тъмна тема',
       'menu.open': 'Отвори менюто',
       'menu.close': 'Затвори менюто',
+      'ai.badge': 'AI отговор',
     },
     en: {
+      'brand.tagline': 'Climb to success',
       'nav.tutor': 'Teacher',
       'nav.checklist': 'Checklist',
       'nav.history': 'History',
@@ -189,6 +209,10 @@ const I18n = (() => {
       'auth.resetCodeSentMaybe': "If that email is linked to an account, we've sent a code.",
       'auth.resetCodeSent': 'We sent a new code.',
       'auth.passwordChanged': 'Password changed — you can log in with the new one now.',
+      'auth.pwWeak': 'Weak',
+      'auth.pwFair': 'Fair',
+      'auth.pwGood': 'Good',
+      'auth.pwStrong': 'Strong',
 
       'checklist.how': 'How the checklist works:',
       'checklist.howBody': 'add a task with a subject and deadline. The most urgent ones show up first. Check it off when you finish it.',
@@ -280,11 +304,25 @@ const I18n = (() => {
       'scanner.thinking': 'Thinking…',
       'scanner.errNoAnswer': "Didn't get an answer — try phrasing the question a bit more clearly.",
       'scanner.errOffline': "Couldn't reach the server. Check your connection and try again — nothing was lost.",
+      'scanner.cornerHandle': 'Page corner',
+      'scanner.adjustHint': "Drag the corners if the scanner didn't get the edges quite right.",
+      'scanner.autoEdges': 'Auto-detect',
+      'scanner.confirmCrop': 'Continue',
+      'scanner.filterOriginal': 'Original',
+      'scanner.filterBw': 'B&W',
+      'scanner.filterEnhanced': 'Enhanced',
+      'scanner.addPage': 'Add page',
+      'scanner.askAboutPages': 'Ask about {n} {pages}',
+      'scanner.pageOne': 'page',
+      'scanner.pageMany': 'pages',
+      'scanner.removePage': 'Remove page',
+      'scanner.addAnother': 'Add another',
 
       'theme.toLight': 'Switch to light theme',
       'theme.toDark': 'Switch to dark theme',
       'menu.open': 'Open menu',
       'menu.close': 'Close menu',
+      'ai.badge': 'AI answer',
     },
   };
 
@@ -336,5 +374,13 @@ const I18n = (() => {
 
 // глобален пряк път, ползван от другите скриптове: t('key')
 window.t = I18n.t;
+
+// малка "✨ AI отговор" значка, показвана над отговорите на AI учителя/планера
+window.aiBadgeHtml = function () {
+  return '<div class="ai-badge">'
+    + '<span class="ai-badge-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span>'
+    + '<span class="ai-badge-text">' + I18n.t('ai.badge') + '</span>'
+    + '</div>';
+};
 
 document.addEventListener('DOMContentLoaded', I18n.init);

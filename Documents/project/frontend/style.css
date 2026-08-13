@@ -16,7 +16,20 @@
   --accent-soft: rgba(52, 211, 153, 0.14);
   --warn: #e2934f;
   --warn-soft: rgba(226, 147, 79, 0.14);
+  --danger: #f8465a;
+  --danger-strong: #d92e42;
+  --danger-soft: rgba(248, 70, 90, 0.14);
+  --blue: #4c8dff;
+  --blue-soft: rgba(76, 141, 255, 0.14);
+  --purple: #a970ff;
+  --pink: #ff5fb8;
   --shadow: rgba(0, 0, 0, 0.4);
+
+  /* AI-powered features (tutor, planner) get their own gradient identity,
+     distinct from the app's regular green accent, so they read as "magic". */
+  --ai-gradient: linear-gradient(120deg, #7c5cff 0%, #b350ff 40%, #ff5fb8 75%, #ff8a5c 100%);
+  --ai-gradient-soft: linear-gradient(120deg, rgba(124, 92, 255, 0.14), rgba(255, 95, 184, 0.14));
+  --ai-glow: rgba(179, 80, 255, 0.35);
 
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Inter', -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
@@ -41,7 +54,18 @@
   --accent-soft: rgba(31, 143, 95, 0.1);
   --warn: #b5652f;
   --warn-soft: rgba(181, 101, 47, 0.1);
+  --danger: #d9273b;
+  --danger-strong: #b31c2e;
+  --danger-soft: rgba(217, 39, 59, 0.1);
+  --blue: #2563eb;
+  --blue-soft: rgba(37, 99, 235, 0.1);
+  --purple: #8434e0;
+  --pink: #d1288a;
   --shadow: rgba(60, 50, 30, 0.12);
+
+  --ai-gradient: linear-gradient(120deg, #6d3ff0 0%, #a233e0 40%, #e0349a 75%, #e8703f 100%);
+  --ai-gradient-soft: linear-gradient(120deg, rgba(109, 63, 240, 0.1), rgba(224, 52, 154, 0.1));
+  --ai-glow: rgba(162, 51, 224, 0.25);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -102,23 +126,37 @@ body {
   overflow-y: auto;
 }
 
-.sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 6px 20px; }
-.sidebar-logo { width: 30px; height: 30px; border-radius: var(--radius-sm); flex-shrink: 0; }
-.brand { display: flex; flex-direction: column; line-height: 1.15; }
+.sidebar-brand { display: flex; align-items: center; gap: 11px; padding: 2px 6px 22px; }
+.sidebar-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ai-gradient);
+  padding: 7px;
+}
+.sidebar-logo img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1); }
+.brand { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
 .brand .name {
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text);
 }
 .brand .tagline {
   font-size: 10px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent);
   font-weight: 600;
-  margin-top: 1px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .side-nav { display: flex; flex-direction: column; gap: 2px; }
@@ -252,14 +290,106 @@ body {
 }
 
 /* ---------- auth forms ---------- */
+.auth-gate { width: 100%; display: flex; justify-content: center; padding-top: 4px; }
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 26px 26px;
+  box-shadow: 0 16px 40px var(--shadow);
+}
+.auth-card .explainer:first-child { margin-top: 0; }
+
+.auth-form { width: 100%; margin-top: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+.field { position: relative; }
+.field-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--text-faint);
+  pointer-events: none;
+  transition: color 0.15s ease;
+  z-index: 1;
+}
+.field-icon svg { width: 100%; height: 100%; display: block; }
+
+.field input {
+  width: 100%;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 21px 14px 9px 42px;
+  transition: border-color 0.15s ease;
+  position: relative;
+}
+.field input:focus { outline: none; border-color: var(--accent); }
+.field:has(input:focus) .field-icon,
+.field:has(input:not(:placeholder-shown)) .field-icon { color: var(--accent); }
+
+.field label {
+  position: absolute;
+  left: 42px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14.5px;
+  color: var(--text-faint);
+  pointer-events: none;
+  transition: top 0.15s ease, font-size 0.15s ease, color 0.15s ease;
+}
+.field:has(input:focus) label,
+.field:has(input:not(:placeholder-shown)) label {
+  top: 10px;
+  transform: translateY(0);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
+/* the strength "bar" is a tiny mountain ridge — your password climbs higher as it gets stronger */
+.pw-strength { display: flex; align-items: center; gap: 9px; margin-top: -2px; }
+.pw-strength-track {
+  flex: 1;
+  height: 12px;
+  background: var(--border);
+  overflow: hidden;
+  clip-path: polygon(0% 100%, 6% 55%, 14% 100%, 24% 25%, 34% 100%, 44% 65%, 54% 100%, 64% 15%, 74% 100%, 84% 45%, 94% 100%, 100% 70%, 100% 100%);
+}
+.pw-strength-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--danger);
+  transition: width 0.25s ease, background 0.2s ease;
+}
+.pw-strength-label { font-size: 11px; font-weight: 700; color: var(--text-faint); flex-shrink: 0; min-width: 46px; text-align: right; }
+
 .auth-switch {
   font-size: 13px;
   color: var(--text-dim);
   text-align: center;
 }
-.auth-switch a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.auth-switch a { color: var(--blue); font-weight: 600; text-decoration: none; }
 .auth-switch a:hover { text-decoration: underline; }
-.auth-error { color: var(--warn); }
+.auth-error {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--warn-soft);
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  font-weight: 600;
+}
+.auth-error.is-error { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
 
 /* ---------- focus camera ---------- */
 .focus-toggle-row {
@@ -377,19 +507,120 @@ video, canvas, img.result {
 img.result { object-fit: contain; background: #000; }
 .hidden { display: none !important; }
 
-.status {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
-  text-align: center;
-  font-size: 13px;
-  color: #f2f1ed;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 9px 12px;
-  border-radius: var(--radius-sm);
-  backdrop-filter: blur(4px);
+/* ---------- adjust stage: drag the 4 auto-detected corners ---------- */
+.adjust-stage { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.adjust-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  touch-action: none;
 }
+.adjust-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+.adjust-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.adjust-poly { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+.corner-handle {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  margin-top: -14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--bg-elevated);
+  box-shadow: 0 2px 8px var(--shadow);
+  cursor: grab;
+  touch-action: none;
+  padding: 0;
+}
+.corner-handle:active { cursor: grabbing; transform: scale(1.15); }
+.corner-handle:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* ---------- filter stage ---------- */
+.filter-stage { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.filter-row { width: 100%; display: flex; gap: 8px; margin-top: 14px; }
+.filter-swatch {
+  flex: 1;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.filter-swatch:hover { color: var(--text); }
+.filter-swatch.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* ---------- batch pages: thumbnail strip + "ask about N pages" ---------- */
+.page-strip { width: 100%; margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.page-thumbs { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.page-thumb {
+  position: relative;
+  flex: 0 0 auto;
+  width: 56px;
+  height: 74px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+  background: #000;
+}
+.page-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.page-thumb-num {
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+.page-thumb-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.page-thumb-remove:hover { background: var(--danger); }
+.page-thumb-add {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 74px;
+  border-radius: var(--radius-sm);
+  border: 1.5px dashed var(--border);
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.page-thumb-add:hover { border-color: var(--accent); color: var(--accent); }
 
 .controls {
   width: 100%;
@@ -418,6 +649,40 @@ button:disabled { opacity: 0.4; cursor: default; }
   border: 1px solid var(--border);
 }
 .btn-ghost:hover { border-color: var(--text-dim); }
+
+/* AI-powered actions (Ask AI, Plan help) get their own gradient identity, distinct
+   from ordinary primary buttons, so students learn to recognize "this calls the AI". */
+.btn-ai {
+  background: var(--ai-gradient);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 6px 20px var(--ai-glow);
+}
+.btn-ai:hover { filter: brightness(1.1); }
+.btn-ai .spark { width: 16px; height: 16px; flex-shrink: 0; display: flex; }
+.btn-ai .spark svg { width: 100%; height: 100%; }
+
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.ai-badge svg { width: 14px; height: 14px; flex-shrink: 0; }
+.ai-badge .ai-badge-icon { color: var(--purple); }
+.ai-badge .ai-badge-text {
+  background: var(--ai-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 
 .hint {
   width: 100%;
@@ -457,6 +722,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* ---------- answer ---------- */
 .answer {
+  position: relative;
   width: 100%;
   margin-top: 18px;
   background: var(--bg-elevated);
@@ -467,8 +733,22 @@ button:disabled { opacity: 0.4; cursor: default; }
   line-height: 1.65;
   font-size: 15.5px;
   animation: climby-rise 0.35s ease both;
+  overflow: hidden;
 }
-.answer.thinking { color: var(--accent); font-style: italic; }
+.answer::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--ai-gradient);
+}
+.answer.thinking { color: var(--text-dim); font-style: italic; }
+.answer.thinking .spark-spin { animation: spark-spin 1.6s linear infinite; }
+@keyframes spark-spin {
+  from { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.15); }
+  to { transform: rotate(360deg) scale(1); }
+}
 .answer h1, .answer h2, .answer h3 {
   font-family: var(--font-display);
   margin: 0.6em 0 0.35em;
@@ -495,6 +775,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   border-color: var(--warn);
   font-style: normal;
 }
+.answer.error::before { display: none; }
 
 /* ---------- checklist: add-task form ---------- */
 .task-form {
@@ -589,8 +870,8 @@ button:disabled { opacity: 0.4; cursor: default; }
   font-weight: 600;
   color: var(--text-dim);
 }
-.deadline.soon { color: var(--accent); }
-.deadline.overdue { color: var(--warn); }
+.deadline.soon { color: var(--blue); }
+.deadline.overdue { color: var(--danger); font-weight: 700; }
 .task-delete {
   flex: 0 0 auto;
   width: 30px;
@@ -603,7 +884,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
-.task-delete:hover { color: var(--warn); background: var(--warn-soft); }
+.task-delete:hover { color: var(--danger); background: var(--danger-soft); }
 
 /* ---------- explanations for complex features (never small/grey/ignorable) ---------- */
 .explainer {

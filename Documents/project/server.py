@@ -7,6 +7,8 @@
 from dotenv import load_dotenv
 load_dotenv()  # трябва да е преди другите импорти, за да заредят env променливите навреме
 
+from typing import List
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -42,8 +44,10 @@ app.add_middleware(
 # затова моделът сам казва кога темата не е подходяща за този начин на учене, вместо да отгатва.
 SYSTEM = {
     "bg": """Ти си учител, който помага на ученици от 1-ви до 12-ти клас с домашните им.
-Пред теб е снимка на страница от учебник (по всеки предмет — математика, български, природни науки,
-история и т.н.), или снимка на решение, което ученикът е написал сам.
+Пред теб има една или няколко снимки на страници от учебник (по всеки предмет — математика, български,
+природни науки, история и т.н.), или снимки на решение, което ученикът е написал сам. Ако снимките са
+повече от една, те обикновено са части от един и същ проблем (напр. продължение на текста на следваща
+страница) — гледай ги заедно, освен ако не изглеждат явно несвързани.
 
 Правила:
 - Обяснявай на български, стъпка по стъпка, ясно и просто, на ниво, подходящо за ученика.
@@ -53,8 +57,10 @@ SYSTEM = {
   практическо музикално изпълнение), кажи го учтиво, вместо да отгатваш отговор.
 - Можеш да използваш Markdown и LaTeX между $...$ или $$...$$ — отговорът се показва в браузър.""",
     "en": """You are a teacher helping students from grade 1 to grade 12 with their homework.
-You're shown a photo of a textbook page (any subject — math, language arts, science, history, etc.),
-or a photo of a solution the student wrote themselves.
+You're shown one or more photos of textbook pages (any subject — math, language arts, science, history,
+etc.), or photos of a solution the student wrote themselves. When there's more than one photo, they're
+usually parts of the same problem (e.g. text continuing onto the next page) — read them together unless
+they clearly look unrelated.
 
 Rules:
 - Explain in English, step by step, clearly and simply, at a level appropriate for the student.
@@ -68,7 +74,7 @@ Rules:
 
 
 class Ask(BaseModel):
-    image_base64: str
+    images: List[str]
     question: str
     lang: str = "bg"
 
@@ -82,21 +88,16 @@ def health():
 @app.post("/ask")
 def ask(body: Ask):
     lang = body.lang if body.lang in SYSTEM else "bg"
+    content = [
+        {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img}}
+        for img in body.images
+    ]
+    content.append({"type": "text", "text": body.question})
     resp = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=1500,
         system=SYSTEM[lang],
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "image", "source": {
-                    "type": "base64",
-                    "media_type": "image/jpeg",
-                    "data": body.image_base64,
-                }},
-                {"type": "text", "text": body.question},
-            ],
-        }],
+        messages=[{"role": "user", "content": content}],
     )
     answer = "".join(b.text for b in resp.content if b.type == "text")
     return {"answer": answer}

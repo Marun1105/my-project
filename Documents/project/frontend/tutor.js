@@ -3,18 +3,20 @@ const Tutor = (() => {
   const $ = id => document.getElementById(id);
   // Адресът на бекенда. Локално смени с http://127.0.0.1:8000
   const BACKEND = 'https://my-project-0gyk.onrender.com';
-  let scannedBase64 = null;
+  let scannedImages = []; // base64 (без "data:image/jpeg;base64," префикса), една или няколко страници
 
-  function revealQuestionBox(dataUrl) {
-    scannedBase64 = dataUrl.split(',')[1]; // маха "data:image/jpeg;base64," префикса
+  function revealQuestionBox(dataUrls) {
+    scannedImages = dataUrls.map(u => u.split(',')[1]);
     $('qa').classList.remove('hidden');
     $('question').focus();
+    $('question').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function renderAnswer(text) {
     const el = $('answer');
     el.classList.remove('error');
-    el.innerHTML = window.marked ? marked.parse(text) : text;
+    const body = window.marked ? marked.parse(text) : text;
+    el.innerHTML = window.aiBadgeHtml() + body;
     if (window.renderMathInElement) {
       renderMathInElement(el, {
         delimiters: [
@@ -35,18 +37,18 @@ const Tutor = (() => {
 
   async function ask() {
     const question = $('question').value.trim();
-    if (!question || !scannedBase64) return;
+    if (!question || !scannedImages.length) return;
 
     const answerEl = $('answer');
     answerEl.classList.remove('hidden', 'error');
     answerEl.classList.add('thinking');
-    answerEl.textContent = t('scanner.thinking');
+    answerEl.innerHTML = '<span class="spark-spin">✨</span> ' + t('scanner.thinking');
 
     try {
       const res = await fetch(BACKEND + '/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: scannedBase64, question, lang: I18n.get() }),
+        body: JSON.stringify({ images: scannedImages, question, lang: I18n.get() }),
       });
       if (!res.ok) throw new Error('bad status');
       const data = await res.json();
@@ -62,7 +64,7 @@ const Tutor = (() => {
   }
 
   function init() {
-    window.addEventListener('climby:scan-ready', e => revealQuestionBox(e.detail.dataUrl));
+    window.addEventListener('climby:scan-ready', e => revealQuestionBox(e.detail.dataUrls));
     $('askBtn').addEventListener('click', ask);
   }
 

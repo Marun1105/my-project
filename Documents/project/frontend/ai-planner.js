@@ -7,7 +7,8 @@ const Planner = (() => {
   function renderAdvice(text) {
     const el = $('planAdvice');
     el.classList.remove('error', 'thinking');
-    el.innerHTML = window.marked ? marked.parse(text) : text;
+    const body = window.marked ? marked.parse(text) : text;
+    el.innerHTML = window.aiBadgeHtml() + body;
   }
 
   function showError(text) {
@@ -21,7 +22,7 @@ const Planner = (() => {
     const el = $('planAdvice');
     el.classList.remove('hidden', 'error');
     el.classList.add('thinking');
-    el.textContent = t('checklist.planThinking');
+    el.innerHTML = '<span class="spark-spin">✨</span> ' + t('checklist.planThinking');
 
     try {
       const tasks = await Checklist.getPendingTasks();
