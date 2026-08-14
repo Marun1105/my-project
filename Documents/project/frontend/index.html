@@ -151,10 +151,28 @@
     </div>
 
     <nav class="side-nav">
-      <button class="nav-link active" data-view="tutor" data-i18n="nav.tutor">Учител</button>
-      <button class="nav-link" data-view="checklist" data-i18n="nav.checklist">Чеклист</button>
-      <button class="nav-link" data-view="history" data-i18n="nav.history">История</button>
-      <button class="nav-link" data-view="focus" data-i18n="nav.focus">Фокус</button>
+      <div class="nav-group expanded">
+        <button class="nav-link nav-parent active" data-view="tutor">
+          <span data-i18n="nav.tutor">Учител</span>
+          <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="nav-children">
+          <div class="nav-children-inner">
+            <button class="nav-link nav-child" data-view="focus" data-i18n="nav.focus">Фокус</button>
+          </div>
+        </div>
+      </div>
+      <div class="nav-group">
+        <button class="nav-link nav-parent" data-view="checklist">
+          <span data-i18n="nav.checklist">Чеклист</span>
+          <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="nav-children">
+          <div class="nav-children-inner">
+            <button class="nav-link nav-child" data-view="history" data-i18n="nav.history">История</button>
+          </div>
+        </div>
+      </div>
     </nav>
 
     <div class="sidebar-spacer"></div>

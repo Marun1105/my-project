@@ -7,6 +7,9 @@
     document.querySelectorAll('.nav-link').forEach(el => {
       el.classList.toggle('active', el.dataset.view === view);
     });
+    document.querySelectorAll('.nav-group').forEach(group => {
+      group.classList.toggle('expanded', !!group.querySelector(`.nav-link[data-view="${view}"]`));
+    });
     window.dispatchEvent(new CustomEvent('climby:view-shown', { detail: { view } }));
   }
 
