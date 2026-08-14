@@ -181,9 +181,7 @@ const History = (() => {
   }
 
   function init() {
-    $('goToChecklistBtn').addEventListener('click', () => {
-      document.querySelector('.nav-link[data-view="checklist"]').click();
-    });
+    $('goToChecklistBtn').addEventListener('click', () => Auth.openEntryGate());
     window.addEventListener('climby:auth-changed', updateGate);
     window.addEventListener('climby:tasks-changed', render);
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) render(); });

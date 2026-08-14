@@ -14,6 +14,8 @@ const I18n = (() => {
       'auth.logout': 'Изход',
       'auth.why': 'Защо трябва да влезеш:',
       'auth.whyBodyChecklist': 'чеклистът пази задачите ти в акаунт, за да ги виждаш от всяко устройство.',
+      'auth.entryWhyBody': 'за да пазим чеклиста и историята ти в акаунт, видими от всяко устройство.',
+      'auth.rememberMe': 'Запомни ме на това устройство',
       'auth.email': 'Имейл',
       'auth.emailPlaceholder': 'ти@пример.com',
       'auth.password': 'Парола',
@@ -84,7 +86,7 @@ const I18n = (() => {
 
       'history.why': 'Защо трябва да влезеш:',
       'history.whyBody': 'историята пази какво вече си свършил, в акаунта ти.',
-      'history.goToChecklist': 'Влез през чеклиста',
+      'history.goToChecklist': 'Влез',
       'history.intro': 'Тук е всичко, което вече си свършил.',
       'history.introBody': 'Виждаш кога си го добавил, какъв е бил срокът и дали си успял навреме.',
       'history.emptyDefault': 'Още нямаш довършени задачи — довърши нещо от чеклиста и ще се появи тук.',
@@ -163,6 +165,15 @@ const I18n = (() => {
       'menu.open': 'Отвори менюто',
       'menu.close': 'Затвори менюто',
       'ai.badge': 'AI отговор',
+
+      'entry.skipAria': 'Продължи без вход',
+      'account.guest': 'Гост',
+      'account.settings': 'Настройки',
+      'account.login': 'Влез',
+      'settings.title': 'Настройки',
+      'settings.language': 'Език',
+      'settings.theme': 'Тема',
+      'settings.closeAria': 'Затвори настройките',
     },
     en: {
       'brand.tagline': 'Climb to success',
@@ -174,6 +185,8 @@ const I18n = (() => {
       'auth.logout': 'Log out',
       'auth.why': 'Why you need to log in:',
       'auth.whyBodyChecklist': 'the checklist keeps your tasks in your account so you can see them from any device.',
+      'auth.entryWhyBody': 'to keep your checklist and history in your account, visible from any device.',
+      'auth.rememberMe': 'Remember me on this device',
       'auth.email': 'Email',
       'auth.emailPlaceholder': 'you@example.com',
       'auth.password': 'Password',
@@ -244,7 +257,7 @@ const I18n = (() => {
 
       'history.why': 'Why you need to log in:',
       'history.whyBody': 'history keeps track of what you’ve already finished, in your account.',
-      'history.goToChecklist': 'Log in via checklist',
+      'history.goToChecklist': 'Log in',
       'history.intro': "Here's everything you've already finished.",
       'history.introBody': 'You can see when you added it, what the deadline was, and whether you made it on time.',
       'history.emptyDefault': "You haven't finished any tasks yet — finish something from the checklist and it'll show up here.",
@@ -323,6 +336,15 @@ const I18n = (() => {
       'menu.open': 'Open menu',
       'menu.close': 'Close menu',
       'ai.badge': 'AI answer',
+
+      'entry.skipAria': 'Continue without logging in',
+      'account.guest': 'Guest',
+      'account.settings': 'Settings',
+      'account.login': 'Log in',
+      'settings.title': 'Settings',
+      'settings.language': 'Language',
+      'settings.theme': 'Theme',
+      'settings.closeAria': 'Close settings',
     },
   };
 

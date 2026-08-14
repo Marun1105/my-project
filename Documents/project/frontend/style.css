@@ -181,7 +181,6 @@ body {
 
 .sidebar-spacer { flex: 1; }
 
-.sidebar-user { display: flex; flex-direction: column; gap: 8px; padding: 12px 6px; border-top: 1px solid var(--border); margin-top: 8px; }
 .user-badge {
   display: flex;
   align-items: center;
@@ -190,35 +189,24 @@ body {
   font-weight: 600;
   color: var(--text-dim);
 }
-.logout-btn {
-  flex: 0 0 auto;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-dim);
-}
-.logout-btn:hover { color: var(--warn); border-color: var(--warn); }
+.sidebar-status { padding: 8px 8px 0; }
 
-.sidebar-settings { display: flex; align-items: center; gap: 8px; padding: 6px; }
 .lang-select {
-  flex: 1;
-  min-width: 0;
+  flex: 0 0 auto;
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 8px 8px;
+  padding: 8px 10px;
   cursor: pointer;
 }
 .lang-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .theme-toggle {
+  flex: 0 0 auto;
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -235,6 +223,202 @@ body {
 }
 .theme-toggle:active { transform: scale(0.92); }
 .theme-toggle:hover { border-color: var(--accent); }
+
+/* ---------- account cluster (bottom of sidebar): avatar + name + settings/logout menu ---------- */
+.sidebar-account { position: relative; padding: 10px 0 2px; border-top: 1px solid var(--border); margin-top: 8px; }
+.account-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.account-btn:hover, .account-btn[aria-expanded="true"] { background: var(--accent-soft); border-color: var(--border); }
+.account-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ai-gradient);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+.account-info { flex: 1; min-width: 0; }
+.account-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-chevron { width: 14px; height: 14px; color: var(--text-faint); flex-shrink: 0; transition: transform 0.15s ease; }
+.account-btn[aria-expanded="true"] .account-chevron { transform: rotate(180deg); }
+
+.account-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 6px);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px var(--shadow);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 60;
+  animation: climby-rise 0.15s ease both;
+}
+.account-menu.hidden { display: none; }
+.account-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.account-menu-item svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-dim); }
+.account-menu-item:hover { background: var(--accent-soft); }
+.account-menu-item.danger:hover { background: var(--danger-soft); color: var(--danger); }
+.account-menu-item.danger:hover svg { color: var(--danger); }
+
+/* ---------- entry gate: full-screen login/register shown before the app ---------- */
+.entry-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+}
+.entry-gate.hidden { display: none; }
+.entry-gate-close {
+  position: fixed;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+.entry-gate-close:hover { color: var(--text); border-color: var(--text-dim); }
+.entry-gate-close:active { transform: scale(0.92); }
+.entry-gate-card { margin: 32px 0; animation: climby-rise 0.3s ease both; }
+.entry-gate-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.entry-gate-brand .sidebar-logo { width: 46px; height: 46px; }
+
+.remember-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+  margin-top: -2px;
+}
+.remember-row input { position: absolute; opacity: 0; width: 18px; height: 18px; margin: 0; cursor: pointer; }
+.remember-box {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.remember-box::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #04140d;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  opacity: 0;
+}
+.remember-row input:checked + .remember-box { background: var(--accent); border-color: var(--accent); }
+.remember-row input:checked + .remember-box::after { opacity: 1; }
+.remember-row input:focus-visible + .remember-box { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- settings modal ---------- */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.settings-overlay.hidden { display: none; }
+.settings-card {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 22px 20px;
+  box-shadow: 0 20px 50px var(--shadow);
+  animation: climby-rise 0.2s ease both;
+}
+.settings-card h2 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin-bottom: 6px; padding-right: 24px; }
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.settings-card h2 + .settings-row { border-top: none; }
+.settings-close { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; font-size: 13px; }
+
+/* ---------- simplified "why login" panels (checklist/history when not logged in) ---------- */
+.auth-gate-simple { width: 100%; }
+.auth-gate-simple .controls { max-width: 220px; margin-left: auto; margin-right: auto; }
 
 .sidebar-overlay {
   position: fixed;

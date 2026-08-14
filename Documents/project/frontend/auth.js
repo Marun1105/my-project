@@ -1,29 +1,58 @@
-// auth.js — регистрация, вход, потвърждение на имейл, изход. Пази сесията в localStorage.
+// auth.js — регистрация, вход, потвърждение на имейл, изход. Пази сесията в local/sessionStorage.
 const Auth = (() => {
   const $ = id => document.getElementById(id);
   const BACKEND = window.CLIMBY_BACKEND;
   const TOKEN_KEY = 'climby-token';
   const USER_KEY = 'climby-user';
+  const GUEST_KEY = 'climby-guest-skip';
 
-  function getToken() { return localStorage.getItem(TOKEN_KEY); }
+  // "Remember me" checked -> localStorage (survives browser restarts).
+  // Unchecked -> sessionStorage (cleared when the browser/tab closes).
+  function getToken() { return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY); }
 
   function getUser() {
-    try { return JSON.parse(localStorage.getItem(USER_KEY)); }
+    const raw = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY);
+    try { return JSON.parse(raw); }
     catch { return null; }
   }
 
   function isLoggedIn() { return !!getToken(); }
 
-  function _setSession(token, user) {
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  function _setSession(token, user, remember) {
+    const store = remember ? localStorage : sessionStorage;
+    const other = remember ? sessionStorage : localStorage;
+    other.removeItem(TOKEN_KEY);
+    other.removeItem(USER_KEY);
+    store.setItem(TOKEN_KEY, token);
+    store.setItem(USER_KEY, JSON.stringify(user));
     window.dispatchEvent(new CustomEvent('climby:auth-changed', { detail: { loggedIn: true, user } }));
   }
 
-  function logout() {
+  // showGate: true for an explicit "Log out" click (bring back the entry gate);
+  // false for a silent session-expiry logout (401), which shouldn't interrupt whatever else is on screen.
+  function logout(showGate) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(USER_KEY);
+    if (showGate) localStorage.removeItem(GUEST_KEY);
     window.dispatchEvent(new CustomEvent('climby:auth-changed', { detail: { loggedIn: false } }));
+    if (showGate) showEntryGate();
+  }
+
+  // ---------- entry gate (full-screen login/register shown before the app) ----------
+
+  function showEntryGate() { $('entryGate').classList.remove('hidden'); }
+  function hideEntryGate() { $('entryGate').classList.add('hidden'); }
+
+  function updateEntryGateVisibility() {
+    if (isLoggedIn() || localStorage.getItem(GUEST_KEY) === '1') hideEntryGate();
+    else showEntryGate();
+  }
+
+  function skipEntryGate() {
+    localStorage.setItem(GUEST_KEY, '1');
+    hideEntryGate();
   }
 
   async function _post(path, body) {
@@ -54,7 +83,7 @@ const Auth = (() => {
 
   async function verifyEmail(email, code) {
     const data = await _post('/auth/verify-email', { email, code });
-    _setSession(data.token, data.user);
+    _setSession(data.token, data.user, true); // signing up implies wanting to stay logged in
     return data;
   }
 
@@ -62,9 +91,9 @@ const Auth = (() => {
     return _post('/auth/resend-code', { email });
   }
 
-  async function login(email, password) {
+  async function login(email, password, remember) {
     const data = await _post('/auth/login', { email, password });
-    _setSession(data.token, data.user);
+    _setSession(data.token, data.user, remember);
     return data;
   }
 
@@ -139,17 +168,6 @@ const Auth = (() => {
     label.textContent = text;
   }
 
-  function updateHeaderBadge() {
-    const badge = $('userBadge');
-    const user = getUser();
-    if (user) {
-      $('userName').textContent = user.display_name;
-      badge.classList.remove('hidden');
-    } else {
-      badge.classList.add('hidden');
-    }
-  }
-
   async function handleRegister() {
     clearError();
     const name = $('registerName').value.trim();
@@ -177,7 +195,7 @@ const Auth = (() => {
       return;
     }
     try {
-      await login(email, password);
+      await login(email, password, $('loginRemember').checked);
     } catch (err) {
       setError(err.message);
     }
@@ -257,14 +275,16 @@ const Auth = (() => {
   }
 
   function handleLogout() {
-    logout();
+    logout(true);
   }
 
   function resetFormsOnLogout(e) {
+    updateEntryGateVisibility();
     if (e.detail.loggedIn) return;
     ['loginForm', 'registerForm', 'verifyForm', 'forgotForm', 'resetForm'].forEach(id => {
-      $(id).querySelectorAll('input').forEach(i => { i.value = ''; });
+      $(id).querySelectorAll('input[type="text"], input[type="email"], input[type="password"]').forEach(i => { i.value = ''; });
     });
+    $('loginRemember').checked = false;
     $('registerPwStrength').classList.add('hidden');
     $('resetPwStrength').classList.add('hidden');
     pendingVerifyEmail = null;
@@ -273,9 +293,11 @@ const Auth = (() => {
   }
 
   function init() {
-    updateHeaderBadge();
-    window.addEventListener('climby:auth-changed', updateHeaderBadge);
+    updateEntryGateVisibility();
     window.addEventListener('climby:auth-changed', resetFormsOnLogout);
+
+    $('entryGateClose').addEventListener('click', skipEntryGate);
+    $('checklistLoginBtn').addEventListener('click', showEntryGate);
 
     $('showRegister').addEventListener('click', e => { e.preventDefault(); showForm('register'); });
     $('showLogin').addEventListener('click', e => { e.preventDefault(); showForm('login'); });
@@ -297,7 +319,7 @@ const Auth = (() => {
       updatePwStrength('resetPassword', 'resetPwStrength', 'resetPwBar', 'resetPwLabel'));
   }
 
-  return { getToken, getUser, isLoggedIn, logout, init };
+  return { getToken, getUser, isLoggedIn, logout, init, openEntryGate: showEntryGate };
 })();
 
 document.addEventListener('DOMContentLoaded', Auth.init);
