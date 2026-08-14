@@ -617,6 +617,7 @@ body {
   margin-top: 20px;
 }
 .focus-preview {
+  position: relative;
   width: 168px;
   height: 126px;
   border-radius: var(--radius-lg);
@@ -629,6 +630,14 @@ body {
   height: 100%;
   object-fit: cover;
   transform: scaleX(-1);
+}
+.focus-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1);
+  pointer-events: none;
 }
 .focus-status {
   margin-top: 14px;

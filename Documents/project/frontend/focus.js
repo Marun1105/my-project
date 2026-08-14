@@ -4,7 +4,7 @@
 const Focus = (() => {
   const $ = id => document.getElementById(id);
   const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
-  const SAMPLE_MS = 4000; // проверка на всеки 4 секунди — достатъчно често, не хаби батерията
+  const SAMPLE_MS = 600; // достатъчно често за да усеща рамката около лицето "на живо", tinyFaceDetector е лек
   const ENABLED_KEY = 'climby-focus-enabled';
 
   let stream = null;
@@ -84,20 +84,54 @@ const Focus = (() => {
     sessionStart = Date.now();
     focusedTicks = 0;
     awayTicks = 0;
+    drawOverlay(null);
     showStage('Running');
     $('focusBadge').classList.remove('hidden');
     sampleTimer = setInterval(sampleFrame, SAMPLE_MS);
   }
 
+  // рисува рамка около засеченото лице, за да се вижда, че камерата наистина разпознава —
+  // изцяло козметично, координатите идват от face-api и никога не напускат браузъра
+  function sizeOverlay(video, canvas) {
+    if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth;
+    if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
+  }
+
+  function drawOverlay(box) {
+    const canvas = $('focusOverlay');
+    if (!canvas || !canvas.width) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!box) return;
+
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#34d399';
+    const { x, y, width, height } = box;
+    const r = Math.min(18, width * 0.18, height * 0.18);
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = Math.max(3, canvas.width * 0.012);
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + width, y, x + width, y + height, r);
+    ctx.arcTo(x + width, y + height, x, y + height, r);
+    ctx.arcTo(x, y + height, x, y, r);
+    ctx.arcTo(x, y, x + width, y, r);
+    ctx.closePath();
+    ctx.stroke();
+  }
+
   async function sampleFrame() {
     const video = $('focusVideo');
-    if (!video || !video.videoWidth) return;
+    const canvas = $('focusOverlay');
+    if (!video || !video.videoWidth || !canvas) return;
+    sizeOverlay(video, canvas);
     try {
       const result = await faceapi.detectSingleFace(
         video,
         new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.4 })
       );
-      if (result) focusedTicks++; else awayTicks++;
+      if (result) { focusedTicks++; drawOverlay(result.box); }
+      else { awayTicks++; drawOverlay(null); }
     } catch {
       // тих пропуск на този сампъл — една неуспешна проверка не бива да спира сесията
     }
@@ -107,6 +141,7 @@ const Focus = (() => {
     if (sampleTimer) { clearInterval(sampleTimer); sampleTimer = null; }
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
     $('focusBadge').classList.add('hidden');
+    drawOverlay(null);
 
     if (!sessionStart) {
       if (!silent) showStage('Idle');
