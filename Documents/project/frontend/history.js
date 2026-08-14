@@ -1,8 +1,7 @@
 // history.js — предишни домашни: довършените задачи, с дата на добавяне, срок и резултат
 const History = (() => {
   const $ = id => document.getElementById(id);
-  // Адресът на бекенда. Локално смени с http://127.0.0.1:8000
-  const BACKEND = 'https://my-project-0gyk.onrender.com';
+  const BACKEND = window.CLIMBY_BACKEND;
 
   async function api(path, options = {}) {
     const token = Auth.getToken();

@@ -1,8 +1,7 @@
 // auth.js — регистрация, вход, потвърждение на имейл, изход. Пази сесията в localStorage.
 const Auth = (() => {
   const $ = id => document.getElementById(id);
-  // Адресът на бекенда. Локално смени с http://127.0.0.1:8000
-  const BACKEND = 'https://my-project-0gyk.onrender.com';
+  const BACKEND = window.CLIMBY_BACKEND;
   const TOKEN_KEY = 'climby-token';
   const USER_KEY = 'climby-user';
 

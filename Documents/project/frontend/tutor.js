@@ -1,8 +1,7 @@
 // tutor.js — задава въпроса на сървъра, показва отговора на AI учителя (Markdown + LaTeX)
 const Tutor = (() => {
   const $ = id => document.getElementById(id);
-  // Адресът на бекенда. Локално смени с http://127.0.0.1:8000
-  const BACKEND = 'https://my-project-0gyk.onrender.com';
+  const BACKEND = window.CLIMBY_BACKEND;
   let scannedImages = []; // base64 (без "data:image/jpeg;base64," префикса), една или няколко страници
 
   function revealQuestionBox(dataUrls) {

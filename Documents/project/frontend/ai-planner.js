@@ -1,8 +1,7 @@
 // ai-planner.js — бутон в чеклиста, който пита AI как да се организира работата
 const Planner = (() => {
   const $ = id => document.getElementById(id);
-  // Адресът на бекенда. Локално смени с http://127.0.0.1:8000
-  const BACKEND = 'https://my-project-0gyk.onrender.com';
+  const BACKEND = window.CLIMBY_BACKEND;
 
   function renderAdvice(text) {
     const el = $('planAdvice');
