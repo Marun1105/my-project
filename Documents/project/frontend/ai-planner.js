@@ -6,7 +6,8 @@ const Planner = (() => {
   function renderAdvice(text) {
     const el = $('planAdvice');
     el.classList.remove('error', 'thinking');
-    const body = window.marked ? marked.parse(text) : text;
+    let body = window.marked ? marked.parse(text) : text;
+    if (window.DOMPurify) body = DOMPurify.sanitize(body);
     el.innerHTML = window.aiBadgeHtml() + body;
   }
 

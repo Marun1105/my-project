@@ -308,7 +308,6 @@ body {
   z-index: 60;
   animation: climby-rise 0.15s ease both;
 }
-.account-menu.hidden { display: none; }
 .account-menu-item {
   display: flex;
   align-items: center;
@@ -342,7 +341,6 @@ body {
   padding: 24px;
   overflow-y: auto;
 }
-.entry-gate.hidden { display: none; }
 .entry-gate-close {
   position: fixed;
   top: max(18px, env(safe-area-inset-top));
@@ -415,7 +413,6 @@ body {
   justify-content: center;
   padding: 20px;
 }
-.settings-overlay.hidden { display: none; }
 .settings-card {
   position: relative;
   width: 100%;
@@ -500,7 +497,6 @@ body {
 }
 
 /* ---------- auth forms ---------- */
-.auth-gate { width: 100%; display: flex; justify-content: center; padding-top: 4px; }
 .auth-card {
   width: 100%;
   max-width: 400px;

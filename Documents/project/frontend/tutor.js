@@ -14,7 +14,8 @@ const Tutor = (() => {
   function renderAnswer(text) {
     const el = $('answer');
     el.classList.remove('error');
-    const body = window.marked ? marked.parse(text) : text;
+    let body = window.marked ? marked.parse(text) : text;
+    if (window.DOMPurify) body = DOMPurify.sanitize(body);
     el.innerHTML = window.aiBadgeHtml() + body;
     if (window.renderMathInElement) {
       renderMathInElement(el, {

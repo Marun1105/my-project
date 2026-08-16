@@ -36,7 +36,7 @@ const Auth = (() => {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
     if (showGate) localStorage.removeItem(GUEST_KEY);
-    window.dispatchEvent(new CustomEvent('climby:auth-changed', { detail: { loggedIn: false } }));
+    window.dispatchEvent(new CustomEvent('climby:auth-changed', { detail: { loggedIn: false, showGate: !!showGate } }));
     if (showGate) showEntryGate();
   }
 
@@ -279,7 +279,9 @@ const Auth = (() => {
   }
 
   function resetFormsOnLogout(e) {
-    updateEntryGateVisibility();
+    // Only touch the entry gate on a real login or an explicit "Log out" click —
+    // a silent session-expiry logout (401) must not interrupt whatever's on screen.
+    if (e.detail.loggedIn || e.detail.showGate) updateEntryGateVisibility();
     if (e.detail.loggedIn) return;
     ['loginForm', 'registerForm', 'verifyForm', 'forgotForm', 'resetForm'].forEach(id => {
       $(id).querySelectorAll('input[type="text"], input[type="email"], input[type="password"]').forEach(i => { i.value = ''; });
