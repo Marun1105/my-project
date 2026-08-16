@@ -671,7 +671,10 @@ body {
 .view {
   width: 100%;
   max-width: var(--content-width);
-  margin: 0 auto;
+  /* auto top/bottom margins center short views (login gates, empty states) in the
+     viewport instead of leaving them stranded at the top of a tall empty page;
+     once content is taller than the viewport this degrades to normal top alignment */
+  margin: auto auto;
   padding: 28px var(--gutter) 24px;
   display: flex;
   flex-direction: column;
