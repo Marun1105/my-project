@@ -24,6 +24,9 @@
   --purple: #a970ff;
   --pink: #ff5fb8;
   --shadow: rgba(0, 0, 0, 0.4);
+  /* затъмняването зад всички пълноекранни слоеве — един токен, за да не се
+     разминават с по няколко стотни при всяко ново добавяне */
+  --scrim: rgba(0, 0, 0, 0.5);
 
   /* AI-powered features (tutor, planner) get their own gradient identity,
      distinct from the app's regular green accent, so they read as "magic". */
@@ -427,7 +430,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 220;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -466,7 +469,7 @@ body {
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--scrim);
   z-index: 40;
 }
 
@@ -1267,7 +1270,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   position: fixed;
   inset: 0;
   z-index: 80;
-  background: rgba(0, 0, 0, 0.62);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
