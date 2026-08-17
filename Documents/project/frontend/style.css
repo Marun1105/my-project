@@ -1144,6 +1144,27 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--accent);
   cursor: pointer;
 }
+/* ---------- компютър без камера: качването е основният път, не грешка ---------- */
+.no-camera {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 30px 24px;
+  text-align: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  animation: climby-rise 0.3s ease both;
+}
+.no-camera-icon { font-size: 38px; line-height: 1; margin-bottom: 12px; }
+.no-camera-title { font-size: 18px; font-weight: 700; margin: 0 0 10px; color: var(--text); }
+.no-camera-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 0 0 20px;
+}
+
 .nav-badge {
   min-width: 19px;
   height: 19px;

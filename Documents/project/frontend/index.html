@@ -243,6 +243,16 @@
   <p class="loading-text" data-i18n="scanner.loadingCamera">Зарежда камерата…</p>
 </div>
 
+<!-- показва се вместо камерата на компютри без такава: качването е равностоен път, не грешка -->
+<div id="noCamera" class="no-camera hidden">
+  <div class="no-camera-icon">🖼️</div>
+  <h2 class="no-camera-title" data-i18n="scanner.noCameraTitle">Качи снимка на задачата</h2>
+  <p class="no-camera-body" data-i18n="scanner.noCameraBody">На този компютър няма камера (или браузърът не дава достъп). Избери снимка от файл — работи по същия начин.</p>
+  <div class="controls">
+    <button id="noCameraUploadBtn" class="btn-primary" type="button" data-i18n="scanner.uploadPrimary">Избери снимка</button>
+  </div>
+</div>
+
 <div id="cameraStage" class="stage hidden">
   <video id="video" autoplay playsinline muted></video>
 </div>

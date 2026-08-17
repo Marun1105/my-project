@@ -46,15 +46,22 @@ const Scanner = (() => {
     return small.toDataURL('image/jpeg', UPLOAD_QUALITY);
   }
 
+  let hasCamera = true;
+
   function showStage(id) {
     ['cameraStage', 'adjustStage', 'filterStage'].forEach(s => {
       const el = document.getElementById(s);
       if (el) el.classList.toggle('hidden', s !== id);
     });
     const onCamera = id === 'cameraStage';
-    $('controls').classList.toggle('hidden', !onCamera);
-    $('scannerHint').classList.toggle('hidden', !onCamera);
-    $('uploadRow').classList.toggle('hidden', !onCamera);
+    // Без камера панелът за качване заема мястото на визьора — но само на този
+    // етап, иначе би останал видим зад редактирането на снимката.
+    const showNoCamera = onCamera && !hasCamera;
+    $('noCamera').classList.toggle('hidden', !showNoCamera);
+    if (showNoCamera) $('cameraStage').classList.add('hidden');
+    $('controls').classList.toggle('hidden', !onCamera || !hasCamera);
+    $('scannerHint').classList.toggle('hidden', !onCamera || !hasCamera);
+    $('uploadRow').classList.toggle('hidden', !onCamera || !hasCamera);
   }
 
   // ---------- камера ----------
@@ -65,10 +72,15 @@ const Scanner = (() => {
         audio: false,
       });
       $('video').srcObject = stream;
+      hasCamera = true;
       $('splash').classList.add('hidden');
       showStage('cameraStage');
     } catch (err) {
-      $('splash').querySelector('.loading-text').textContent = t('scanner.noCameraAccess');
+      // Няма камера (обичайно на настолен компютър) — качването на файл не е
+      // резервен вариант при грешка, а равностоен път, затова го показваме така.
+      hasCamera = false;
+      $('splash').classList.add('hidden');
+      showStage('cameraStage');
     }
   }
 
@@ -417,6 +429,7 @@ const Scanner = (() => {
   function init() {
     $('shootBtn').addEventListener('click', capture);
     $('uploadInput').addEventListener('change', handleFileUpload);
+    $('noCameraUploadBtn').addEventListener('click', () => $('uploadInput').click());
 
     makeDraggable('cornerTL', 'tl');
     makeDraggable('cornerTR', 'tr');
