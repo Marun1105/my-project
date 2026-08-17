@@ -204,6 +204,72 @@ def test_rate_limiter_ignores_spoofed_forwarded_for(monkeypatch):
     assert rate_limit._client_key(_Req("evil, other, 203.0.113.9")) == "203.0.113.9"
 
 
+def test_family_invite_link_and_progress():
+    student = _register_and_login("kid@example.com")
+    parent = _register_and_login("mum@example.com")
+
+    # ученикът има малко активност, за да има какво да види родителят
+    t1 = client.post("/tasks", json={"text": "Готова задача"}, headers=student).json()
+    client.patch(f"/tasks/{t1['id']}", json={"done": True}, headers=student)
+    client.post("/tasks", json={"text": "Чакаща задача"}, headers=student)
+    client.post("/focus", json={"duration_seconds": 1800, "focus_pct": 90}, headers=student)
+
+    code = client.post("/family/invite", headers=student).json()["code"]
+    assert len(code) == 6
+
+    assert client.post("/family/link", json={"code": code}, headers=parent).status_code == 200
+
+    students = client.get("/family/students", headers=parent).json()
+    assert len(students) == 1
+    s = students[0]
+    assert s["display_name"] == "Smoke"
+    assert s["tasks_done"] == 1 and s["tasks_pending"] == 1
+    assert s["focus_minutes_7d"] == 30
+    assert s["focus_streak_days"] == 1
+
+    # ученикът вижда кой го следи и може да прекъсне връзката
+    parents = client.get("/family/parents", headers=student).json()
+    assert len(parents) == 1
+    assert client.delete(f"/family/parents/{parents[0]['parent_id']}", headers=student).status_code == 200
+    assert client.get("/family/students", headers=parent).json() == []
+
+
+def test_family_code_cannot_be_reused_or_self_linked():
+    student = _register_and_login("kid2@example.com")
+    parent = _register_and_login("dad@example.com")
+    other = _register_and_login("stranger@example.com")
+
+    code = client.post("/family/invite", headers=student).json()["code"]
+    # собственият код не върши работа за самия ученик
+    assert client.post("/family/link", json={"code": code}, headers=student).status_code == 400
+    assert client.post("/family/link", json={"code": code}, headers=parent).status_code == 200
+    # веднъж използван, кодът е мъртъв — трети човек не може да се закачи с него
+    assert client.post("/family/link", json={"code": code}, headers=other).status_code == 400
+    assert client.post("/family/link", json={"code": "ZZZZZZ"}, headers=other).status_code == 400
+
+
+def test_parent_sees_only_aggregates_not_content():
+    """Родителят получава числа, но никога текста на задачите или въпросите."""
+    student = _register_and_login("kid3@example.com")
+    parent = _register_and_login("parent3@example.com")
+    client.post("/tasks", json={"text": "ТАЙНА ЗАДАЧА"}, headers=student)
+
+    code = client.post("/family/invite", headers=student).json()["code"]
+    client.post("/family/link", json={"code": code}, headers=parent)
+
+    body = client.get("/family/students", headers=parent).text
+    assert "ТАЙНА ЗАДАЧА" not in body
+    # и не може да чете чеклиста/историята на ученика през обикновените ендпойнти
+    assert client.get("/tasks", headers=parent).json() == []
+    assert client.get("/scans", headers=parent).json() == []
+
+
+def test_family_endpoints_require_auth():
+    assert client.post("/family/invite").status_code == 401
+    assert client.get("/family/students").status_code == 401
+    assert client.post("/family/link", json={"code": "ABC123"}).status_code == 401
+
+
 def test_password_minimum_length():
     res = client.post("/auth/register", json={
         "display_name": "Short", "email": "short@example.com", "password": "abc",

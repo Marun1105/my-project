@@ -173,6 +173,11 @@
           </div>
         </div>
       </div>
+      <div class="nav-group">
+        <button class="nav-link nav-parent" data-view="family">
+          <span data-i18n="nav.family">Родител</span>
+        </button>
+      </div>
     </nav>
 
     <div class="sidebar-spacer"></div>
@@ -430,6 +435,45 @@
 
 </main>
 
+<main id="view-family" class="view hidden">
+
+  <div id="familyGate" class="auth-gate-simple">
+    <div class="explainer">
+      <strong data-i18n="family.why">Защо трябва да влезеш:</strong> <span data-i18n="family.whyBody">родителският изглед свързва акаунта ти с този на детето ти.</span>
+    </div>
+    <div class="controls">
+      <button id="familyLoginBtn" class="btn-primary" type="button" data-i18n="family.login">Влез</button>
+    </div>
+  </div>
+
+  <div id="familyApp" class="hidden">
+    <div class="explainer">
+      <strong data-i18n="family.intro">Родителски изглед.</strong> <span data-i18n="family.introBody">Виждаш само обобщени числа — колко задачи са свършени и колко време е учено. Текстът на задачите и въпросите към учителя остават лични за ученика.</span>
+    </div>
+
+    <h3 class="history-section-title" data-i18n="family.studentsTitle">Свързани ученици</h3>
+    <div id="familyStudents" class="family-students"></div>
+    <p id="familyStudentsEmpty" class="hint hidden" data-i18n="family.noStudents">Още нямаш свързан ученик. Поискай код от детето си и го въведи отдолу.</p>
+
+    <form id="familyLinkForm" class="family-link-form">
+      <input id="familyCodeInput" type="text" maxlength="6" autocomplete="off"
+             data-i18n-placeholder="family.codePlaceholder" placeholder="Код от ученика">
+      <button class="btn-primary" type="submit" data-i18n="family.linkBtn">Свържи</button>
+    </form>
+    <p id="familyLinkError" class="hint auth-error hidden"></p>
+
+    <h3 class="history-section-title" data-i18n="family.shareTitle">Дай достъп на родител</h3>
+    <p class="hint" data-i18n="family.shareBody">Ако ти си ученикът: създай код и го дай на родителя си. Кодът важи 48 часа и може да се използва веднъж.</p>
+    <div class="controls">
+      <button id="familyInviteBtn" class="btn-ghost" type="button" data-i18n="family.inviteBtn">Създай код</button>
+    </div>
+    <p id="familyInviteCode" class="family-code hidden"></p>
+
+    <div id="familyParents"></div>
+  </div>
+
+</main>
+
   </div>
 </div>
 
@@ -461,6 +505,7 @@
 <script src="ai-planner.js"></script>
 <script src="history.js"></script>
 <script src="focus.js"></script>
+<script src="family.js"></script>
 <script src="onboarding.js"></script>
 <script>
   // service worker: прави Climby инсталируем на телефон и го отваря мигновено при следващо влизане

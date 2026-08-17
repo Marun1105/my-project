@@ -43,6 +43,29 @@ class Task(Base):
     owner = relationship("User", back_populates="tasks")
 
 
+class FamilyInvite(Base):
+    """Код, който ученикът дава на родителя си, за да види напредъка му."""
+    __tablename__ = "family_invites"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    student_user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    code = Column(String, unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class FamilyLink(Base):
+    """Връзка родител -> ученик. Ролята не се пази в users: родител е този,
+    който има поне една такава връзка — така не е нужна миграция на съществуващата таблица."""
+    __tablename__ = "family_links"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    parent_user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    student_user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
 class FocusSession(Base):
     __tablename__ = "focus_sessions"
 

@@ -1,7 +1,7 @@
 // sw.js — service worker: прави приложението инсталируемо и позволява да се отвори без интернет.
 // Стратегия: сървърът е винаги пръв за данни (нищо от API-то не се кешира), а самата
 // обвивка на приложението (HTML/CSS/JS/икони) се кешира, за да тръгва мигновено.
-const CACHE = 'climby-shell-v2';
+const CACHE = 'climby-shell-v3';
 
 const SHELL = [
   './',
@@ -19,6 +19,7 @@ const SHELL = [
   './ai-planner.js',
   './history.js',
   './focus.js',
+  './family.js',
   './onboarding.js',
   './manifest.json',
   './logo.png',

@@ -84,6 +84,27 @@ class TaskUpdate(BaseModel):
     done: Optional[bool] = None
 
 
+class FamilyInviteOut(BaseModel):
+    code: str
+    expires_at: datetime
+
+
+class FamilyLinkRequest(BaseModel):
+    code: str
+
+
+class StudentProgressOut(BaseModel):
+    """Само обобщени числа — родителят не вижда текста на задачите или въпросите."""
+    student_id: str
+    display_name: str
+    tasks_pending: int
+    tasks_done: int
+    tasks_overdue: int
+    focus_minutes_7d: int
+    focus_streak_days: int
+    linked_at: datetime
+
+
 class FocusSessionIn(BaseModel):
     duration_seconds: int
     focus_pct: Optional[int] = None

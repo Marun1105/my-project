@@ -16,6 +16,7 @@ from anthropic import Anthropic, APIStatusError
 from sqlalchemy.orm import Session
 
 import auth
+import family
 import focus_sessions
 import planner
 import rate_limit
@@ -34,6 +35,7 @@ app.include_router(tasks.router)
 app.include_router(planner.router)
 app.include_router(scans.router)
 app.include_router(focus_sessions.router)
+app.include_router(family.router)
 
 # Браузърът/приложението и сървърът са на различни адреси, затова се иска
 # разрешение да вика сървъра. Когато качиш страницата на твоя домейн,

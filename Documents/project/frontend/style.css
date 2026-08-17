@@ -1124,6 +1124,74 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--accent);
   cursor: pointer;
 }
+/* ---------- родителски изглед ---------- */
+.family-students { width: 100%; display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.family-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  animation: climby-rise 0.3s ease both;
+}
+.family-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.family-card-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.family-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 10px;
+}
+.family-stat {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  text-align: center;
+}
+.family-stat.warn { border-color: var(--danger); }
+.family-stat-value { font-size: 18px; font-weight: 700; color: var(--text); }
+.family-stat.warn .family-stat-value { color: var(--danger); }
+.family-stat-label {
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.family-link-form { width: 100%; display: flex; gap: 10px; margin-top: 16px; }
+.family-link-form input { flex: 1; text-transform: uppercase; letter-spacing: 0.12em; }
+.family-link-form button { flex: 0 0 auto; }
+.family-code {
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+}
+.family-parent-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-top: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+
 /* ---------- първо отваряне: кратко представяне ---------- */
 .onboarding {
   position: fixed;
