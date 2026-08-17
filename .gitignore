@@ -1,1 +1,18 @@
 node_modules
+
+# credentials and shell state
+.ssh/
+.gnupg/
+.claude.json
+.claude.json.backup
+.bash_history
+.python_history
+file.env
+
+# Windows profile noise
+NTUser.dat
+ntuser.dat.LOG*
+NTUSER.DAT{*
+ntuser.ini
+desktop.ini
+AppData/
