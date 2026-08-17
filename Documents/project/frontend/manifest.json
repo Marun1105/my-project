@@ -3,11 +3,16 @@
   "short_name": "Climby",
   "description": "Учебен помощник за ученици 1–12 клас: AI учител, чеклист и история на домашните.",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
   "lang": "bg",
+  "categories": ["education", "productivity"],
   "icons": [
-    { "src": "logo.png", "sizes": "800x800", "type": "image/png", "purpose": "any" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

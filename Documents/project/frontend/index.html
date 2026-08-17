@@ -444,5 +444,13 @@
 <script src="ai-planner.js"></script>
 <script src="history.js"></script>
 <script src="focus.js"></script>
+<script>
+  // service worker: прави Climby инсталируем на телефон и го отваря мигновено при следващо влизане
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
 </body>
 </html>
