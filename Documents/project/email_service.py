@@ -14,7 +14,7 @@ def _wrap(title: str, code: str, footer: str) -> str:
     return f"""
     <div style="font-family:-apple-system,system-ui,sans-serif;background:#0a0a0a;color:#f2f1ed;
                 padding:28px;border-radius:14px;max-width:420px;margin:0 auto;">
-      <p style="text-transform:uppercase;letter-spacing:0.14em;font-size:11px;color:#34d399;
+      <p style="text-transform:uppercase;letter-spacing:0.14em;font-size:11px;color:#2ec25f;
                 font-weight:600;margin:0 0 8px;">Climby</p>
       <h2 style="margin:0 0 14px;font-size:20px;">{title}</h2>
       <p style="font-size:30px;font-weight:700;letter-spacing:6px;margin:0 0 14px;">{code}</p>

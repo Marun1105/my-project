@@ -166,7 +166,7 @@ const Focus = (() => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!box) return;
 
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#34d399';
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2ec25f';
     const { x, y, width, height } = box;
     const r = Math.min(18, width * 0.18, height * 0.18);
     ctx.strokeStyle = accent;
