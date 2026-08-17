@@ -38,10 +38,27 @@ def _client_key(request: Request) -> str:
     return parts[index]
 
 
+# Клиентите се сменят постоянно, а ключовете им иначе стоят завинаги в паметта —
+# чистим изтеклите наведнъж, вместо при всяка заявка.
+_CLEANUP_EVERY = 500
+_calls_since_cleanup = 0
+
+
+def _evict_stale(now: float, window_seconds: int) -> None:
+    for key in [k for k, hits in _hits.items() if not hits or hits[-1] < now - window_seconds]:
+        del _hits[key]
+
+
 def enforce(request: Request, bucket: str, max_calls: int, window_seconds: int, message: str) -> None:
+    global _calls_since_cleanup
     key = f"{bucket}:{_client_key(request)}"
     now = time.time()
     with _lock:
+        _calls_since_cleanup += 1
+        if _calls_since_cleanup >= _CLEANUP_EVERY:
+            _calls_since_cleanup = 0
+            _evict_stale(now, window_seconds)
+
         hits = _hits[key]
         cutoff = now - window_seconds
         while hits and hits[0] < cutoff:

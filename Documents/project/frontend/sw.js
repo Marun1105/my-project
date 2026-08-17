@@ -56,6 +56,8 @@ self.addEventListener('fetch', event => {
   // (opencv, face-api, katex) минават директно по мрежата.
   if (url.origin !== self.location.origin) return;
 
+  const isPage = req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/';
+
   event.respondWith(
     caches.match(req).then(cached => {
       const network = fetch(req)
@@ -67,7 +69,11 @@ self.addEventListener('fetch', event => {
           return res;
         })
         .catch(() => cached);
-      // кешът тръгва веднага (бърз старт), мрежата обновява кеша за следващия път
+
+      // За самата страница пробваме първо мрежата: иначе нов деплой се вижда чак
+      // при второто отваряне, което изглежда като "промените ги няма".
+      // За останалото кешът тръгва веднага (бърз старт) и се обновява отзад.
+      if (isPage) return network;
       return cached || network;
     })
   );

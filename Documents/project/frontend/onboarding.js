@@ -47,8 +47,11 @@ const Onboarding = (() => {
       if (!$('onboarding').classList.contains('hidden')) render();
     });
     // Показваме го чак след входната бариера — иначе двата слоя се застъпват.
+    // Слушаме събитието за случая, когато бариерата се затвори по-късно, НО и
+    // проверяваме състоянието веднага: auth.js се инициализира преди този файл и
+    // събитието вече може да е минало, преди да сме се закачили за него.
     window.addEventListener('climby:entry-gate-closed', maybeShow);
-    if (Auth.isLoggedIn() || localStorage.getItem('climby-guest-skip') === '1') maybeShow();
+    if ($('entryGate').classList.contains('hidden')) maybeShow();
   }
 
   return { init };

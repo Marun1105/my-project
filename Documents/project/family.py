@@ -3,8 +3,9 @@
 # на задачите или въпросите към учителя — ако детето знае, че всеки въпрос се чете,
 # спира да пита честно, а точно питането е смисълът на приложението.
 import secrets
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -12,10 +13,29 @@ from sqlalchemy.orm import Session
 import rate_limit
 from auth import get_current_user
 from db import get_db
+from focus_sessions import MIN_SESSION_SECONDS
 from models import FamilyInvite, FamilyLink, FocusSession, Task, User
 from schemas import FamilyInviteOut, FamilyLinkRequest, StudentProgressOut
 
 router = APIRouter(prefix="/family", tags=["family"])
+
+# Серията се брои по календара на ученика, не по UTC: сесия в 00:30 местно време
+# е "днес" за ученика, но "вчера" в UTC — иначе родителят и детето виждат различни
+# числа за едно и също нещо. Приложението е за български ученици.
+# Ако системата няма база с часови зони (Windows, слим Docker образ), падаме до
+# фиксиран UTC+2 — по-добре с час разлика през лятото, отколкото сървърът да не тръгне.
+try:
+    APP_TZ = ZoneInfo("Europe/Sofia")
+except Exception:  # ZoneInfoNotFoundError и подобни
+    APP_TZ = timezone(timedelta(hours=2))
+
+
+def _local_date(dt: datetime):
+    return _aware(dt).astimezone(APP_TZ).date()
+
+
+def _today_local():
+    return datetime.now(APP_TZ).date()
 
 INVITE_TTL_HOURS = 48
 # без 0/O/1/I — кодът се чете на глас или се преписва от екран
@@ -81,17 +101,28 @@ def link_student(
     if existing:
         raise HTTPException(400, "Вече си свързан с този ученик.")
 
-    invite.used = True
+    # Маркираме кода за използван с условен UPDATE: ако две заявки дойдат едновременно,
+    # само едната ще засегне ред и само тя създава връзка (иначе "еднократният" код
+    # може да се осребри два пъти).
+    claimed = (
+        db.query(FamilyInvite)
+        .filter(FamilyInvite.id == invite.id, FamilyInvite.used.is_(False))
+        .update({FamilyInvite.used: True}, synchronize_session=False)
+    )
+    if not claimed:
+        db.rollback()
+        raise HTTPException(400, "Невалиден или вече използван код.")
+
     db.add(FamilyLink(parent_user_id=user.id, student_user_id=invite.student_user_id))
     db.commit()
     return {"status": "ok"}
 
 
 def _focus_streak(sessions: List[FocusSession]) -> int:
-    days = {_aware(s.created_at).date() for s in sessions}
+    days = {_local_date(s.created_at) for s in sessions}
     if not days:
         return 0
-    cursor = date.today()
+    cursor = _today_local()
     if cursor not in days:
         cursor -= timedelta(days=1)
         if cursor not in days:
@@ -106,7 +137,7 @@ def _focus_streak(sessions: List[FocusSession]) -> int:
 @router.get("/students", response_model=List[StudentProgressOut])
 def list_students(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     links = db.query(FamilyLink).filter(FamilyLink.parent_user_id == user.id).all()
-    today = date.today()
+    today = _today_local()
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
 
     out = []
@@ -117,7 +148,7 @@ def list_students(user: User = Depends(get_current_user), db: Session = Depends(
         tasks = db.query(Task).filter(Task.user_id == student.id).all()
         sessions = db.query(FocusSession).filter(
             FocusSession.user_id == student.id,
-            FocusSession.duration_seconds >= 60,
+            FocusSession.duration_seconds >= MIN_SESSION_SECONDS,
         ).all()
         recent_seconds = sum(s.duration_seconds for s in sessions if _aware(s.created_at) >= week_ago)
 

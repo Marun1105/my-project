@@ -2,7 +2,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 
 
 def _check_password_length(v: str) -> str:
@@ -106,8 +106,10 @@ class StudentProgressOut(BaseModel):
 
 
 class FocusSessionIn(BaseModel):
-    duration_seconds: int
-    focus_pct: Optional[int] = None
+    # горна граница = 24 часа: по-дълга "сесия" е грешка или измислица и само
+    # би изкривила статистиката, която родителят вижда
+    duration_seconds: int = Field(ge=0, le=86400)
+    focus_pct: Optional[int] = Field(default=None, ge=0, le=100)
 
 
 class FocusSessionOut(BaseModel):

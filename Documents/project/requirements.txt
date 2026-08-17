@@ -10,3 +10,4 @@ resend
 twilio
 pydantic[email]
 python-dotenv
+tzdata  # база с часови зони: Windows и слим Linux образи нямат системна такава
