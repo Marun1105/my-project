@@ -1,7 +1,7 @@
 {
   "name": "climby",
   "productName": "Climby",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Climby — изкачи се към успеха",
   "author": "Martin Hristov",
   "license": "UNLICENSED",
@@ -10,7 +10,8 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win",
-    "pack": "electron-builder --win --dir"
+    "pack": "electron-builder --win --dir",
+    "release": "electron-builder --win --publish always"
   },
   "devDependencies": {
     "electron": "^43.4.0",
@@ -24,7 +25,17 @@
     },
     "files": [
       "main.js",
-      "preload.js"
+      "preload.js",
+      "updater.js",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Marun1105",
+        "repo": "my-project"
+      }
     ],
     "extraResources": [
       {
@@ -39,12 +50,17 @@
       ],
       "icon": "../frontend/icon-512.png"
     },
+    "artifactName": "${productName}-${version}-portable.${ext}",
     "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Climby"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

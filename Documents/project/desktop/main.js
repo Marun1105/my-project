@@ -4,9 +4,10 @@
 // има свой прозорец, своя икона в лентата на задачите и се стартира от менюто "Старт".
 // Сървърът (Render) остава същият, за да може ученикът да влезе в акаунта си и от
 // телефон, и от компютър и да вижда същия чеклист.
-const { app, BrowserWindow, Menu, protocol, net, session, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, protocol, net, session, shell } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const { initAutoUpdate, checkForUpdatesManually } = require('./updater');
 
 // Страницата се зарежда през собствена схема app://, а не през file://.
 // Причината е камерата: getUserMedia работи само в "сигурен контекст". Затова
@@ -108,6 +109,24 @@ function buildMenu() {
         { role: 'toggleDevTools', label: 'Инструменти за разработчик' },
       ],
     },
+    {
+      label: 'Помощ',
+      submenu: [
+        { label: 'Провери за обновяване', click: () => checkForUpdatesManually() },
+        { type: 'separator' },
+        {
+          label: 'За Climby',
+          click: () =>
+            dialog.showMessageBox({
+              type: 'info',
+              buttons: ['Добре'],
+              title: 'Climby',
+              message: `Climby ${app.getVersion()}`,
+              detail: 'Изкачи се към успеха.',
+            }),
+        },
+      ],
+    },
   ]);
 }
 
@@ -140,6 +159,9 @@ if (!gotLock) {
 
     Menu.setApplicationMenu(buildMenu());
     mainWindow = createWindow();
+
+    // Проверката за нова версия тръгва след като прозорецът е вече на екрана.
+    initAutoUpdate(() => mainWindow);
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow();
