@@ -178,6 +178,20 @@ const Checklist = (() => {
     return li;
   }
 
+  // Броячът в менюто показва какво гори днес, за да не се налага да отваряш чеклиста,
+  // за да разбереш, че нещо е просрочено.
+  function updateBadge(tasks) {
+    const badge = $('checklistBadge');
+    if (!badge) return;
+    const urgent = tasks.filter(t => {
+      if (t.done || !t.deadline) return false;
+      const d = daysUntil(t.deadline);
+      return d !== null && d <= 0;
+    }).length;
+    badge.textContent = urgent > 9 ? '9+' : String(urgent);
+    badge.classList.toggle('hidden', urgent === 0);
+  }
+
   function showListError(err) {
     const empty = $('taskEmpty');
     $('taskList').innerHTML = '';
@@ -205,6 +219,7 @@ const Checklist = (() => {
       return;
     }
     lastTasks = allTasks;
+    updateBadge(allTasks);
 
     const pending = allTasks.filter(t => !t.done);
     list.innerHTML = '';
@@ -237,7 +252,11 @@ const Checklist = (() => {
     const loggedIn = Auth.isLoggedIn();
     $('authGate').classList.toggle('hidden', loggedIn);
     $('checklistApp').classList.toggle('hidden', !loggedIn);
-    if (loggedIn) render();
+    if (loggedIn) {
+      render();
+    } else {
+      $('checklistBadge').classList.add('hidden');
+    }
   }
 
   function init() {
