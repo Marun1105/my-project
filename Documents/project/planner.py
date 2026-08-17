@@ -1,4 +1,5 @@
 # planner.py — AI помощник за плана: гледа чеклиста и предлага как да се организира работата
+import json
 from typing import List, Optional
 
 from anthropic import Anthropic, APIStatusError
@@ -49,6 +50,25 @@ PLAN_ERROR_MESSAGE = {
 }
 
 
+SPLIT_SYSTEM = {
+    "bg": """Ти разделяш една училищна задача на 2-5 по-малки, конкретни стъпки.
+Всяка стъпка трябва да е нещо, което ученикът може да отметне за 10-30 минути.
+Отговори САМО с JSON масив от текстове, без обяснения и без Markdown, например:
+["Прочети текста на стр. 32", "Реши задачи 4-6", "Провери отговорите"]
+Пиши на български, кратко и конкретно.""",
+    "en": """You split one school task into 2-5 smaller, concrete steps.
+Each step should be something the student can tick off in 10-30 minutes.
+Reply with ONLY a JSON array of strings, no explanation and no Markdown, e.g.:
+["Read the text on p. 32", "Solve exercises 4-6", "Check the answers"]
+Write in English, short and concrete.""",
+}
+
+SPLIT_ERROR_MESSAGE = {
+    "bg": "Не успях да разделя задачата. Опитай пак след малко.",
+    "en": "Couldn't split the task. Try again shortly.",
+}
+
+
 class TaskIn(BaseModel):
     text: str
     subject: Optional[str] = None
@@ -57,6 +77,12 @@ class TaskIn(BaseModel):
 
 class PlanRequest(BaseModel):
     tasks: List[TaskIn]
+    lang: str = "bg"
+
+
+class SplitRequest(BaseModel):
+    text: str
+    subject: Optional[str] = None
     lang: str = "bg"
 
 
@@ -90,3 +116,43 @@ def plan(body: PlanRequest, request: Request):
         raise HTTPException(502, PLAN_ERROR_MESSAGE[lang])
     advice = "".join(b.text for b in resp.content if b.type == "text")
     return {"advice": advice}
+
+
+@router.post("/split")
+def split(body: SplitRequest, request: Request):
+    lang = body.lang if body.lang in SPLIT_SYSTEM else "bg"
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(400, SPLIT_ERROR_MESSAGE[lang])
+
+    rate_limit.enforce(request, "split", max_calls=20, window_seconds=3600, message=RATE_LIMIT_MESSAGE[lang])
+
+    prompt = text if not body.subject else f"{text} (subject: {body.subject})"
+    try:
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            system=SPLIT_SYSTEM[lang],
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except APIStatusError:
+        raise HTTPException(502, SPLIT_ERROR_MESSAGE[lang])
+
+    raw = "".join(b.text for b in resp.content if b.type == "text").strip()
+    # моделът понякога обгражда JSON-а с ```json ... ``` въпреки инструкцията
+    if raw.startswith("```"):
+        raw = raw.split("```")[1] if "```" in raw[3:] else raw.strip("`")
+        raw = raw.removeprefix("json").strip()
+
+    try:
+        steps = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(502, SPLIT_ERROR_MESSAGE[lang])
+
+    if not isinstance(steps, list):
+        raise HTTPException(502, SPLIT_ERROR_MESSAGE[lang])
+
+    clean = [str(s).strip() for s in steps if str(s).strip()][:5]
+    if not clean:
+        raise HTTPException(502, SPLIT_ERROR_MESSAGE[lang])
+    return {"steps": clean}

@@ -52,6 +52,43 @@ const Checklist = (() => {
     return api(`/tasks/${id}`, { method: 'DELETE' }).then(_announceChange);
   }
 
+  // Разделя една задача на по-малки стъпки през AI и ги добавя като отделни задачи.
+  // Оригиналната задача се маха, за да не остане дублирана редом с частите си.
+  async function splitTask(task, btn) {
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = t('checklist.splitting');
+    let steps;
+    try {
+      const res = await fetch(BACKEND + '/plan/split', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: task.text, subject: task.subject, lang: I18n.get() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : t('checklist.splitErr'));
+      steps = data.steps;
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = original;
+      showListError(err instanceof Error ? err : new Error(t('checklist.splitErr')));
+      return;
+    }
+
+    try {
+      for (const step of steps) {
+        await api('/tasks', {
+          method: 'POST',
+          body: JSON.stringify({ text: step, subject: task.subject || null, deadline: task.deadline || null }),
+        });
+      }
+      await api(`/tasks/${task.id}`, { method: 'DELETE' });
+      _announceChange();
+    } catch (err) {
+      showListError(err);
+    }
+  }
+
   // всички задачи, необходими на AI помощника за плана — само неотметнатите
   async function getPendingTasks() {
     const tasks = await api('/tasks');
@@ -118,6 +155,13 @@ const Checklist = (() => {
     meta.appendChild(deadline);
     body.appendChild(textEl);
     body.appendChild(meta);
+
+    const split = document.createElement('button');
+    split.type = 'button';
+    split.className = 'task-split';
+    split.textContent = window.t('checklist.splitBtn');
+    split.addEventListener('click', () => splitTask(t, split));
+    body.appendChild(split);
 
     const del = document.createElement('button');
     del.type = 'button';

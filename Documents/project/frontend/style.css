@@ -1124,6 +1124,19 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--accent);
   cursor: pointer;
 }
+.task-split {
+  margin-top: 10px;
+  padding: 0;
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.task-split:hover:not(:disabled) { color: var(--accent); }
+.task-split:disabled { cursor: default; opacity: 0.7; }
 .focus-streak-pill {
   display: block;
   width: fit-content;
