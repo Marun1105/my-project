@@ -25,6 +25,27 @@ const Scanner = (() => {
   let currentFilter = 'original';
   let pendingDataUrl = null;     // резултат от текущия филтър — това се добавя към pages[] при "Добави страница"
 
+  // Страниците се пращат към AI като base64 — свиваме ги до размер, който моделът
+  // и без това ползва (~1568px по дългата страна). Пести трафик на мобилни данни и
+  // време за качване, без видима загуба на четимост на текста.
+  const MAX_UPLOAD_DIM = 1568;
+  const UPLOAD_QUALITY = 0.82;
+
+  function toCompressedDataUrl(canvas) {
+    const longest = Math.max(canvas.width, canvas.height);
+    if (longest <= MAX_UPLOAD_DIM) {
+      return canvas.toDataURL('image/jpeg', UPLOAD_QUALITY);
+    }
+    const scale = MAX_UPLOAD_DIM / longest;
+    const small = document.createElement('canvas');
+    small.width = Math.round(canvas.width * scale);
+    small.height = Math.round(canvas.height * scale);
+    const ctx = small.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(canvas, 0, 0, small.width, small.height);
+    return small.toDataURL('image/jpeg', UPLOAD_QUALITY);
+  }
+
   function showStage(id) {
     ['cameraStage', 'adjustStage', 'filterStage'].forEach(s => {
       const el = document.getElementById(s);
@@ -319,7 +340,7 @@ const Scanner = (() => {
     } else {
       return;
     }
-    pendingDataUrl = out.toDataURL('image/jpeg', 0.9);
+    pendingDataUrl = toCompressedDataUrl(out);
     $('filterPreview').src = pendingDataUrl;
   }
 
