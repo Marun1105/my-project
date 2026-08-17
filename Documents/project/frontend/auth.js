@@ -43,7 +43,13 @@ const Auth = (() => {
   // ---------- entry gate (full-screen login/register shown before the app) ----------
 
   function showEntryGate() { $('entryGate').classList.remove('hidden'); }
-  function hideEntryGate() { $('entryGate').classList.add('hidden'); }
+
+  function hideEntryGate() {
+    const wasOpen = !$('entryGate').classList.contains('hidden');
+    $('entryGate').classList.add('hidden');
+    // въведението чака бариерата да се махне, за да не се застъпват двата слоя
+    if (wasOpen) window.dispatchEvent(new CustomEvent('climby:entry-gate-closed'));
+  }
 
   function updateEntryGateVisibility() {
     if (isLoggedIn() || localStorage.getItem(GUEST_KEY) === '1') hideEntryGate();

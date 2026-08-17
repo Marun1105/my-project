@@ -206,6 +206,23 @@
 
   <div id="sidebarOverlay" class="sidebar-overlay hidden"></div>
 
+  <div id="onboarding" class="onboarding hidden">
+    <div class="onboarding-card">
+      <div class="onboarding-steps">
+        <span class="onboarding-dot active"></span>
+        <span class="onboarding-dot"></span>
+        <span class="onboarding-dot"></span>
+      </div>
+      <div class="onboarding-icon" id="onboardingIcon">📚</div>
+      <h2 id="onboardingTitle" class="onboarding-title">Добре дошъл в Climby</h2>
+      <p id="onboardingBody" class="onboarding-body">Снимай задача от учебника и AI учителят ще ти обясни стъпка по стъпка.</p>
+      <div class="onboarding-actions">
+        <button id="onboardingSkip" class="btn-ghost" type="button" data-i18n="onboarding.skip">Пропусни</button>
+        <button id="onboardingNext" class="btn-primary" type="button" data-i18n="onboarding.next">Напред</button>
+      </div>
+    </div>
+  </div>
+
   <div class="main-area">
 
     <header class="mobile-bar">
@@ -444,6 +461,7 @@
 <script src="ai-planner.js"></script>
 <script src="history.js"></script>
 <script src="focus.js"></script>
+<script src="onboarding.js"></script>
 <script>
   // service worker: прави Climby инсталируем на телефон и го отваря мигновено при следващо влизане
   if ('serviceWorker' in navigator) {

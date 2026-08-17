@@ -1124,6 +1124,57 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--accent);
   cursor: pointer;
 }
+/* ---------- първо отваряне: кратко представяне ---------- */
+.onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.onboarding-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 26px 24px 20px;
+  text-align: center;
+  box-shadow: 0 18px 48px var(--shadow);
+  animation: climby-rise 0.28s ease both;
+}
+.onboarding-steps {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.onboarding-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.2s ease, width 0.2s ease;
+}
+.onboarding-dot.active { width: 20px; background: var(--accent); }
+.onboarding-icon { font-size: 40px; line-height: 1; margin-bottom: 14px; }
+.onboarding-title {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+.onboarding-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 0 0 22px;
+}
+.onboarding-actions { display: flex; gap: 10px; }
+
 .task-split {
   margin-top: 10px;
   padding: 0;
