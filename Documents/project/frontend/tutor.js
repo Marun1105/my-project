@@ -50,9 +50,13 @@ const Tutor = (() => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ images: scannedImages, question, lang: I18n.get() }),
       });
-      if (!res.ok) throw new Error('bad status');
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       answerEl.classList.remove('thinking');
+      if (!res.ok) {
+        // сървърът праща разбираем текст (лимит, грешка от AI и т.н.) в data.detail — показваме него, ако го има
+        showError(typeof data.detail === 'string' && data.detail ? data.detail : t('scanner.errOffline'));
+        return;
+      }
       if (data.answer) {
         renderAnswer(data.answer);
       } else {

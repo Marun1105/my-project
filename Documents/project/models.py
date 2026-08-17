@@ -43,6 +43,17 @@ class Task(Base):
     owner = relationship("User", back_populates="tasks")
 
 
+class ScanHistory(Base):
+    __tablename__ = "scan_history"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    question = Column(String, nullable=False)
+    answer = Column(String, nullable=False)
+    lang = Column(String, nullable=False, default="bg")
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
 class CodePurpose(str, enum.Enum):
     verify_email = "verify_email"
     verify_phone = "verify_phone"

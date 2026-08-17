@@ -38,6 +38,10 @@ const History = (() => {
     return api(`/tasks/${id}`, { method: 'DELETE' }).then(_announceChange);
   }
 
+  function removeScan(id) {
+    return api(`/scans/${id}`, { method: 'DELETE' });
+  }
+
   function plural(n) { return n === 1 ? t('history.dayOne') : t('history.dayMany'); }
 
   function toDateOnly(d) {
@@ -139,8 +143,83 @@ const History = (() => {
     return li;
   }
 
+  function buildScanItem(scan) {
+    const li = document.createElement('li');
+    li.className = 'task';
+
+    const body = document.createElement('div');
+    body.className = 'task-body';
+
+    const textEl = document.createElement('div');
+    textEl.className = 'task-text';
+    textEl.textContent = scan.question;
+    body.appendChild(textEl);
+
+    const meta = document.createElement('div');
+    meta.className = 'task-meta';
+    const when = document.createElement('span');
+    when.className = 'deadline';
+    when.textContent = window.t('history.scanAskedOn', { ago: relativeAgo(scan.created_at) });
+    meta.appendChild(when);
+    body.appendChild(meta);
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'scan-toggle';
+    toggle.textContent = window.t('history.scanViewAnswer');
+
+    const answer = document.createElement('div');
+    answer.className = 'scan-answer hidden';
+    let rendered = false;
+    toggle.addEventListener('click', () => {
+      const open = answer.classList.toggle('hidden');
+      toggle.textContent = window.t(open ? 'history.scanViewAnswer' : 'history.scanHideAnswer');
+      if (!open && !rendered) {
+        // отговорът е Markdown от AI — рендираме и чистим при първо отваряне, не при всеки клик
+        let html = window.marked ? marked.parse(scan.answer) : scan.answer;
+        if (window.DOMPurify) html = DOMPurify.sanitize(html);
+        answer.innerHTML = html;
+        rendered = true;
+      }
+    });
+    body.appendChild(toggle);
+    body.appendChild(answer);
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'task-delete';
+    del.setAttribute('aria-label', window.t('history.deleteAria'));
+    del.textContent = '✕';
+    del.addEventListener('click', () => {
+      removeScan(scan.id).then(renderScans).catch(() => renderScans());
+    });
+
+    li.appendChild(body);
+    li.appendChild(del);
+    return li;
+  }
+
+  async function renderScans() {
+    const list = $('scanHistoryList');
+    const empty = $('scanHistoryEmpty');
+    let scans;
+    try {
+      scans = await api('/scans');
+    } catch {
+      scans = [];
+    }
+    list.innerHTML = '';
+    if (!scans.length) {
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    for (const s of scans) list.appendChild(buildScanItem(s));
+  }
+
   async function render() {
     if (!Auth.isLoggedIn()) return;
+    renderScans();
     const list = $('historyList');
     const empty = $('historyEmpty');
 

@@ -7,17 +7,21 @@
 from dotenv import load_dotenv
 load_dotenv()  # трябва да е преди другите импорти, за да заредят env променливите навреме
 
-from typing import List
+from typing import List, Optional
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from anthropic import Anthropic
+from anthropic import Anthropic, APIStatusError
+from sqlalchemy.orm import Session
 
 import auth
 import planner
+import rate_limit
+import scans
 import tasks
-from db import Base, engine
+from db import Base, engine, get_db
+from models import ScanHistory, User
 
 app = FastAPI()
 client = Anthropic()  # чете ANTHROPIC_API_KEY от средата
@@ -27,6 +31,7 @@ Base.metadata.create_all(bind=engine)
 app.include_router(auth.router)
 app.include_router(tasks.router)
 app.include_router(planner.router)
+app.include_router(scans.router)
 
 # Браузърът/приложението и сървърът са на различни адреси, затова се иска
 # разрешение да вика сървъра. Когато качиш страницата на твоя домейн,
@@ -79,6 +84,17 @@ class Ask(BaseModel):
     lang: str = "bg"
 
 
+RATE_LIMIT_MESSAGE = {
+    "bg": "Твърде много опити за кратко време — изчакай малко и опитай пак.",
+    "en": "Too many requests in a short time — please wait a bit and try again.",
+}
+
+ASK_ERROR_MESSAGE = {
+    "bg": "Нещо се обърка при разпознаването на снимката. Опитай с друга снимка или пак след малко.",
+    "en": "Something went wrong reading the photo. Try a different photo or try again shortly.",
+}
+
+
 @app.get("/")
 def health():
     # Проста проверка, че сървърът е жив — отваряш адреса и виждаш това.
@@ -86,18 +102,35 @@ def health():
 
 
 @app.post("/ask")
-def ask(body: Ask):
+def ask(
+    body: Ask,
+    request: Request,
+    user: Optional[User] = Depends(auth.get_current_user_optional),
+    db: Session = Depends(get_db),
+):
     lang = body.lang if body.lang in SYSTEM else "bg"
+    # /ask е достъпен и за гости (без вход), затова лимитът е по IP, а не по акаунт —
+    # пази от неограничени разходи за Anthropic API от един клиент/бот.
+    rate_limit.enforce(request, "ask", max_calls=12, window_seconds=3600, message=RATE_LIMIT_MESSAGE[lang])
     content = [
         {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img}}
         for img in body.images
     ]
     content.append({"type": "text", "text": body.question})
-    resp = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=1500,
-        system=SYSTEM[lang],
-        messages=[{"role": "user", "content": content}],
-    )
+    try:
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1500,
+            system=SYSTEM[lang],
+            messages=[{"role": "user", "content": content}],
+        )
+    except APIStatusError:
+        raise HTTPException(502, ASK_ERROR_MESSAGE[lang])
     answer = "".join(b.text for b in resp.content if b.type == "text")
+
+    if user:
+        # Пазим само текста на въпроса/отговора за историята — снимките никога не се записват.
+        db.add(ScanHistory(user_id=user.id, question=body.question, answer=answer, lang=lang))
+        db.commit()
+
     return {"answer": answer}

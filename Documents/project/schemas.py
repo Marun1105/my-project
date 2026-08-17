@@ -84,6 +84,16 @@ class TaskUpdate(BaseModel):
     done: Optional[bool] = None
 
 
+class ScanHistoryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    question: str
+    answer: str
+    lang: str
+    created_at: datetime
+
+
 class TaskOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

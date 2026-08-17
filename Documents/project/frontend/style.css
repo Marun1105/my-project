@@ -1104,6 +1104,35 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 .task-delete:hover { color: var(--danger); background: var(--danger-soft); }
 
+.history-section-title {
+  width: 100%;
+  margin: 24px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+.history-section-title:first-of-type { margin-top: 14px; }
+.scan-toggle {
+  margin-top: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+.scan-answer {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
 /* ---------- explanations for complex features (never small/grey/ignorable) ---------- */
 .explainer {
   width: 100%;

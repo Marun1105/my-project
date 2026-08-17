@@ -31,9 +31,12 @@ const Planner = (() => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tasks, lang: I18n.get() }),
       });
-      if (!res.ok) throw new Error('bad status');
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       el.classList.remove('thinking');
+      if (!res.ok) {
+        showError(typeof data.detail === 'string' && data.detail ? data.detail : t('checklist.planErrOffline'));
+        return;
+      }
       if (data.advice) {
         renderAdvice(data.advice);
       } else {

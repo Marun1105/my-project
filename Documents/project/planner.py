@@ -1,12 +1,19 @@
 # planner.py — AI помощник за плана: гледа чеклиста и предлага как да се организира работата
 from typing import List, Optional
 
-from anthropic import Anthropic
-from fastapi import APIRouter
+from anthropic import Anthropic, APIStatusError
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+
+import rate_limit
 
 router = APIRouter(prefix="/plan", tags=["plan"])
 client = Anthropic()  # чете ANTHROPIC_API_KEY от средата
+
+RATE_LIMIT_MESSAGE = {
+    "bg": "Твърде много опити за кратко време — изчакай малко и опитай пак.",
+    "en": "Too many requests in a short time — please wait a bit and try again.",
+}
 
 SYSTEM = {
     "bg": """Ти си вдъхновяващ помощник, който помага на ученик (1-12 клас) да организира домашните си.
@@ -36,6 +43,11 @@ NO_TASKS_MESSAGE = {
     "en": "There are no pending tasks in the checklist — add one to get advice on how to organize it.",
 }
 
+PLAN_ERROR_MESSAGE = {
+    "bg": "Нещо се обърка при съставянето на съвета. Опитай пак след малко.",
+    "en": "Something went wrong putting the advice together. Try again shortly.",
+}
+
 
 class TaskIn(BaseModel):
     text: str
@@ -49,11 +61,13 @@ class PlanRequest(BaseModel):
 
 
 @router.post("")
-def plan(body: PlanRequest):
+def plan(body: PlanRequest, request: Request):
     lang = body.lang if body.lang in SYSTEM else "bg"
 
     if not body.tasks:
         return {"advice": NO_TASKS_MESSAGE[lang]}
+
+    rate_limit.enforce(request, "plan", max_calls=20, window_seconds=3600, message=RATE_LIMIT_MESSAGE[lang])
 
     lines = []
     for t in body.tasks:
@@ -65,11 +79,14 @@ def plan(body: PlanRequest):
         lines.append("- " + ", ".join(parts))
     tasks_text = "\n".join(lines)
 
-    resp = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=500,
-        system=SYSTEM[lang],
-        messages=[{"role": "user", "content": f"My tasks:\n{tasks_text}"}],
-    )
+    try:
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=500,
+            system=SYSTEM[lang],
+            messages=[{"role": "user", "content": f"My tasks:\n{tasks_text}"}],
+        )
+    except APIStatusError:
+        raise HTTPException(502, PLAN_ERROR_MESSAGE[lang])
     advice = "".join(b.text for b in resp.content if b.type == "text")
     return {"advice": advice}

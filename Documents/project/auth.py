@@ -1,10 +1,12 @@
 # auth.py — регистрация, вход, потвърждение на имейл/телефон, забравена парола
 from datetime import datetime, timezone
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.orm import Session
 
 import email_service
+import rate_limit
 import security
 import sms_service
 from db import get_db
@@ -77,8 +79,25 @@ def get_current_user(
     return user
 
 
+def get_current_user_optional(
+    authorization: str = Header(default=""),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    # За ендпойнти, достъпни и за гости (напр. /ask), но които пазят история само
+    # ако клиентът все пак е влязъл — не хвърля грешка, просто връща None.
+    prefix = "Bearer "
+    if not authorization.startswith(prefix):
+        return None
+    user_id = security.decode_access_token(authorization[len(prefix):])
+    if not user_id:
+        return None
+    return db.get(User, user_id)
+
+
 @router.post("/register")
-def register(body: RegisterRequest, db: Session = Depends(get_db)):
+def register(body: RegisterRequest, request: Request, db: Session = Depends(get_db)):
+    rate_limit.enforce(request, "register", max_calls=5, window_seconds=3600,
+                        message="Твърде много опити за регистрация — изчакай малко и опитай пак.")
     if db.query(User).filter(User.email == body.email).first():
         raise HTTPException(400, "Вече има акаунт с този имейл. Опитай да влезеш.")
 
@@ -112,7 +131,9 @@ def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/resend-code")
-def resend_code(body: ResendCodeRequest, db: Session = Depends(get_db)):
+def resend_code(body: ResendCodeRequest, request: Request, db: Session = Depends(get_db)):
+    rate_limit.enforce(request, "resend-code", max_calls=5, window_seconds=3600,
+                        message="Твърде много опити — изчакай малко и опитай пак.")
     user = db.query(User).filter(User.email == body.email).first()
     if not user:
         raise HTTPException(404, "Няма акаунт с този имейл.")
@@ -139,7 +160,14 @@ def me(user: User = Depends(get_current_user)):
 
 
 @router.post("/phone")
-def add_phone(body: AddPhoneRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def add_phone(
+    body: AddPhoneRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    rate_limit.enforce(request, "add-phone", max_calls=5, window_seconds=3600,
+                        message="Твърде много опити — изчакай малко и опитай пак.")
     existing = db.query(User).filter(User.phone == body.phone, User.id != user.id).first()
     if existing:
         raise HTTPException(400, "Този телефон вече е използван от друг акаунт.")
@@ -163,7 +191,9 @@ def verify_phone(body: VerifyPhoneRequest, user: User = Depends(get_current_user
 
 
 @router.post("/forgot-password")
-def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
+def forgot_password(body: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
+    rate_limit.enforce(request, "forgot-password", max_calls=5, window_seconds=3600,
+                        message="Твърде много опити — изчакай малко и опитай пак.")
     if body.channel == "email":
         user = db.query(User).filter(User.email == body.contact).first()
     elif body.channel == "sms":
