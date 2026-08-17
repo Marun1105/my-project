@@ -1,7 +1,9 @@
 # security.py — хеширане на пароли, JWT сесии, кодове за потвърждение
 import os
 import random
+import secrets
 import string
+import sys
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -10,7 +12,18 @@ from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-JWT_SECRET = os.environ.get("JWT_SECRET") or "dev-secret-change-me"
+# Без зададен JWT_SECRET НЕ ползваме фиксирана стойност по подразбиране: тя стои в
+# публичното repo, а всеки, който я знае, може да си направи валиден токен за чужд
+# акаунт. Вместо това вдигаме случаен ключ за текущия процес — сесиите изтичат при
+# рестарт (малко неудобство), но никой не може да ги подправи.
+JWT_SECRET = os.environ.get("JWT_SECRET")
+if not JWT_SECRET:
+    JWT_SECRET = secrets.token_urlsafe(48)
+    print(
+        "[security] ВНИМАНИЕ: JWT_SECRET не е зададен — ползвам временен случаен ключ. "
+        "Всички сесии ще изтекат при рестарт. Задай JWT_SECRET в средата (Render → Environment).",
+        file=sys.stderr,
+    )
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = 30
 
