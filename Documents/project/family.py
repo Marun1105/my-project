@@ -2,8 +2,7 @@
 # ОБОБЩЕН напредък (брой задачи, минути фокус, серия). Умишлено НЕ показваме текста
 # на задачите или въпросите към учителя — ако детето знае, че всеки въпрос се чете,
 # спира да пита честно, а точно питането е смисълът на приложението.
-import random
-import string
+import secrets
 from datetime import date, datetime, timedelta, timezone
 from typing import List
 
@@ -26,7 +25,9 @@ CODE_LENGTH = 6
 
 def _generate_code(db: Session) -> str:
     for _ in range(10):
-        code = "".join(random.choices(CODE_ALPHABET, k=CODE_LENGTH))
+        # secrets, не random: кодът дава достъп до данните на дете, а random е
+        # предвидим, ако някой види достатъчно негови изходи
+        code = "".join(secrets.choice(CODE_ALPHABET) for _ in range(CODE_LENGTH))
         if not db.query(FamilyInvite).filter(FamilyInvite.code == code).first():
             return code
     raise HTTPException(500, "Не успях да създам код. Опитай пак.")

@@ -1,6 +1,5 @@
 # security.py — хеширане на пароли, JWT сесии, кодове за потвърждение
 import os
-import random
 import secrets
 import string
 import sys
@@ -39,7 +38,10 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def generate_code() -> str:
-    return "".join(random.choices(string.digits, k=6))
+    # secrets, не random: тези кодове потвърждават имейл и сменят парола. random е
+    # Mersenne Twister — предвидим е, ако някой събере достатъчно негови изходи,
+    # което тук би означавало превземане на чужд акаунт.
+    return "".join(secrets.choice(string.digits) for _ in range(6))
 
 
 def hash_code(code: str) -> str:
