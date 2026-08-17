@@ -597,11 +597,34 @@
 <script src="classes.js"></script>
 <script src="onboarding.js"></script>
 <script>
-  // service worker: прави Climby инсталируем на телефон и го отваря мигновено при следващо влизане
+  // service worker: прави Climby инсталируем на телефон и го отваря мигновено при следващо влизане.
+  //
+  // В приложението за компютър обаче не го искаме. Там файловете вече стоят на диска,
+  // така че кешът не печели нищо, а пречи сериозно: index.html се тегли пръв от мрежата,
+  // но style.css и *.js се раздават от кеша. След автоматично обновяване това дава нова
+  // страница, която върви със стария код — тоест счупено приложение. Затова тук service
+  // worker-ът се маха заедно с кеша, останал от предишната инсталация, и страницата се
+  // презарежда веднъж, за да тръгне вече без него.
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
-    });
+    if (window.CLIMBY_DESKTOP && window.CLIMBY_DESKTOP.isDesktop) {
+      const wasControlled = Boolean(navigator.serviceWorker.controller);
+      navigator.serviceWorker.getRegistrations()
+        .then(regs => Promise.all(regs.map(r => r.unregister())))
+        .then(() => (window.caches ? caches.keys() : []))
+        .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+        .then(() => {
+          // Само веднъж: след презареждането вече няма кой да контролира страницата.
+          if (wasControlled && !sessionStorage.getItem('climby-sw-cleaned')) {
+            sessionStorage.setItem('climby-sw-cleaned', '1');
+            location.reload();
+          }
+        })
+        .catch(() => {});
+    } else {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
   }
 </script>
 </body>

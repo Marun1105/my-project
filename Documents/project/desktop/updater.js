@@ -90,19 +90,25 @@ function initAutoUpdate(getWindowFn) {
     // Ако ученикът е избрал "По-късно", не го питаме пак при всяка проверка.
     if (promptShown) return;
     promptShown = true;
-    const { response } = await say({
-      type: 'info',
-      buttons: ['Рестартирай сега', 'По-късно'],
-      defaultId: 0,
-      cancelId: 1,
-      title: 'Climby',
-      message: `Готова е нова версия на Climby (${info_.version}).`,
-      detail:
-        'Ако избереш „По-късно“, обновяването ще се сложи само, когато затвориш приложението.',
-    });
-    if (response === 0) {
-      // Извън обработчика на събитието — иначе NSIS понякога не тръгва.
-      setImmediate(() => autoUpdater.quitAndInstall());
+    try {
+      const { response } = await say({
+        type: 'info',
+        buttons: ['Рестартирай сега', 'По-късно'],
+        defaultId: 0,
+        cancelId: 1,
+        title: 'Climby',
+        message: `Готова е нова версия на Climby (${info_.version}).`,
+        detail:
+          'Ако избереш „По-късно“, обновяването ще се сложи само, когато затвориш приложението.',
+      });
+      if (response === 0) {
+        // Извън обработчика на събитието — иначе NSIS понякога не тръгва.
+        setImmediate(() => autoUpdater.quitAndInstall());
+      }
+    } catch (err) {
+      // Например прозорецът е затворен, докато въпросът стои на екрана.
+      // Обновяването и без това ще се сложи при затваряне.
+      console.warn('[updater] въпросът не можа да се покаже:', err && err.message ? err.message : err);
     }
   });
 
