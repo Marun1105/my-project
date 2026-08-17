@@ -32,7 +32,7 @@ const Planner = (() => {
 
     try {
       const tasks = await Checklist.getPendingTasks();
-      const res = await fetch(BACKEND + '/plan', {
+      const res = await Net.fetch(BACKEND + '/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tasks, lang: I18n.get() }),

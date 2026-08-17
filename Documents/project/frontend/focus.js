@@ -70,7 +70,7 @@ const Focus = (() => {
     if (!el) return;
     if (!window.Auth || !Auth.isLoggedIn()) { el.classList.add('hidden'); return; }
     try {
-      const res = await fetch(BACKEND + '/focus', {
+      const res = await Net.fetch(BACKEND + '/focus', {
         headers: { Authorization: `Bearer ${Auth.getToken()}` },
       });
       if (!res.ok) throw new Error('bad status');
@@ -93,7 +93,7 @@ const Focus = (() => {
     const totalTicks = focusedTicks + awayTicks;
     const focusPct = totalTicks ? Math.round((focusedTicks / totalTicks) * 100) : null;
     try {
-      await fetch(BACKEND + '/focus', {
+      await Net.fetch(BACKEND + '/focus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Auth.getToken()}` },
         body: JSON.stringify({ duration_seconds: durationSeconds, focus_pct: focusPct }),

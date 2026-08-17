@@ -7,7 +7,7 @@ const Checklist = (() => {
     const token = Auth.getToken();
     let res;
     try {
-      res = await fetch(BACKEND + path, {
+      res = await Net.fetch(BACKEND + path, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ const Checklist = (() => {
     btn.textContent = t('checklist.splitting');
     let steps;
     try {
-      const res = await fetch(BACKEND + '/plan/split', {
+      const res = await Net.fetch(BACKEND + '/plan/split', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: task.text, subject: task.subject, lang: I18n.get() }),

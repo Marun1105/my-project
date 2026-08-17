@@ -7,7 +7,7 @@ const History = (() => {
     const token = Auth.getToken();
     let res;
     try {
-      res = await fetch(BACKEND + path, {
+      res = await Net.fetch(BACKEND + path, {
         ...options,
         headers: {
           'Content-Type': 'application/json',

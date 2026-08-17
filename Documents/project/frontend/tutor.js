@@ -51,7 +51,7 @@ const Tutor = (() => {
     answerEl.innerHTML = '<span class="spark-spin">✨</span> ' + t('scanner.thinking');
 
     try {
-      const res = await fetch(BACKEND + '/ask', {
+      const res = await Net.fetch(BACKEND + '/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ images: scannedImages, question, lang: I18n.get() }),

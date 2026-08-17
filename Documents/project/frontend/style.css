@@ -1270,6 +1270,27 @@ button:disabled { opacity: 0.4; cursor: default; }
   font-size: 14px;
 }
 
+/* ---------- лента "сървърът се събужда" (виж net.js) ---------- */
+/* Безплатният Render заспива; първата заявка след това чака. Казваме го спокойно,
+   защото не е грешка на ученика и нищо не е загубено — просто трябва малко време. */
+.wake-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 90;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px var(--shadow);
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+}
+
 /* ---------- първо отваряне: кратко представяне ---------- */
 .onboarding {
   position: fixed;

@@ -64,7 +64,7 @@ const Auth = (() => {
   async function _post(path, body) {
     let res;
     try {
-      res = await fetch(BACKEND + path, {
+      res = await Net.fetch(BACKEND + path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

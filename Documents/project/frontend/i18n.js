@@ -11,6 +11,8 @@ const I18n = (() => {
       'nav.history': 'История',
       'nav.focus': 'Фокус',
 
+      'net.waking': 'Сървърът се събужда — това отнема половин минута. Изчакай малко…',
+
       'auth.logout': 'Изход',
       'auth.why': 'Защо трябва да влезеш:',
       'auth.whyBodyChecklist': 'чеклистът пази задачите ти в акаунт, за да ги виждаш от всяко устройство.',
@@ -228,6 +230,8 @@ const I18n = (() => {
       'nav.checklist': 'Checklist',
       'nav.history': 'History',
       'nav.focus': 'Focus',
+
+      'net.waking': 'The server is waking up — this takes about half a minute. Hang on…',
 
       'auth.logout': 'Log out',
       'auth.why': 'Why you need to log in:',
