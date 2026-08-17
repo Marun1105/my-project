@@ -83,8 +83,13 @@ const Auth = (() => {
     return t('auth.errGeneric');
   }
 
-  async function register(displayName, email, password) {
-    return _post('/auth/register', { display_name: displayName, email, password });
+  async function register(displayName, email, password, role) {
+    return _post('/auth/register', { display_name: displayName, email, password, role });
+  }
+
+  function getRole() {
+    const user = getUser();
+    return (user && user.role) || 'student';
   }
 
   async function verifyEmail(email, code) {
@@ -204,12 +209,13 @@ const Auth = (() => {
     const name = $('registerName').value.trim();
     const email = $('registerEmail').value.trim();
     const password = $('registerPassword').value;
+    const role = (document.querySelector('input[name="registerRole"]:checked') || {}).value || 'student';
     if (!name || !email || !password) {
       setError(t('auth.errFillAll'));
       return;
     }
     try {
-      await register(name, email, password);
+      await register(name, email, password, role);
       pendingVerifyEmail = email;
       showForm('verify');
     } catch (err) {
@@ -358,7 +364,7 @@ const Auth = (() => {
       updatePwStrength('resetPassword', 'resetPwStrength', 'resetPwBar', 'resetPwLabel'));
   }
 
-  return { getToken, getUser, isLoggedIn, logout, init, openEntryGate: showEntryGate };
+  return { getToken, getUser, getRole, isLoggedIn, logout, init, openEntryGate: showEntryGate };
 })();
 
 document.addEventListener('DOMContentLoaded', Auth.init);

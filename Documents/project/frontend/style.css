@@ -1,6 +1,11 @@
 /* style.css — общ дизайн на Climby: тъмна тема (основна) + светла тема (превключваема) */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap');
+/* Fraunces НЯМА кирилица (само latin/latin-ext/vietnamese), затова стои единствено
+   за латинския надпис "Climby". За заглавията на кирилица е Literata — четивен
+   книжен шрифт, подходящ за приложение около учебници, а за текста IBM Plex Sans.
+   И двата са избрани, а не заварени: Inter е шрифтът, който всеки инструмент слага
+   по подразбиране, и точно затова изглежда като нещо, което никой не е избирал. */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Literata:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 :root {
   /* тъмна тема — основна */
@@ -34,16 +39,28 @@
 
   /* AI-powered features (tutor, planner) get their own gradient identity,
      distinct from the app's regular green accent, so they read as "magic". */
-  --ai-gradient: linear-gradient(120deg, #7c5cff 0%, #b350ff 40%, #ff5fb8 75%, #ff8a5c 100%);
-  --ai-gradient-soft: linear-gradient(120deg, rgba(124, 92, 255, 0.14), rgba(255, 95, 184, 0.14));
-  --ai-glow: rgba(179, 80, 255, 0.35);
+  /* И двата края са достатъчно тъмни за бял текст върху тях (.btn-ai, .account-avatar):
+     светло зелено изглежда добре, но бяло върху него пада до ~2.3:1 и става нечетимо. */
+  --ai-gradient: linear-gradient(135deg, #0b4a29 0%, #177a42 100%);
+  --ai-gradient-soft: linear-gradient(135deg, rgba(11, 74, 41, 0.18), rgba(23, 122, 66, 0.14));
+  --ai-glow: rgba(46, 194, 95, 0.32);
 
   /* меко осветяване на фона, за да не изглежда празното пространство като счупено */
   --ambient-a: rgba(46, 194, 95, 0.07);
-  --ambient-b: rgba(124, 92, 255, 0.07);
+  --ambient-b: rgba(14, 92, 51, 0.10);
 
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Inter', -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-brand: 'Fraunces', Georgia, serif;   /* само "Climby" — латиница */
+  --font-display: 'Literata', Georgia, serif; /* заглавия, вкл. на кирилица */
+  --font-body: 'IBM Plex Sans', -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+
+  /* Стълба за отстояния: хармонията идва от това, че разстоянията се повтарят,
+     а не от това, че всяко е "на око". */
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 36px;
+  --space-6: 56px;
 
   --radius-sm: 6px;
   --radius: 10px;
@@ -75,12 +92,12 @@
   --pink: #d1288a;
   --shadow: rgba(60, 50, 30, 0.12);
 
-  --ai-gradient: linear-gradient(120deg, #6d3ff0 0%, #a233e0 40%, #e0349a 75%, #e8703f 100%);
-  --ai-gradient-soft: linear-gradient(120deg, rgba(109, 63, 240, 0.1), rgba(224, 52, 154, 0.1));
-  --ai-glow: rgba(162, 51, 224, 0.25);
+  --ai-gradient: linear-gradient(135deg, #0c4a28 0%, #1a8341 100%);
+  --ai-gradient-soft: linear-gradient(135deg, rgba(12, 74, 40, 0.12), rgba(26, 131, 65, 0.1));
+  --ai-glow: rgba(26, 131, 65, 0.25);
 
   --ambient-a: rgba(26, 131, 65, 0.07);
-  --ambient-b: rgba(109, 63, 240, 0.05);
+  --ambient-b: rgba(12, 74, 40, 0.07);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -164,7 +181,7 @@ body {
 .sidebar-logo img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1); }
 .brand { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
 .brand .name {
-  font-family: var(--font-display);
+  font-family: var(--font-brand);
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -504,7 +521,7 @@ body {
   cursor: pointer;
   flex: none;
 }
-.mobile-brand { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--text); }
+.mobile-brand { font-family: var(--font-brand); font-size: 17px; font-weight: 600; color: var(--text); }
 
 @media (max-width: 860px) {
   .sidebar {
@@ -1385,3 +1402,85 @@ button:disabled { opacity: 0.4; cursor: default; }
   animation: climby-rise 0.35s ease both;
 }
 .explainer strong { color: var(--accent); }
+
+
+/* ---------- избор на роля при регистрация ---------- */
+/* Три реда, не три еднакви карти една до друга: изборът е "кой си ти", а не
+   "кой план купуваш", и подредбата не бива да го прави да изглежда като ценоразпис. */
+.role-choice {
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+.role-choice legend {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: var(--space-2);
+}
+.role-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.role-option:hover { border-color: var(--accent); }
+.role-option input { margin-top: 3px; accent-color: var(--accent); flex-shrink: 0; }
+.role-option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.role-option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.role-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.role-name { font-weight: 600; font-size: 14px; color: var(--text); }
+.role-hint { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+
+/* ---------- класове (учител и ученик) ---------- */
+.class-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.class-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.class-card-name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+/* Кодът се диктува на глас пред класа, затова е моноширинен и с разредка —
+   за да не се спори дали това е O или 0. */
+.class-code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 15px;
+  letter-spacing: 0.16em;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.class-student {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border);
+}
+.class-student-name { font-weight: 500; font-size: 14px; flex: 1; min-width: 0; }
+.class-student-stats { font-size: 12px; color: var(--text-dim); text-align: right; }
+.class-student-stats.has-overdue { color: var(--warn); }
+.class-leave { font-size: 12px; padding: 4px 10px; flex-shrink: 0; }

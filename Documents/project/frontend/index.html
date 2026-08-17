@@ -71,6 +71,30 @@
         <div class="pw-strength-track"><span id="registerPwBar" class="pw-strength-fill"></span></div>
         <span id="registerPwLabel" class="pw-strength-label"></span>
       </div>
+      <fieldset class="role-choice">
+        <legend data-i18n="auth.roleLegend">Кой си ти?</legend>
+        <label class="role-option">
+          <input type="radio" name="registerRole" value="student" checked>
+          <span class="role-body">
+            <span class="role-name" data-i18n="auth.roleStudent">Ученик</span>
+            <span class="role-hint" data-i18n="auth.roleStudentHint">Сканирай задачи, води чеклист, гледай напредъка си.</span>
+          </span>
+        </label>
+        <label class="role-option">
+          <input type="radio" name="registerRole" value="parent">
+          <span class="role-body">
+            <span class="role-name" data-i18n="auth.roleParent">Родител</span>
+            <span class="role-hint" data-i18n="auth.roleParentHint">Свържи се с детето си по код и виж как върви.</span>
+          </span>
+        </label>
+        <label class="role-option">
+          <input type="radio" name="registerRole" value="teacher">
+          <span class="role-body">
+            <span class="role-name" data-i18n="auth.roleTeacher">Учител</span>
+            <span class="role-hint" data-i18n="auth.roleTeacherHint">Направи клас и следи целия клас наведнъж.</span>
+          </span>
+        </label>
+      </fieldset>
       <button id="registerBtn" class="btn-primary" type="button" data-i18n="auth.registerBtn">Регистрирай се</button>
       <p class="auth-switch"><span data-i18n="auth.haveAccount">Вече имаш акаунт?</span> <a href="#" id="showLogin" data-i18n="auth.loginLink">Влез</a></p>
     </div>
@@ -174,9 +198,14 @@
           </div>
         </div>
       </div>
-      <div class="nav-group">
+      <div class="nav-group" data-role="parent student">
         <button class="nav-link nav-parent" data-view="family">
           <span data-i18n="nav.family">Родител</span>
+        </button>
+      </div>
+      <div class="nav-group" data-role="teacher student">
+        <button class="nav-link nav-parent" data-view="classes">
+          <span data-i18n="nav.classes">Клас</span>
         </button>
       </div>
     </nav>
@@ -485,6 +514,53 @@
 
 </main>
 
+<main id="view-classes" class="view hidden">
+
+  <div id="classesGate" class="auth-gate-simple">
+    <div class="explainer">
+      <strong data-i18n="classes.why">Защо трябва да влезеш:</strong> <span data-i18n="classes.whyBody">класовете стоят в акаунта — на учителя или на ученика.</span>
+    </div>
+    <div class="controls">
+      <button id="classesLoginBtn" class="btn-primary" type="button" data-i18n="classes.login">Влез</button>
+    </div>
+  </div>
+
+  <!-- изглед за УЧИТЕЛ -->
+  <div id="teacherApp" class="hidden">
+    <div class="explainer">
+      <strong data-i18n="classes.teacherIntro">Твоите класове.</strong> <span data-i18n="classes.teacherIntroBody">Кажи кода на класа и учениците се присъединяват сами. Виждаш само числа — колко задачи и колко време са учили. Какво пише в задачите и какво питат остава лично за тях.</span>
+    </div>
+
+    <form id="classCreateForm" class="family-link-form">
+      <input id="classNameInput" type="text" maxlength="40" autocomplete="off"
+             data-i18n-placeholder="classes.namePlaceholder" placeholder="Име на класа, напр. 7А">
+      <button class="btn-primary" type="submit" data-i18n="classes.createBtn">Направи клас</button>
+    </form>
+    <p id="classesError" class="hint auth-error hidden"></p>
+
+    <div id="classesList"></div>
+    <p id="classesEmpty" class="hint empty-state hidden" data-i18n="classes.emptyTeacher">Още нямаш класове — направи първия отгоре.</p>
+  </div>
+
+  <!-- изглед за УЧЕНИК -->
+  <div id="studentClassesApp" class="hidden">
+    <div class="explainer">
+      <strong data-i18n="classes.studentIntro">Класовете ти.</strong> <span data-i18n="classes.studentIntroBody">Учителят вижда само колко задачи си свършил и колко време си учил — никога какво пише в тях или какво си питал.</span>
+    </div>
+
+    <form id="classJoinForm" class="family-link-form">
+      <input id="classCodeInput" type="text" maxlength="6" autocomplete="off"
+             data-i18n-placeholder="classes.codePlaceholder" placeholder="Код от учителя">
+      <button class="btn-primary" type="submit" data-i18n="classes.joinBtn">Присъедини се</button>
+    </form>
+    <p id="studentClassesError" class="hint auth-error hidden"></p>
+
+    <div id="studentClassesList"></div>
+    <p id="studentClassesEmpty" class="hint empty-state hidden" data-i18n="classes.emptyStudent">Още не си в клас. Поискай код от учителя си.</p>
+  </div>
+
+</main>
+
   </div>
 </div>
 
@@ -518,6 +594,7 @@
 <script src="history.js"></script>
 <script src="focus.js"></script>
 <script src="family.js"></script>
+<script src="classes.js"></script>
 <script src="onboarding.js"></script>
 <script>
   // service worker: прави Climby инсталируем на телефон и го отваря мигновено при следващо влизане
