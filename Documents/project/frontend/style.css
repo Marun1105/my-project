@@ -1144,6 +1144,19 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--accent);
   cursor: pointer;
 }
+/* Празен списък не е грешка, а начална точка — дава му се място и рамка,
+   вместо да изглежда като забравен сив ред под заглавието. */
+.empty-state {
+  width: 100%;
+  margin-top: 14px;
+  padding: 26px 20px;
+  text-align: center;
+  line-height: 1.6;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+}
+
 /* ---------- компютър без камера: качването е основният път, не грешка ---------- */
 .no-camera {
   width: 100%;

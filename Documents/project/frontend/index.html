@@ -359,7 +359,7 @@
     </form>
 
     <ul id="taskList" class="task-list"></ul>
-    <p id="taskEmpty" class="hint" data-i18n="checklist.emptyDefault">Няма добавени задачи още — добави първата отгоре.</p>
+    <p id="taskEmpty" class="hint empty-state" data-i18n="checklist.emptyDefault">Няма добавени задачи още — добави първата отгоре.</p>
 
     <div class="controls" style="margin-top: 20px;">
       <button id="planBtn" class="btn-ai" type="button"><span class="spark"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span><span data-i18n="checklist.planBtn">Помощ за плана</span></button>
@@ -388,11 +388,11 @@
 
     <h3 class="history-section-title" data-i18n="history.scansTitle">Въпроси към учителя</h3>
     <ul id="scanHistoryList" class="task-list scan-history-list"></ul>
-    <p id="scanHistoryEmpty" class="hint hidden" data-i18n="history.scansEmpty">Още нямаш зададени въпроси към учителя.</p>
+    <p id="scanHistoryEmpty" class="hint empty-state hidden" data-i18n="history.scansEmpty">Още нямаш зададени въпроси към учителя.</p>
 
     <h3 class="history-section-title" data-i18n="history.tasksTitle">Свършени задачи</h3>
     <ul id="historyList" class="task-list"></ul>
-    <p id="historyEmpty" class="hint" data-i18n="history.emptyDefault">Още нямаш довършени задачи — довърши нещо от чеклиста и ще се появи тук.</p>
+    <p id="historyEmpty" class="hint empty-state" data-i18n="history.emptyDefault">Още нямаш довършени задачи — довърши нещо от чеклиста и ще се появи тук.</p>
   </div>
 
 </main>
@@ -464,7 +464,7 @@
 
     <h3 class="history-section-title" data-i18n="family.studentsTitle">Свързани ученици</h3>
     <div id="familyStudents" class="family-students"></div>
-    <p id="familyStudentsEmpty" class="hint hidden" data-i18n="family.noStudents">Още нямаш свързан ученик. Поискай код от детето си и го въведи отдолу.</p>
+    <p id="familyStudentsEmpty" class="hint empty-state hidden" data-i18n="family.noStudents">Още нямаш свързан ученик. Поискай код от детето си и го въведи отдолу.</p>
 
     <form id="familyLinkForm" class="family-link-form">
       <input id="familyCodeInput" type="text" maxlength="6" autocomplete="off"
