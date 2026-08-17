@@ -3,6 +3,7 @@
 // или пази никъде, само броячи в паметта за текущата сесия. Не изисква акаунт.
 const Focus = (() => {
   const $ = id => document.getElementById(id);
+  const BACKEND = window.CLIMBY_BACKEND;
   const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
   const SAMPLE_MS = 600; // достатъчно често за да усеща рамката около лицето "на живо", tinyFaceDetector е лек
   const ENABLED_KEY = 'climby-focus-enabled';
@@ -39,6 +40,67 @@ const Focus = (() => {
     ['Idle', 'Loading', 'Running'].forEach(s => $(`focus${s}`).classList.toggle('hidden', s !== name));
     $('focusSummary').classList.add('hidden');
     clearError();
+    if (name === 'Idle') renderStreak();
+  }
+
+  // ---------- история и серия от дни (само за влезли, статистиката е по избор) ----------
+
+  function dateKey(iso) {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  }
+
+  function computeStreak(sessions) {
+    const days = new Set(sessions.map(s => dateKey(s.created_at)));
+    const cursor = new Date();
+    if (!days.has(dateKey(cursor.toISOString()))) {
+      cursor.setDate(cursor.getDate() - 1);
+      if (!days.has(dateKey(cursor.toISOString()))) return 0;
+    }
+    let streak = 0;
+    while (days.has(dateKey(cursor.toISOString()))) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
+  }
+
+  async function renderStreak() {
+    const el = $('focusStreak');
+    if (!el) return;
+    if (!window.Auth || !Auth.isLoggedIn()) { el.classList.add('hidden'); return; }
+    try {
+      const res = await fetch(BACKEND + '/focus', {
+        headers: { Authorization: `Bearer ${Auth.getToken()}` },
+      });
+      if (!res.ok) throw new Error('bad status');
+      const sessions = await res.json();
+      if (!sessions.length) { el.classList.add('hidden'); return; }
+      const streak = computeStreak(sessions);
+      el.textContent = streak > 0
+        ? t('focus.streak', { n: streak, days: streak === 1 ? t('history.dayOne') : t('history.dayMany') })
+        : t('focus.sessionsLogged', { n: sessions.length });
+      el.classList.remove('hidden');
+    } catch {
+      el.classList.add('hidden');
+    }
+  }
+
+  async function saveSession(totalMs) {
+    if (!window.Auth || !Auth.isLoggedIn()) return;
+    const durationSeconds = Math.round(totalMs / 1000);
+    if (durationSeconds < 60) return; // твърде кратка сесия, за да си струва да се пази
+    const totalTicks = focusedTicks + awayTicks;
+    const focusPct = totalTicks ? Math.round((focusedTicks / totalTicks) * 100) : null;
+    try {
+      await fetch(BACKEND + '/focus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Auth.getToken()}` },
+        body: JSON.stringify({ duration_seconds: durationSeconds, focus_pct: focusPct }),
+      });
+    } catch {
+      // статистиката не е критична — сесията вече приключи за ученика, независимо дали се е записала
+    }
   }
 
   function setError(msg) {
@@ -152,6 +214,7 @@ const Focus = (() => {
     if (silent) {
       showStage('Idle');
     } else {
+      saveSession(totalMs);
       showSummary(totalMs);
     }
   }

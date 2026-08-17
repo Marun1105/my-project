@@ -3,7 +3,7 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, Date, DateTime, Enum, ForeignKey, String
+from sqlalchemy import Boolean, Column, Date, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from db import Base
@@ -41,6 +41,16 @@ class Task(Base):
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
     owner = relationship("User", back_populates="tasks")
+
+
+class FocusSession(Base):
+    __tablename__ = "focus_sessions"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    duration_seconds = Column(Integer, nullable=False)
+    focus_pct = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
 
 
 class ScanHistory(Base):

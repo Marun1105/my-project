@@ -84,6 +84,20 @@ class TaskUpdate(BaseModel):
     done: Optional[bool] = None
 
 
+class FocusSessionIn(BaseModel):
+    duration_seconds: int
+    focus_pct: Optional[int] = None
+
+
+class FocusSessionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    duration_seconds: int
+    focus_pct: Optional[int] = None
+    created_at: datetime
+
+
 class ScanHistoryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

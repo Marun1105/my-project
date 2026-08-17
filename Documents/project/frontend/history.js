@@ -175,10 +175,13 @@ const History = (() => {
       const open = answer.classList.toggle('hidden');
       toggle.textContent = window.t(open ? 'history.scanViewAnswer' : 'history.scanHideAnswer');
       if (!open && !rendered) {
-        // отговорът е Markdown от AI — рендираме и чистим при първо отваряне, не при всеки клик
-        let html = window.marked ? marked.parse(scan.answer) : scan.answer;
-        if (window.DOMPurify) html = DOMPurify.sanitize(html);
-        answer.innerHTML = html;
+        // отговорът е Markdown от AI — рендираме и чистим при първо отваряне, не при всеки клик.
+        // Без DOMPurify не пускаме HTML изобщо: показваме го като чист текст.
+        if (window.marked && window.DOMPurify) {
+          answer.innerHTML = DOMPurify.sanitize(marked.parse(scan.answer));
+        } else {
+          answer.textContent = scan.answer;
+        }
         rendered = true;
       }
     });

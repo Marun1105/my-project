@@ -6,9 +6,15 @@ const Planner = (() => {
   function renderAdvice(text) {
     const el = $('planAdvice');
     el.classList.remove('error', 'thinking');
-    let body = window.marked ? marked.parse(text) : text;
-    if (window.DOMPurify) body = DOMPurify.sanitize(body);
-    el.innerHTML = window.aiBadgeHtml() + body;
+    // Без DOMPurify не пускаме HTML изобщо — AI отговорът не е доверен вход.
+    if (window.marked && window.DOMPurify) {
+      el.innerHTML = window.aiBadgeHtml() + DOMPurify.sanitize(marked.parse(text));
+    } else {
+      el.innerHTML = window.aiBadgeHtml();
+      const plain = document.createElement('div');
+      plain.textContent = text;
+      el.appendChild(plain);
+    }
   }
 
   function showError(text) {

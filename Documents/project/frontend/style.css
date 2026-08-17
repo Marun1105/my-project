@@ -1124,6 +1124,12 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--accent);
   cursor: pointer;
 }
+.focus-streak-pill {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 16px;
+  font-size: 13px;
+}
 .scan-answer {
   margin-top: 10px;
   padding-top: 10px;

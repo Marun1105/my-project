@@ -2,6 +2,7 @@
 # (или бот) да предизвика неограничени разходи за Anthropic API през /ask и /plan.
 # Забележка: пази състоянието в паметта на един процес — коректно за единичен
 # Render инстанс; при няколко инстанса (хоризонтално мащабиране) лимитът е per-instance.
+import os
 import time
 from collections import defaultdict
 from threading import Lock
@@ -11,12 +12,30 @@ from fastapi import HTTPException, Request
 _lock = Lock()
 _hits: dict[str, list] = defaultdict(list)
 
+# Колко обратни проксита стоят пред приложението (Render = 1). Всяко прокси ДОБАВЯ
+# истинския адрес най-отдясно в X-Forwarded-For, затова броим отдясно наляво.
+# Лявата част на заглавката е изцяло под контрола на клиента — ако я четем оттам,
+# всеки може да сложи произволен адрес на всяка заявка и лимитът става безсмислен.
+# 0 = не се доверяваме на заглавката изобщо (локално, без прокси).
+TRUSTED_PROXY_HOPS = int(os.environ.get("TRUSTED_PROXY_HOPS", "1"))
+
 
 def _client_key(request: Request) -> str:
+    direct = request.client.host if request.client else "unknown"
+    if TRUSTED_PROXY_HOPS <= 0:
+        return direct
+
     fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    if not fwd:
+        return direct
+
+    parts = [p.strip() for p in fwd.split(",") if p.strip()]
+    if not parts:
+        return direct
+    # Вземаме адреса, добавен от най-близкото доверено прокси; ако заглавката е
+    # по-къса от очакваното, падаме до най-левия наличен, но никога по-наляво.
+    index = max(0, len(parts) - TRUSTED_PROXY_HOPS)
+    return parts[index]
 
 
 def enforce(request: Request, bucket: str, max_calls: int, window_seconds: int, message: str) -> None:
