@@ -165,7 +165,7 @@
       <div class="nav-group">
         <button class="nav-link nav-parent" data-view="checklist">
           <span data-i18n="nav.checklist">Чеклист</span>
-          <span id="checklistBadge" class="nav-badge hidden"></span>
+          <span id="checklistBadge" class="nav-badge hidden" role="status"></span>
           <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="nav-children">
@@ -212,7 +212,7 @@
 
   <div id="sidebarOverlay" class="sidebar-overlay hidden"></div>
 
-  <div id="onboarding" class="onboarding hidden">
+  <div id="onboarding" class="onboarding hidden" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
     <div class="onboarding-card">
       <div class="onboarding-steps">
         <span class="onboarding-dot active"></span>
@@ -309,7 +309,7 @@
   </div>
 </div>
 
-<div id="answer" class="answer hidden"></div>
+<div id="answer" class="answer hidden" role="status" aria-live="polite"></div>
 
 </main>
 
@@ -354,7 +354,7 @@
     <div class="controls" style="margin-top: 20px;">
       <button id="planBtn" class="btn-ai" type="button"><span class="spark"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span><span data-i18n="checklist.planBtn">Помощ за плана</span></button>
     </div>
-    <div id="planAdvice" class="answer hidden"></div>
+    <div id="planAdvice" class="answer hidden" role="status" aria-live="polite"></div>
 
   </div>
 

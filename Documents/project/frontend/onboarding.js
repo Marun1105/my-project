@@ -43,6 +43,9 @@ const Onboarding = (() => {
   function init() {
     $('onboardingNext').addEventListener('click', next);
     $('onboardingSkip').addEventListener('click', finish);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !$('onboarding').classList.contains('hidden')) finish();
+    });
     window.addEventListener('climby:lang-changed', () => {
       if (!$('onboarding').classList.contains('hidden')) render();
     });
