@@ -13,6 +13,7 @@ const I18n = (() => {
 
       'net.waking': 'Сървърът се събужда — това отнема половин минута. Изчакай малко…',
 
+      'auth.busy': 'Момент…',
       'auth.logout': 'Изход',
       'auth.why': 'Защо трябва да влезеш:',
       'auth.whyBodyChecklist': 'чеклистът пази задачите ти в акаунт, за да ги виждаш от всяко устройство.',
@@ -233,6 +234,7 @@ const I18n = (() => {
 
       'net.waking': 'The server is waking up — this takes about half a minute. Hang on…',
 
+      'auth.busy': 'One moment…',
       'auth.logout': 'Log out',
       'auth.why': 'Why you need to log in:',
       'auth.whyBodyChecklist': 'the checklist keeps your tasks in your account so you can see them from any device.',

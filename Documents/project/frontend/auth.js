@@ -141,6 +141,31 @@ const Auth = (() => {
     $('authError').classList.add('hidden');
   }
 
+  // Заявката към сървъра може да отнеме близо минута, ако Render е заспал (виж net.js).
+  // Без видим знак бутонът изглежда счупен: натискаш и не се случва нищо, натискаш пак
+  // и тръгват няколко влизания едновременно. Затова бутонът се заключва и го казва.
+  async function _withBusy(btn, fn) {
+    if (btn.disabled) return;
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = t('auth.busy');
+    try {
+      await fn();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = label;
+    }
+  }
+
+  // Enter в полетата трябва да прави същото като бутона — иначе изглежда, че нищо не става.
+  function _submitOnEnter(formId, btnId) {
+    $(formId).addEventListener('keydown', e => {
+      if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+      e.preventDefault();
+      $(btnId).click();
+    });
+  }
+
   // ---------- password strength meter (register + reset) ----------
 
   function pwScore(pw) {
@@ -314,12 +339,18 @@ const Auth = (() => {
     $('resendCodeLink').addEventListener('click', e => { e.preventDefault(); handleResend(); });
     $('resendResetLink').addEventListener('click', e => { e.preventDefault(); handleResendReset(); });
 
-    $('loginBtn').addEventListener('click', handleLogin);
-    $('registerBtn').addEventListener('click', handleRegister);
-    $('verifyBtn').addEventListener('click', handleVerify);
-    $('forgotBtn').addEventListener('click', handleForgot);
-    $('resetBtn').addEventListener('click', handleReset);
+    $('loginBtn').addEventListener('click', () => _withBusy($('loginBtn'), handleLogin));
+    $('registerBtn').addEventListener('click', () => _withBusy($('registerBtn'), handleRegister));
+    $('verifyBtn').addEventListener('click', () => _withBusy($('verifyBtn'), handleVerify));
+    $('forgotBtn').addEventListener('click', () => _withBusy($('forgotBtn'), handleForgot));
+    $('resetBtn').addEventListener('click', () => _withBusy($('resetBtn'), handleReset));
     $('logoutBtn').addEventListener('click', handleLogout);
+
+    _submitOnEnter('loginForm', 'loginBtn');
+    _submitOnEnter('registerForm', 'registerBtn');
+    _submitOnEnter('verifyForm', 'verifyBtn');
+    _submitOnEnter('forgotForm', 'forgotBtn');
+    _submitOnEnter('resetForm', 'resetBtn');
 
     $('registerPassword').addEventListener('input', () =>
       updatePwStrength('registerPassword', 'registerPwStrength', 'registerPwBar', 'registerPwLabel'));
