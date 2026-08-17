@@ -31,6 +31,10 @@
   --ai-gradient-soft: linear-gradient(120deg, rgba(124, 92, 255, 0.14), rgba(255, 95, 184, 0.14));
   --ai-glow: rgba(179, 80, 255, 0.35);
 
+  /* меко осветяване на фона, за да не изглежда празното пространство като счупено */
+  --ambient-a: rgba(52, 211, 153, 0.07);
+  --ambient-b: rgba(124, 92, 255, 0.07);
+
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Inter', -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
 
@@ -66,6 +70,9 @@
   --ai-gradient: linear-gradient(120deg, #6d3ff0 0%, #a233e0 40%, #e0349a 75%, #e8703f 100%);
   --ai-gradient-soft: linear-gradient(120deg, rgba(109, 63, 240, 0.1), rgba(224, 52, 154, 0.1));
   --ai-glow: rgba(162, 51, 224, 0.25);
+
+  --ambient-a: rgba(31, 143, 95, 0.07);
+  --ambient-b: rgba(109, 63, 240, 0.05);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -103,6 +110,7 @@ body {
   transition: background 0.2s ease, color 0.2s ease;
 }
 
+
 .wrap { width: 100%; max-width: var(--content-width); }
 
 /* ---------- app shell: sidebar + main content ---------- */
@@ -110,6 +118,13 @@ body {
   display: flex;
   align-items: stretch;
   min-height: 100vh;
+  /* Едно голямо празно поле изглежда като счупена страница, а не като дизайн.
+     Две много меки петна светлина дават дълбочина на празното пространство, без
+     да отвличат вниманието. fixed — не "плуват" при скрол. */
+  background:
+    radial-gradient(60vw 50vh at 18% 0%, var(--ambient-a), transparent 70%),
+    radial-gradient(55vw 45vh at 100% 100%, var(--ambient-b), transparent 70%);
+  background-attachment: fixed;
 }
 
 .sidebar {
@@ -334,7 +349,12 @@ body {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: var(--bg);
+  /* същата мека дълбочина като приложението отдолу — иначе входният екран
+     е плосък черен лист и изглежда като грешка при зареждане */
+  background:
+    radial-gradient(60vw 50vh at 18% 0%, var(--ambient-a), transparent 70%),
+    radial-gradient(55vw 45vh at 100% 100%, var(--ambient-b), transparent 70%),
+    var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
