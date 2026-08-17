@@ -16,9 +16,11 @@ from anthropic import Anthropic, APIStatusError
 from sqlalchemy.orm import Session
 
 import auth
+import classes
 import family
 import focus_sessions
 import planner
+import migrations
 import rate_limit
 import scans
 import tasks
@@ -29,6 +31,10 @@ app = FastAPI()
 client = Anthropic()  # чете ANTHROPIC_API_KEY от средата
 
 Base.metadata.create_all(bind=engine)
+# create_all прави липсващите таблици, но не и липсващите колони в стари таблици.
+_applied = migrations.run()
+if _applied:
+    print("migrations applied:", ", ".join(_applied))
 
 app.include_router(auth.router)
 app.include_router(tasks.router)
@@ -36,6 +42,7 @@ app.include_router(planner.router)
 app.include_router(scans.router)
 app.include_router(focus_sessions.router)
 app.include_router(family.router)
+app.include_router(classes.router)
 
 # Браузърът/приложението и сървърът са на различни адреси, затова се иска
 # разрешение да вика сървъра. Когато качиш страницата на твоя домейн,

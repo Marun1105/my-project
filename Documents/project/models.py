@@ -13,6 +13,18 @@ def _now():
     return datetime.now(timezone.utc)
 
 
+class Role(str, enum.Enum):
+    student = "student"
+    parent = "parent"
+    teacher = "teacher"
+
+
+# Пази се като обикновен текст, а не като native enum тип: добавянето на колона
+# към вече съществуваща таблица е далеч по-просто, а стойностите се проверяват
+# в схемите (schemas.py) още преди да стигнат до базата.
+ROLE_VALUES = tuple(r.value for r in Role)
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -21,6 +33,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     phone = Column(String, unique=True, nullable=True, index=True)
     password_hash = Column(String, nullable=False)
+    role = Column(String, nullable=False, default=Role.student.value, server_default=Role.student.value)
     is_email_verified = Column(Boolean, default=False, nullable=False)
     is_phone_verified = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), default=_now)
@@ -62,6 +75,31 @@ class FamilyLink(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     parent_user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    student_user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class Classroom(Base):
+    """Клас на учител. Учителят вижда СЪЩИТЕ обобщени числа като родител —
+    колко задачи и колко фокус — но не и текста на задачите или въпросите към
+    учителя. Причината е същата, поради която не ги вижда и родителят: ученик,
+    който знае, че всеки въпрос се чете, спира да пита честно."""
+    __tablename__ = "classrooms"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    teacher_user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    # Кодът за класа е дълготраен (за разлика от еднократния родителски код):
+    # учителят го казва веднъж на целия клас и всички се присъединяват с него.
+    join_code = Column(String, unique=True, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class ClassroomMember(Base):
+    __tablename__ = "classroom_members"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    classroom_id = Column(String, ForeignKey("classrooms.id"), nullable=False, index=True)
     student_user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), default=_now)
 

@@ -104,6 +104,7 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
     user = User(
         display_name=body.display_name,
         email=body.email,
+        role=body.role,
         password_hash=security.hash_password(body.password),
     )
     db.add(user)

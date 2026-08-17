@@ -1,6 +1,6 @@
 # schemas.py — формите на заявките и отговорите за auth/задачи
 from datetime import date, datetime
-from typing import Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 
@@ -15,6 +15,9 @@ class RegisterRequest(BaseModel):
     display_name: str
     email: EmailStr
     password: str
+    # По подразбиране "ученик": така стар клиент, който още не праща роля,
+    # продължава да работи и създава точно каквото е създавал досега.
+    role: Literal["student", "parent", "teacher"] = "student"
 
     _check_password = field_validator("password")(_check_password_length)
 
@@ -61,6 +64,7 @@ class UserOut(BaseModel):
     id: str
     display_name: str
     email: str
+    role: str
     phone: Optional[str] = None
     is_email_verified: bool
     is_phone_verified: bool
@@ -141,3 +145,24 @@ class TaskOut(BaseModel):
     done: bool
     created_at: datetime
     completed_at: Optional[datetime] = None
+
+
+class ClassroomCreate(BaseModel):
+    name: str
+
+
+class ClassroomJoinRequest(BaseModel):
+    code: str
+
+
+class ClassroomOut(BaseModel):
+    id: str
+    name: str
+    join_code: str
+    student_count: int
+    created_at: datetime
+
+
+class ClassroomWithStudents(ClassroomOut):
+    """Учителят вижда същите обобщени числа като родителя — никога текст на задача."""
+    students: List[StudentProgressOut]
