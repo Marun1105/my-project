@@ -225,6 +225,9 @@ const Classes = (() => {
     });
     $('classesLoginBtn').addEventListener('click', () => Auth.openEntryGate());
     window.addEventListener('climby:auth-changed', updateGate);
+    window.addEventListener('climby:view-shown', e => {
+      if (e.detail.view === 'classes') updateGate();
+    });
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) updateGate(); });
     updateGate();
   }

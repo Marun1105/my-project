@@ -277,6 +277,9 @@ const Checklist = (() => {
       Net.guardSubmit(e.currentTarget, () => handleAdd(e));
     });
     window.addEventListener('climby:auth-changed', updateGate);
+    window.addEventListener('climby:view-shown', e => {
+      if (e.detail.view === 'checklist') updateGate();
+    });
     window.addEventListener('climby:tasks-changed', render);
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) render(); });
     updateGate();
