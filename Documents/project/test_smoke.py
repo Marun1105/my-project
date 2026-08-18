@@ -183,6 +183,29 @@ def test_ask_while_logged_in_is_saved(monkeypatch):
     assert any(s["question"] == "Записан въпрос" for s in listed.json())
 
 
+def test_oversized_inputs_are_rejected_cleanly(monkeypatch):
+    # Всичко тук връщаше 500: passlib пада над 4096 байта, а /ask и /plan нямаха
+    # таван изобщо и се плащаха на Anthropic.
+    called = []
+    monkeypatch.setattr(server.client.messages, "create", lambda **kw: called.append(1))
+
+    res = client.post("/auth/register", json={
+        "display_name": "X", "email": "big@example.com", "password": "a" * 5000,
+    })
+    assert res.status_code == 422, res.text
+
+    res = client.post("/ask", json={"images": ["x"] * 40, "question": "Здрасти", "lang": "bg"})
+    assert res.status_code == 422, res.text
+
+    res = client.post("/ask", json={"images": [], "question": "п" * 9000, "lang": "bg"})
+    assert res.status_code == 422, res.text
+
+    res = client.post("/plan", json={"tasks": [{"text": "т"} for _ in range(200)], "lang": "bg"})
+    assert res.status_code == 422, res.text
+
+    assert not called, "отхвърлена заявка не бива да стига до Anthropic"
+
+
 def test_login_is_rate_limited():
     _register_and_login("brute@example.com", "testpass123")
     for _ in range(19):

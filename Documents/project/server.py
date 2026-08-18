@@ -11,7 +11,7 @@ from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from anthropic import Anthropic, APIError
 from sqlalchemy.orm import Session
 
@@ -90,8 +90,11 @@ Rules:
 
 
 class Ask(BaseModel):
-    images: List[str]
-    question: str
+    # Без таван един клиент в рамките на лимита може да прати десетки снимки в
+    # пълен размер наведнъж — сметката при Anthropic е за негова сметка, но се
+    # плаща от този сървър. Осем страници стигат за най-дългото домашно.
+    images: List[str] = Field(max_length=8)
+    question: str = Field(max_length=2000)
     lang: str = "bg"
 
 

@@ -29,12 +29,19 @@ def send_email(to: str, subject: str, html: str) -> None:
         print(f"[email:dev] до {to}: {subject}\n{html}")
         return
 
-    resend.Emails.send({
-        "from": FROM_EMAIL,
-        "to": [to],
-        "subject": subject,
-        "html": html,
-    })
+    # Акаунтът вече е записан, когато стигаме дотук. Ако Resend откаже (изтекъл
+    # ключ, спрян домейн, мрежа), пропадналата заявка не бива да изглежда като
+    # пропаднала регистрация — иначе човекът вижда грешка, акаунтът му все пак
+    # съществува и опитът пак му казва "вече има акаунт с този имейл".
+    try:
+        resend.Emails.send({
+            "from": FROM_EMAIL,
+            "to": [to],
+            "subject": subject,
+            "html": html,
+        })
+    except Exception as err:
+        print(f"[email] изпращането до {to} не мина: {err!r}")
 
 
 def send_verification_email(to: str, code: str) -> None:

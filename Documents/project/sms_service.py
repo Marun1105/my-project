@@ -12,9 +12,14 @@ def send_sms(to: str, body: str) -> None:
         print(f"[sms:dev] до {to}: {body}")
         return
 
-    from twilio.rest import Client
-    client = Client(TWILIO_SID, TWILIO_TOKEN)
-    client.messages.create(to=to, from_=TWILIO_FROM, body=body)
+    # Както при имейла: телефонът вече е записан, а падналият доставчик не бива
+    # да се показва като счупен ендпойнт.
+    try:
+        from twilio.rest import Client
+        client = Client(TWILIO_SID, TWILIO_TOKEN)
+        client.messages.create(to=to, from_=TWILIO_FROM, body=body)
+    except Exception as err:
+        print(f"[sms] изпращането до {to} не мина: {err!r}")
 
 
 def send_verification_sms(to: str, code: str) -> None:

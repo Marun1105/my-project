@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from anthropic import Anthropic, APIError
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import rate_limit
 
@@ -70,19 +70,20 @@ SPLIT_ERROR_MESSAGE = {
 
 
 class TaskIn(BaseModel):
-    text: str
-    subject: Optional[str] = None
-    deadline: Optional[str] = None
+    text: str = Field(max_length=500)
+    subject: Optional[str] = Field(default=None, max_length=100)
+    deadline: Optional[str] = Field(default=None, max_length=32)
 
 
 class PlanRequest(BaseModel):
-    tasks: List[TaskIn]
+    # /plan и /split са отворени и без вход, затова тук стои таванът на разхода.
+    tasks: List[TaskIn] = Field(max_length=50)
     lang: str = "bg"
 
 
 class SplitRequest(BaseModel):
-    text: str
-    subject: Optional[str] = None
+    text: str = Field(max_length=1000)
+    subject: Optional[str] = Field(default=None, max_length=100)
     lang: str = "bg"
 
 

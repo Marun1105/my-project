@@ -20,9 +20,11 @@ _hits: dict[str, list] = defaultdict(list)
 def _int_env(name: str, default: int) -> int:
     # Празна стойност в таблото на Render не е същото като липсваща променлива:
     # int("") хвърля ValueError още при import и сървърът изобщо не тръгва.
-    raw = (os.environ.get(name) or "").strip()
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default  # непопълнена е нормално — мълчим
     try:
-        return int(raw)
+        return int(raw.strip())
     except ValueError:
         print(f"{name}={raw!r} не е число — ползвам {default}.")
         return default

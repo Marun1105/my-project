@@ -5,14 +5,19 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 
 
+# Горната граница не е каприз: passlib отказва вход над 4096 байта с изключение,
+# което не се хваща никъде и излиза като 500 вместо като "паролата е твърде дълга".
+# bcrypt и без това гледа само първите 72 байта, така че 128 не ограничава никого.
 def _check_password_length(v: str) -> str:
     if len(v) < 8:
         raise ValueError("Паролата трябва да е поне 8 символа")
+    if len(v) > 128:
+        raise ValueError("Паролата е твърде дълга")
     return v
 
 
 class RegisterRequest(BaseModel):
-    display_name: str
+    display_name: str = Field(max_length=80)
     email: EmailStr
     password: str
     # По подразбиране "ученик": така стар клиент, който още не праща роля,
@@ -24,7 +29,7 @@ class RegisterRequest(BaseModel):
 
 class VerifyEmailRequest(BaseModel):
     email: EmailStr
-    code: str
+    code: str = Field(max_length=12)
 
 
 class ResendCodeRequest(BaseModel):
@@ -33,29 +38,31 @@ class ResendCodeRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
+    # Не е политика за парола, а предпазител: passlib хвърля над 4096 байта и
+    # входът връща 500 вместо "грешна парола".
+    password: str = Field(max_length=1024)
 
 
 class ForgotPasswordRequest(BaseModel):
-    channel: str  # "email" или "sms"
-    contact: str  # имейл или телефон, според channel
+    channel: str = Field(max_length=10)  # "email" или "sms"
+    contact: str = Field(max_length=254)  # имейл или телефон, според channel
 
 
 class ResetPasswordRequest(BaseModel):
-    channel: str
-    contact: str
-    code: str
+    channel: str = Field(max_length=10)
+    contact: str = Field(max_length=254)
+    code: str = Field(max_length=12)
     new_password: str
 
     _check_password = field_validator("new_password")(_check_password_length)
 
 
 class AddPhoneRequest(BaseModel):
-    phone: str
+    phone: str = Field(max_length=32)
 
 
 class VerifyPhoneRequest(BaseModel):
-    code: str
+    code: str = Field(max_length=12)
 
 
 class UserOut(BaseModel):
