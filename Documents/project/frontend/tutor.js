@@ -51,9 +51,15 @@ const Tutor = (() => {
     answerEl.innerHTML = '<span class="spark-spin">✨</span> ' + t('scanner.thinking');
 
     try {
+      // Въпросът минава и без вход — затова токенът се праща само ако го има.
+      // Без него сървърът не знае чий е въпросът и не го записва в историята.
+      const token = Auth.getToken();
       const res = await Net.fetch(BACKEND + '/ask', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ images: scannedImages, question, lang: I18n.get() }),
       });
       const data = await res.json().catch(() => ({}));

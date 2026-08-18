@@ -53,6 +53,21 @@ def test_every_key_used_in_html_exists(html, i18n):
     assert not missing, f"липсват преводи за: {missing}"
 
 
+# HTML-ските ключове се проверяват по-горе, но модулите викат t('...') и от кода —
+# сгрешен ключ там също стига до ученика като суров текст, само че по-рядко се вижда.
+def test_every_key_used_in_js_exists(i18n):
+    bg = _dict_keys(i18n, "bg")
+    missing = {}
+    for js_file in _js_modules():
+        if js_file == "i18n.js":
+            continue  # тук ключовете се дефинират, не се ползват
+        used = set(re.findall(r"t\('([a-zA-Z0-9._]+)'", _read(js_file)))
+        absent = sorted(used - bg)
+        if absent:
+            missing[js_file] = absent
+    assert not missing, f"липсват преводи за ключове от кода: {missing}"
+
+
 # Изброяването на файловете на ръка се разминава с папката: classes.js и theme.js
 # стояха непроверени, защото списъкът не беше пипан, откакто ги има. Затова се чете
 # от диска — нов модул влиза в проверката още щом се появи.

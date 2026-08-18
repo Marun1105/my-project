@@ -47,8 +47,11 @@ const Scanner = (() => {
   }
 
   let hasCamera = true;
+  let stream = null;          // живият поток от камерата, за да може да се спре
+  let stage = 'cameraStage';  // кой етап се вижда сега — при връщане в раздела не прекъсваме започнато изрязване
 
   function showStage(id) {
+    stage = id;
     ['cameraStage', 'adjustStage', 'filterStage'].forEach(s => {
       const el = document.getElementById(s);
       if (el) el.classList.toggle('hidden', s !== id);
@@ -66,8 +69,9 @@ const Scanner = (() => {
 
   // ---------- камера ----------
   async function start() {
+    if (stream) return; // вече върви — второ извикване би поискало камерата пак
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
@@ -82,6 +86,23 @@ const Scanner = (() => {
       $('splash').classList.add('hidden');
       showStage('cameraStage');
     }
+  }
+
+  // Скриването на раздела не спира камерата само по себе си — лампичката до нея
+  // остава светната, докато потребителят чете в "Чеклист". Затова я гасим изрично.
+  function stop() {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+    $('video').srcObject = null;
+  }
+
+  // Връщане на визьора. Камерата може да е угасена, ако междувременно сме били
+  // в друг раздел, затова се пали пак — start() сам се отказва, ако вече върви.
+  function backToCamera() {
+    showStage('cameraStage');
+    start();
   }
 
   function captureRawCanvas() {
@@ -369,14 +390,14 @@ const Scanner = (() => {
     rawCropCanvas = null;
     pendingDataUrl = null;
     renderPageStrip();
-    showStage('cameraStage');
+    backToCamera();
   }
 
   function retakeToCamera() {
     if (warpedMat) { warpedMat.delete(); warpedMat = null; }
     rawCropCanvas = null;
     pendingDataUrl = null;
-    showStage('cameraStage');
+    backToCamera();
   }
 
   // ---------- страници (batch) ----------
@@ -411,7 +432,7 @@ const Scanner = (() => {
     add.className = 'page-thumb-add';
     add.setAttribute('aria-label', t('scanner.addAnother'));
     add.textContent = '+';
-    add.addEventListener('click', () => showStage('cameraStage'));
+    add.addEventListener('click', backToCamera);
     thumbs.appendChild(add);
 
     strip.classList.toggle('hidden', pages.length === 0);
@@ -437,7 +458,7 @@ const Scanner = (() => {
     makeDraggable('cornerBL', 'bl');
     $('adjustAutoBtn').addEventListener('click', () => setCorners(detectCorners($('capture'))));
     $('adjustConfirmBtn').addEventListener('click', confirmAdjust);
-    $('adjustRetakeBtn').addEventListener('click', () => showStage('cameraStage'));
+    $('adjustRetakeBtn').addEventListener('click', backToCamera);
 
     document.querySelectorAll('.filter-swatch').forEach(btn => {
       btn.addEventListener('click', () => selectFilter(btn.dataset.filter));
@@ -447,6 +468,15 @@ const Scanner = (() => {
 
     $('pagesDoneBtn').addEventListener('click', finishPages);
     window.addEventListener('climby:lang-changed', renderPageStrip);
+
+    // Камерата върви само докато разделът "Учител" се гледа. При връщане я палим
+    // пак, но само ако сме на визьора — иначе бихме изхвърлили започнато изрязване.
+    window.addEventListener('climby:view-shown', e => {
+      if (e.detail.view !== 'tutor') stop();
+      else if (stage === 'cameraStage') start();
+    });
+    // Затварянето на прозореца/раздела не винаги минава по горния път.
+    window.addEventListener('pagehide', stop);
 
     start();
   }
