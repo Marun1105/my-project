@@ -17,7 +17,18 @@ _hits: dict[str, list] = defaultdict(list)
 # Лявата част на заглавката е изцяло под контрола на клиента — ако я четем оттам,
 # всеки може да сложи произволен адрес на всяка заявка и лимитът става безсмислен.
 # 0 = не се доверяваме на заглавката изобщо (локално, без прокси).
-TRUSTED_PROXY_HOPS = int(os.environ.get("TRUSTED_PROXY_HOPS", "1"))
+def _int_env(name: str, default: int) -> int:
+    # Празна стойност в таблото на Render не е същото като липсваща променлива:
+    # int("") хвърля ValueError още при import и сървърът изобщо не тръгва.
+    raw = (os.environ.get(name) or "").strip()
+    try:
+        return int(raw)
+    except ValueError:
+        print(f"{name}={raw!r} не е число — ползвам {default}.")
+        return default
+
+
+TRUSTED_PROXY_HOPS = _int_env("TRUSTED_PROXY_HOPS", 1)
 
 
 def _client_key(request: Request) -> str:

@@ -53,10 +53,18 @@ def test_every_key_used_in_html_exists(html, i18n):
     assert not missing, f"липсват преводи за: {missing}"
 
 
-@pytest.mark.parametrize("js_file", [
-    "auth.js", "checklist.js", "history.js", "focus.js", "family.js",
-    "onboarding.js", "settings.js", "scanner.js", "tutor.js", "ai-planner.js", "nav.js",
-])
+# Изброяването на файловете на ръка се разминава с папката: classes.js и theme.js
+# стояха непроверени, защото списъкът не беше пипан, откакто ги има. Затова се чете
+# от диска — нов модул влиза в проверката още щом се появи.
+# sw.js работи в service worker и няма document, затова отпада.
+def _js_modules():
+    return sorted(
+        f for f in os.listdir(FRONTEND)
+        if f.endswith(".js") and f != "sw.js"
+    )
+
+
+@pytest.mark.parametrize("js_file", _js_modules())
 def test_element_ids_referenced_by_js_exist(html, js_file):
     ids_in_html = set(re.findall(r'id="([^"]+)"', html))
     src = _read(js_file)

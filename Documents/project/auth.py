@@ -117,7 +117,9 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
 
 
 @router.post("/verify-email", response_model=AuthResponse)
-def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)):
+def verify_email(body: VerifyEmailRequest, request: Request, db: Session = Depends(get_db)):
+    rate_limit.enforce(request, "verify-email", max_calls=10, window_seconds=3600,
+                        message="Твърде много опити — изчакай малко и опитай пак.")
     user = db.query(User).filter(User.email == body.email).first()
     if not user:
         raise HTTPException(404, "Няма акаунт с този имейл.")
@@ -146,7 +148,11 @@ def resend_code(body: ResendCodeRequest, request: Request, db: Session = Depends
 
 
 @router.post("/login", response_model=AuthResponse)
-def login(body: LoginRequest, db: Session = Depends(get_db)):
+def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    # Позволяваме сгрешена парола много пъти — сгрешава се често — но не и
+    # безброй: без лимит паролата на всеки акаунт е въпрос на време и скрипт.
+    rate_limit.enforce(request, "login", max_calls=20, window_seconds=900,
+                        message="Твърде много опити за вход — изчакай малко и опитай пак.")
     user = db.query(User).filter(User.email == body.email).first()
     if not user or not security.verify_password(body.password, user.password_hash):
         raise HTTPException(401, "Грешен имейл или парола.")
@@ -181,7 +187,14 @@ def add_phone(
 
 
 @router.post("/verify-phone")
-def verify_phone(body: VerifyPhoneRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def verify_phone(
+    body: VerifyPhoneRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    rate_limit.enforce(request, "verify-phone", max_calls=10, window_seconds=3600,
+                        message="Твърде много опити — изчакай малко и опитай пак.")
     if not user.phone:
         raise HTTPException(400, "Първо добави телефонен номер.")
     if not _consume_code(db, user, CodePurpose.verify_phone, body.code):
@@ -213,7 +226,11 @@ def forgot_password(body: ForgotPasswordRequest, request: Request, db: Session =
 
 
 @router.post("/reset-password")
-def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
+def reset_password(body: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)):
+    # Кодът е 6 цифри и живее 15 минути. Без лимит той се познава с изчакване и
+    # скрипт, а познатият код сменя паролата — тоест взима акаунта.
+    rate_limit.enforce(request, "reset-password", max_calls=10, window_seconds=3600,
+                        message="Твърде много опити — изчакай малко и опитай пак.")
     if body.channel == "email":
         user = db.query(User).filter(User.email == body.contact).first()
     elif body.channel == "sms":

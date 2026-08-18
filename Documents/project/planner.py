@@ -2,7 +2,7 @@
 import json
 from typing import List, Optional
 
-from anthropic import Anthropic, APIStatusError
+from anthropic import Anthropic, APIError
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
@@ -112,7 +112,7 @@ def plan(body: PlanRequest, request: Request):
             system=SYSTEM[lang],
             messages=[{"role": "user", "content": f"My tasks:\n{tasks_text}"}],
         )
-    except APIStatusError:
+    except APIError:
         raise HTTPException(502, PLAN_ERROR_MESSAGE[lang])
     advice = "".join(b.text for b in resp.content if b.type == "text")
     return {"advice": advice}
@@ -135,7 +135,7 @@ def split(body: SplitRequest, request: Request):
             system=SPLIT_SYSTEM[lang],
             messages=[{"role": "user", "content": prompt}],
         )
-    except APIStatusError:
+    except APIError:
         raise HTTPException(502, SPLIT_ERROR_MESSAGE[lang])
 
     raw = "".join(b.text for b in resp.content if b.type == "text").strip()

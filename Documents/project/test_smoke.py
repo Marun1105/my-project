@@ -135,17 +135,104 @@ def test_ask_saves_scan_history_for_logged_in_user(monkeypatch):
     assert client.get("/scans", headers=headers).json() == []
 
 
-def test_ask_as_guest_is_not_saved(monkeypatch):
+def _scan_count(question: str) -> int:
+    from db import SessionLocal
+    from models import ScanHistory
+
+    db = SessionLocal()
+    n = db.query(ScanHistory).filter(ScanHistory.question == question).count()
+    db.close()
+    return n
+
+
+def _stub_anthropic(monkeypatch, text="Отговор."):
     class _Block:
         type = "text"
-        text = "Отговор за гост."
+
+    _Block.text = text
 
     class _Resp:
         content = [_Block()]
 
     monkeypatch.setattr(server.client.messages, "create", lambda **kwargs: _Resp())
+
+
+def test_ask_as_guest_is_not_saved(monkeypatch):
+    _stub_anthropic(monkeypatch, "Отговор за гост.")
     res = client.post("/ask", json={"images": [], "question": "Гост въпрос", "lang": "bg"})
     assert res.status_code == 200
+    # същината на теста: гост няма история, а не просто "върна 200"
+    assert _scan_count("Гост въпрос") == 0
+
+
+def test_ask_while_logged_in_is_saved(monkeypatch):
+    # Ако клиентът пропусне да прати токена, отговорът пак идва — но историята
+    # остава празна завинаги и никой не забелязва. Затова се проверява изрично.
+    headers = _register_and_login("scan-save@example.com")
+    _stub_anthropic(monkeypatch, "Отговор за влязъл ученик.")
+    res = client.post(
+        "/ask",
+        json={"images": [], "question": "Записан въпрос", "lang": "bg"},
+        headers=headers,
+    )
+    assert res.status_code == 200
+    assert _scan_count("Записан въпрос") == 1
+
+    listed = client.get("/scans", headers=headers)
+    assert listed.status_code == 200
+    assert any(s["question"] == "Записан въпрос" for s in listed.json())
+
+
+def test_login_is_rate_limited():
+    _register_and_login("brute@example.com", "testpass123")
+    for _ in range(19):
+        client.post("/auth/login", json={"email": "brute@example.com", "password": "wrong"})
+    blocked = client.post("/auth/login", json={"email": "brute@example.com", "password": "wrong"})
+    assert blocked.status_code == 429
+
+
+def test_password_reset_flow_and_rate_limit(monkeypatch):
+    import email_service
+
+    _register_and_login("reset@example.com", "testpass123")
+
+    sent = []
+    monkeypatch.setattr(email_service, "send_reset_email", lambda to, code: sent.append(code))
+
+    res = client.post("/auth/forgot-password", json={"channel": "email", "contact": "reset@example.com"})
+    assert res.status_code == 200
+    assert len(sent) == 1
+    code = sent[0]
+
+    # грешен код не сменя паролата
+    bad = client.post("/auth/reset-password", json={
+        "channel": "email", "contact": "reset@example.com", "code": "000000", "new_password": "hacked123",
+    })
+    assert bad.status_code == 400
+    assert client.post("/auth/login", json={"email": "reset@example.com", "password": "testpass123"}).status_code == 200
+
+    ok = client.post("/auth/reset-password", json={
+        "channel": "email", "contact": "reset@example.com", "code": code, "new_password": "newpass123",
+    })
+    assert ok.status_code == 200, ok.text
+    assert client.post("/auth/login", json={"email": "reset@example.com", "password": "newpass123"}).status_code == 200
+    # кодът е за еднократна употреба
+    again = client.post("/auth/reset-password", json={
+        "channel": "email", "contact": "reset@example.com", "code": code, "new_password": "third123",
+    })
+    assert again.status_code == 400
+
+
+def test_reset_password_is_rate_limited():
+    # 6-цифрен код + без лимит = акаунтът се взима с търпение и скрипт
+    for _ in range(10):
+        client.post("/auth/reset-password", json={
+            "channel": "email", "contact": "nobody@example.com", "code": "123456", "new_password": "whatever123",
+        })
+    blocked = client.post("/auth/reset-password", json={
+        "channel": "email", "contact": "nobody@example.com", "code": "123456", "new_password": "whatever123",
+    })
+    assert blocked.status_code == 429
 
 
 def test_split_parses_json_array(monkeypatch):

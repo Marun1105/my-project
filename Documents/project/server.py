@@ -12,7 +12,7 @@ from typing import List, Optional
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from anthropic import Anthropic, APIStatusError
+from anthropic import Anthropic, APIError
 from sqlalchemy.orm import Session
 
 import auth
@@ -135,7 +135,7 @@ def ask(
             system=SYSTEM[lang],
             messages=[{"role": "user", "content": content}],
         )
-    except APIStatusError:
+    except APIError:
         raise HTTPException(502, ASK_ERROR_MESSAGE[lang])
     answer = "".join(b.text for b in resp.content if b.type == "text")
 
