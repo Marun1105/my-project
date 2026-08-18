@@ -84,5 +84,19 @@ const Net = (() => {
     return res;
   }
 
-  return { fetch: request };
+  // Едно пращане, натиснато два пъти, прави две еднакви задачи. Докато заявката
+  // пътува — а на заспал Render това са секунди — бутонът стои изключен, което е
+  // и единственият видим знак, че изобщо нещо се случва.
+  async function guardSubmit(form, fn) {
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn && btn.disabled) return;
+    if (btn) btn.disabled = true;
+    try {
+      await fn();
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  return { fetch: request, guardSubmit };
 })();

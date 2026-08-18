@@ -51,6 +51,13 @@ self.addEventListener('activate', event => {
   );
 });
 
+function offlineResponse() {
+  return new Response(
+    '<meta charset="utf-8"><p style="font-family:sans-serif;padding:24px">Climby е офлайн. Включи интернет и опитай пак.</p>',
+    { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
+}
+
 self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
@@ -77,8 +84,11 @@ self.addEventListener('fetch', event => {
       // За самата страница пробваме първо мрежата: иначе нов деплой се вижда чак
       // при второто отваряне, което изглежда като "промените ги няма".
       // За останалото кешът тръгва веднага (бърз старт) и се обновява отзад.
-      if (isPage) return network;
-      return cached || network;
+      // respondWith иска Response: ако сме офлайн и файлът липсва в кеша (cache.add
+      // при инсталацията може тихо да се е провалил), network е undefined и вместо
+      // приложението излиза сивата страница за мрежова грешка на браузъра.
+      if (isPage) return network.then(res => res || cached || offlineResponse());
+      return cached || network.then(res => res || offlineResponse());
     })
   );
 });

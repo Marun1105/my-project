@@ -75,16 +75,28 @@ const Checklist = (() => {
       return;
     }
 
+    // Стъпките влизат една по една, а оригиналът пада най-накрая. Ако връзката
+    // се скъса по средата, ученикът остава с половин план редом с цялата задача —
+    // тоест с дублирани домашни. Затова при провал връщаме каквото сме създали.
+    const created = [];
     try {
       for (const step of steps) {
-        await api('/tasks', {
+        const made = await api('/tasks', {
           method: 'POST',
           body: JSON.stringify({ text: step, subject: task.subject || null, deadline: task.deadline || null }),
         });
+        if (made && made.id) created.push(made.id);
       }
       await api(`/tasks/${task.id}`, { method: 'DELETE' });
       _announceChange();
     } catch (err) {
+      for (const id of created) {
+        try {
+          await api(`/tasks/${id}`, { method: 'DELETE' });
+        } catch {
+          // Ако и връщането не мине, повече няма какво да направим оттук.
+        }
+      }
       showListError(err);
     }
   }
@@ -260,7 +272,10 @@ const Checklist = (() => {
   }
 
   function init() {
-    $('taskForm').addEventListener('submit', handleAdd);
+    $('taskForm').addEventListener('submit', e => {
+      e.preventDefault();
+      Net.guardSubmit(e.currentTarget, () => handleAdd(e));
+    });
     window.addEventListener('climby:auth-changed', updateGate);
     window.addEventListener('climby:tasks-changed', render);
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) render(); });

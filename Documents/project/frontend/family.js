@@ -174,7 +174,10 @@ const Family = (() => {
 
   function init() {
     $('familyLoginBtn').addEventListener('click', () => Auth.openEntryGate());
-    $('familyLinkForm').addEventListener('submit', handleLink);
+    $('familyLinkForm').addEventListener('submit', e => {
+      e.preventDefault();
+      Net.guardSubmit(e.currentTarget, () => handleLink(e));
+    });
     $('familyInviteBtn').addEventListener('click', handleInvite);
     window.addEventListener('climby:auth-changed', updateGate);
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) render(); });

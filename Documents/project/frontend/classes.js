@@ -215,8 +215,14 @@ const Classes = (() => {
   }
 
   function init() {
-    $('classCreateForm').addEventListener('submit', handleCreate);
-    $('classJoinForm').addEventListener('submit', handleJoin);
+    $('classCreateForm').addEventListener('submit', e => {
+      e.preventDefault();
+      Net.guardSubmit(e.currentTarget, () => handleCreate(e));
+    });
+    $('classJoinForm').addEventListener('submit', e => {
+      e.preventDefault();
+      Net.guardSubmit(e.currentTarget, () => handleJoin(e));
+    });
     $('classesLoginBtn').addEventListener('click', () => Auth.openEntryGate());
     window.addEventListener('climby:auth-changed', updateGate);
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) updateGate(); });
