@@ -13,6 +13,8 @@ const SHELL = [
   './i18n.js',
   './net.js',
   './classes.js',
+  './subjects.js',
+  './subjects.css',
   './theme.js',
   './settings.js',
   './nav.js',

@@ -245,8 +245,12 @@ const I18n = (() => {
       'scanner.removePage': 'Премахни страницата',
       'scanner.addAnother': 'Добави още',
 
-      'theme.toLight': 'Включи светла тема',
-      'theme.toDark': 'Включи тъмна тема',
+      'subjects.all': 'Всички',
+      'checklist.emptyForSubject': 'Няма чакащи задачи по {subject}.',
+      'subjects.filterAria': 'Филтър по предмет',
+      'theme.auto': 'Авто',
+      'theme.light': 'Светла',
+      'theme.dark': 'Тъмна',
       'menu.open': 'Отвори менюто',
       'menu.close': 'Затвори менюто',
       'ai.badge': 'AI отговор',
@@ -501,8 +505,12 @@ const I18n = (() => {
       'scanner.removePage': 'Remove page',
       'scanner.addAnother': 'Add another',
 
-      'theme.toLight': 'Switch to light theme',
-      'theme.toDark': 'Switch to dark theme',
+      'subjects.all': 'All',
+      'checklist.emptyForSubject': 'Nothing left to do in {subject}.',
+      'subjects.filterAria': 'Filter by subject',
+      'theme.auto': 'Auto',
+      'theme.light': 'Light',
+      'theme.dark': 'Dark',
       'menu.open': 'Open menu',
       'menu.close': 'Close menu',
       'ai.badge': 'AI answer',
@@ -521,7 +529,11 @@ const I18n = (() => {
   function get() {
     const saved = localStorage.getItem(KEY);
     if (saved && STR[saved]) return saved;
-    return 'bg';
+    // Английският е основният език на приложението — нарочно, а не по подразбиране
+    // от липса на друго. Не гадаем по езика на браузъра: българският Windows тогава
+    // никога не би видял английската версия, което е точно обратното на решението.
+    // Който иска български, го избира от менюто и изборът се помни.
+    return 'en';
   }
 
   function t(key, vars) {

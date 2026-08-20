@@ -1,0 +1,109 @@
+/* subjects.css — долна лента с предмети (филтър на чеклиста).
+   Ползва само токените от style.css :root — никакъв твърдо зададен цвят,
+   лентата е строго сива, без изключения (AI градиентът не важи тук). */
+
+:root {
+  /* реалната височина на лентата (за padding-bottom, който компенсира
+     останалата част от приложението — виж бележката към другия инженер) */
+  --subject-bar-h: 65px;
+}
+
+.subject-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 45;
+  display: flex;
+  justify-content: center;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -8px 24px var(--shadow);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* На бюро страничното меню заема лявата колона (виж .sidebar, 256px) —
+   лентата спира до нея вместо да минава отгоре ѝ. */
+@media (min-width: 861px) {
+  .subject-bar { left: 256px; }
+}
+
+.subject-bar.hidden { display: none; }
+
+.subject-bar-track {
+  position: relative;
+  width: 100%;
+  max-width: var(--content-width);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--gutter);
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+
+  /* скрит скролбар — скролът си работи, лентата просто изглежда чиста */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  /* лек фейд в двата края намеква, че има още чипове извън изгледа,
+     без да добавя цвят или допълнителни елементи в DOM-а */
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--gutter),
+    #000 calc(100% - var(--gutter)),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--gutter),
+    #000 calc(100% - var(--gutter)),
+    transparent 100%
+  );
+}
+.subject-bar-track::-webkit-scrollbar { display: none; }
+
+.subject-chip {
+  flex: 0 0 auto;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+.subject-chip:hover { color: var(--text); border-color: var(--text-faint); }
+.subject-chip:active { transform: scale(0.97); }
+.subject-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* активно състояние — разчита само на плътност/контраст, без цвят:
+   плътен --accent фон (бял на тъмна тема, почти черен на светла) плюс
+   удебелен текст, така разликата се вижда и без цветоусещане */
+.subject-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .subject-bar-track { scroll-behavior: auto; }
+  .subject-chip { transition: none; }
+  .subject-chip:active { transform: none; }
+}
+
+/* Лентата стои върху съдържанието, затова последната задача се нуждае от място
+   под себе си — иначе се скрива зад нея точно когато я четеш. */
+#view-checklist {
+  padding-bottom: calc(var(--subject-bar-h, 65px) + env(safe-area-inset-bottom) + var(--space-3));
+}

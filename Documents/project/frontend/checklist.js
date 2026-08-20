@@ -2,6 +2,10 @@
 const Checklist = (() => {
   const $ = id => document.getElementById(id);
   const BACKEND = window.CLIMBY_BACKEND;
+  // Кой предмет е избран в долната лента. null = всички. Чете се от същия ключ,
+  // който subjects.js пази, за да е верен още при първото рисуване — иначе за миг
+  // се показва целият списък, преди събитието да пристигне.
+  let subjectFilter = localStorage.getItem('climby-subject-filter') || null;
 
   async function api(path, options = {}) {
     const token = Auth.getToken();
@@ -233,18 +237,25 @@ const Checklist = (() => {
     lastTasks = allTasks;
     updateBadge(allTasks);
 
-    const pending = allTasks.filter(t => !t.done);
+    let pending = allTasks.filter(t => !t.done);
+    const filtered = subjectFilter
+      ? pending.filter(t => t.subject === subjectFilter)
+      : pending;
     list.innerHTML = '';
 
-    if (pending.length === 0) {
-      empty.textContent = allTasks.length === 0
-        ? t('checklist.emptyDefault')
-        : t('checklist.emptyAllDone');
+    if (filtered.length === 0) {
+      // Празно заради филтъра не е същото като празно изобщо — иначе изглежда, че
+      // задачите са изчезнали.
+      empty.textContent = subjectFilter && pending.length
+        ? t('checklist.emptyForSubject', { subject: subjectFilter })
+        : allTasks.length === 0
+          ? t('checklist.emptyDefault')
+          : t('checklist.emptyAllDone');
       empty.classList.remove('hidden');
       return;
     }
     empty.classList.add('hidden');
-    for (const t of pending) list.appendChild(buildTaskItem(t));
+    for (const t of filtered) list.appendChild(buildTaskItem(t));
   }
 
   async function handleAdd(e) {
@@ -279,6 +290,10 @@ const Checklist = (() => {
     window.addEventListener('climby:auth-changed', updateGate);
     window.addEventListener('climby:view-shown', e => {
       if (e.detail.view === 'checklist') updateGate();
+    });
+    window.addEventListener('climby:subject-filter-changed', e => {
+      subjectFilter = e.detail.subject;
+      if (Auth.isLoggedIn()) render();
     });
     window.addEventListener('climby:tasks-changed', render);
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) render(); });

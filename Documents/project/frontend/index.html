@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="bg">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
@@ -11,6 +11,7 @@
 <link rel="apple-touch-icon" href="logo-favicon.png">
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="subjects.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 </head>
 <body>
@@ -156,9 +157,13 @@
         <option value="en">English</option>
       </select>
     </div>
-    <div class="settings-row">
+    <div class="settings-row settings-row-stack">
       <span data-i18n="settings.theme">Тема</span>
-      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Смени темата">☀️</button>
+      <div class="theme-switch" role="group" data-i18n-aria-label="settings.theme" aria-label="Тема">
+        <button type="button" class="theme-switch-option" data-theme-mode="auto" aria-pressed="false" data-i18n="theme.auto">Авто</button>
+        <button type="button" class="theme-switch-option" data-theme-mode="light" aria-pressed="false" data-i18n="theme.light">Светла</button>
+        <button type="button" class="theme-switch-option" data-theme-mode="dark" aria-pressed="false" data-i18n="theme.dark">Тъмна</button>
+      </div>
     </div>
   </div>
 </div>
@@ -227,6 +232,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span data-i18n="account.settings">Настройки</span>
         </button>
+        <div class="account-menu-theme">
+          <span class="account-menu-theme-label" data-i18n="settings.theme">Тема</span>
+          <div class="theme-switch" role="group" data-i18n-aria-label="settings.theme" aria-label="Тема">
+          <button type="button" class="theme-switch-option" data-theme-mode="auto" aria-pressed="false" data-i18n="theme.auto">Авто</button>
+          <button type="button" class="theme-switch-option" data-theme-mode="light" aria-pressed="false" data-i18n="theme.light">Светла</button>
+          <button type="button" class="theme-switch-option" data-theme-mode="dark" aria-pressed="false" data-i18n="theme.dark">Тъмна</button>
+      </div>
+        </div>
         <button id="menuLoginBtn" class="account-menu-item hidden" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg>
           <span data-i18n="account.login">Влез</span>
@@ -561,6 +574,8 @@
 
 </main>
 
+    <div id="subjectBar" class="subject-bar hidden" role="group" data-i18n-aria-label="subjects.filterAria" aria-label="Филтър по предмет"></div>
+
   </div>
 </div>
 
@@ -590,6 +605,7 @@
 <script src="tutor.js"></script>
 <script src="auth.js"></script>
 <script src="checklist.js"></script>
+<script src="subjects.js"></script>
 <script src="ai-planner.js"></script>
 <script src="history.js"></script>
 <script src="focus.js"></script>
