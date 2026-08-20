@@ -1,5 +1,5 @@
 // nav.js — превключва между секциите (Учител / Чеклист / ...) и управлява страничното меню на мобилни
-(() => {
+const Nav = (() => {
   function activate(view) {
     document.querySelectorAll('.view').forEach(el => {
       el.classList.toggle('hidden', el.id !== `view-${view}`);
@@ -53,7 +53,17 @@
 
     const overlay = document.getElementById('sidebarOverlay');
     if (overlay) overlay.addEventListener('click', closeSidebar);
+
+    // Връзките в менюто го затварят, но бутоните долу при акаунта не го правеха.
+    // "Настройки", "Влез" и "Изход" всички водят някъде другаде, а страничното
+    // меню оставаше отворено — върху настройките, или върху приложението,
+    // след като си излязъл.
+    document.querySelectorAll('.account-menu-item').forEach(btn => {
+      btn.addEventListener('click', closeSidebar);
+    });
   }
 
   document.addEventListener('DOMContentLoaded', init);
+
+  return { activate, openSidebar, closeSidebar };
 })();

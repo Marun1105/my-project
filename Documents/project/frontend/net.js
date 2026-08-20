@@ -20,13 +20,30 @@ const Net = (() => {
   const COLD_START_STATUSES = [502, 503, 504];
   const PROBE_EVERY_MS = 3000;
   const WAKE_BUDGET_MS = 60000; // Render обикновено се вдига за 30-50 секунди
+  // Заявка, на която връзката е приета, но отговор не идва, не приключва никога.
+  // Тогава бутонът "Влез" стои изключен до безкрай и приложението изглежда
+  // замръзнало — натискаш и нищо не става. Затова всеки опит има краен срок.
+  const ATTEMPT_TIMEOUT_MS = 25000;
+  const PROBE_TIMEOUT_MS = 8000;
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  // fetch с краен срок. Прекъснатата заявка хвърля както мрежова грешка, което е
+  // точно каквото искаме: пътят за "сървърът спи" се включва сам.
+  async function _fetch(url, options = {}, timeoutMs = ATTEMPT_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
   // Здравната проверка е GET и нищо не променя — може да се вика колкото трябва.
   async function _isAwake() {
     try {
-      const res = await fetch(BACKEND + '/', { method: 'GET', cache: 'no-store' });
+      const res = await _fetch(BACKEND + '/', { method: 'GET', cache: 'no-store' }, PROBE_TIMEOUT_MS);
       return res.ok;
     } catch {
       return false;
@@ -69,17 +86,17 @@ const Net = (() => {
   async function request(url, options = {}) {
     let res;
     try {
-      res = await fetch(url, options);
+      res = await _fetch(url, options);
     } catch (err) {
       // Мрежова грешка: повтаряме само ако сървърът наистина е бил долу.
       if (await _isAwake()) throw err;
       if (!(await _waitForWake())) throw err;
-      return fetch(url, options);
+      return _fetch(url, options);
     }
 
     if (COLD_START_STATUSES.includes(res.status)) {
       // Приложението не е видяло заявката — безопасно е да я пратим пак.
-      if (await _waitForWake()) return fetch(url, options);
+      if (await _waitForWake()) return _fetch(url, options);
     }
     return res;
   }
