@@ -32,21 +32,21 @@
   --danger-soft: rgba(255, 255, 255, 0.13);
   --blue: #ffffff;
   --blue-soft: rgba(255, 255, 255, 0.10);
-  --purple: #ffffff;
+  --purple: #c44bfb;   /* вторичен акцент за AI, върху тъмен фон: 5.31:1 */
   --pink: #ffffff;
   --shadow: rgba(0, 0, 0, 0.4);
   /* затъмняването зад всички пълноекранни слоеве — един токен, за да не се
      разминават с по няколко стотни при всяко ново добавяне */
   --scrim: rgba(0, 0, 0, 0.5);
 
-  /* Единственият цвят в приложението. Четирите тона са тези на Gemini —
-     синьо, зелено, жълто, червено — и синьото се повтаря най-накрая, за да
-     може вълната да се върти в кръг без шев.
-     Текстът върху вълната е ЧЕРЕН, не бял: бяло върху жълтото #fbbc05 пада до
-     ~1.9:1 и е нечетимо, докато черното държи над 4.5:1 и върху четирите тона. */
-  --ai-gradient: linear-gradient(100deg, #4285f4 0%, #34a853 25%, #fbbc05 50%, #ea4335 75%, #4285f4 100%);
-  --ai-gradient-soft: linear-gradient(100deg, rgba(66, 133, 244, 0.16), rgba(52, 168, 83, 0.16), rgba(251, 188, 5, 0.16), rgba(234, 67, 53, 0.16));
-  --ai-glow: rgba(66, 133, 244, 0.34);
+  /* Единственият цвят: виолетовото на ClimbAI. Тоновете са взети от самия знак
+     (#9119f5, #e26bfe, #f8c1ff), но долният край е отрязан нарочно — под
+     #a855f7 черният текст пада под 4.5:1, а текстът върху вълната е черен,
+     както на всеки бутон. Така най-тъмният тон държи 4.90:1, а най-светлият 13:1.
+     Синьото... по-точно виолетовото се повтаря най-накрая, за да няма шев. */
+  --ai-gradient: linear-gradient(100deg, #a855f7 0%, #c44bfb 30%, #e26bfe 60%, #f8c1ff 82%, #a855f7 100%);
+  --ai-gradient-soft: linear-gradient(100deg, rgba(168, 85, 247, 0.18), rgba(226, 107, 254, 0.16), rgba(248, 193, 255, 0.14));
+  --ai-glow: rgba(168, 85, 247, 0.38);
   --on-ai: #0d0d10;
 
   /* меко осветяване на фона — вече неутрално, за да не връща зелен оттенък */
@@ -95,15 +95,15 @@
   --danger-soft: rgba(0, 0, 0, 0.09);
   --blue: #16161a;
   --blue-soft: rgba(0, 0, 0, 0.07);
-  --purple: #16161a;
+  --purple: #7b2ff7;   /* върху светъл фон: 5.85:1 */
   --pink: #16161a;
   --shadow: rgba(0, 0, 0, 0.14);
   --scrim: rgba(0, 0, 0, 0.45);
 
-  /* вълната е една и съща в двете теми — тя е самоличността на AI-то */
-  --ai-gradient: linear-gradient(100deg, #4285f4 0%, #34a853 25%, #fbbc05 50%, #ea4335 75%, #4285f4 100%);
-  --ai-gradient-soft: linear-gradient(100deg, rgba(66, 133, 244, 0.14), rgba(52, 168, 83, 0.14), rgba(251, 188, 5, 0.14), rgba(234, 67, 53, 0.14));
-  --ai-glow: rgba(66, 133, 244, 0.26);
+  /* вълната е една и съща в двете теми — тя е самоличността на ClimbAI */
+  --ai-gradient: linear-gradient(100deg, #a855f7 0%, #c44bfb 30%, #e26bfe 60%, #f8c1ff 82%, #a855f7 100%);
+  --ai-gradient-soft: linear-gradient(100deg, rgba(168, 85, 247, 0.16), rgba(226, 107, 254, 0.14), rgba(248, 193, 255, 0.12));
+  --ai-glow: rgba(168, 85, 247, 0.3);
   --on-ai: #0d0d10;
 
   --ambient-a: rgba(0, 0, 0, 0.04);
@@ -205,7 +205,7 @@ body {
   animation: climby-ai-wave 7s linear infinite;
   padding: 5px;
 }
-.sidebar-logo img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1); }
+.sidebar-logo img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0); }
 .brand { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
 .brand .name {
   font-family: var(--font-brand);
