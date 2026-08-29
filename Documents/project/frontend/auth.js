@@ -83,13 +83,14 @@ const Auth = (() => {
     return t('auth.errGeneric');
   }
 
-  async function register(displayName, email, password, role, username, phone) {
+  async function register(displayName, email, password, role, username, phone, heardFrom) {
     // Празните полета се пращат като null, а не като "" — сървърът приема липса,
     // но празен низ би минал за избрано име и би се блъснал в уникалността.
     return _post('/auth/register', {
       display_name: displayName, email, password, role,
       username: username || null,
       phone: phone || null,
+      heard_from: heardFrom || null,
     });
   }
 
@@ -221,9 +222,14 @@ const Auth = (() => {
       return;
     }
     try {
+      // Отговорът "откъде чу за нас" е даден още във въпросника при първото
+      // отваряне — пътува с регистрацията, вместо да се пита пак.
+      let heardFrom = null;
+      try { heardFrom = localStorage.getItem('climby-quiz-heard'); } catch { /* без него също върви */ }
       await register(name, email, password, role,
                      $('registerUsername').value.trim(),
-                     $('registerPhone').value.trim());
+                     $('registerPhone').value.trim(),
+                     heardFrom);
       pendingVerifyEmail = email;
       showForm('verify');
     } catch (err) {
@@ -359,6 +365,13 @@ const Auth = (() => {
     $('forgotBtn').addEventListener('click', () => _withBusy($('forgotBtn'), handleForgot));
     $('resetBtn').addEventListener('click', () => _withBusy($('resetBtn'), handleReset));
     $('logoutBtn').addEventListener('click', handleLogout);
+
+    // Ролята, дадена във въпросника, идва отметната — питали сме веднъж.
+    try {
+      const hinted = localStorage.getItem('climby-quiz-role');
+      const radio = hinted && document.querySelector(`input[name="registerRole"][value="${hinted}"]`);
+      if (radio) radio.checked = true;
+    } catch { /* без localStorage просто остава по подразбиране */ }
 
     _submitOnEnter('loginForm', 'loginBtn');
     _submitOnEnter('registerForm', 'registerBtn');

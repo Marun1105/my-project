@@ -66,4 +66,6 @@ def run() -> list:
         applied.append("users.username")
     if _create_unique_index("users", "username", "ix_users_username"):
         applied.append("ix_users_username")
+    if _add_nullable_column("users", "heard_from", "VARCHAR"):
+        applied.append("users.heard_from")
     return applied

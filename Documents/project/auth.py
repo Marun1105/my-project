@@ -112,6 +112,7 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
         email=body.email,
         phone=body.phone,
         role=body.role,
+        heard_from=body.heard_from,
         password_hash=security.hash_password(body.password),
     )
     db.add(user)

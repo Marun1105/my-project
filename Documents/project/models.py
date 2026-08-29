@@ -34,6 +34,9 @@ class User(Base):
     # нямат такова, а уникалност върху NULL не пречи — и SQLite, и Postgres
     # позволяват много NULL-а в уникален индекс.
     username = Column(String, unique=True, nullable=True, index=True)
+    # Откъде е чул за Climby — отговор от началния въпросник. По желание и без
+    # уникалност: това е статистика, не самоличност.
+    heard_from = Column(String, nullable=True)
     email = Column(String, unique=True, nullable=False, index=True)
     phone = Column(String, unique=True, nullable=True, index=True)
     password_hash = Column(String, nullable=False)

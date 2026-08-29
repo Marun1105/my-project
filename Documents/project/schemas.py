@@ -45,6 +45,20 @@ def _check_password_length(v: str) -> str:
     return v
 
 
+# Затворен списък: свободният текст тук не става за нищо после, а и не искаме
+# да пазим каквото ученик реши да напише.
+HEARD_FROM = {"friend", "teacher", "parent", "school", "social", "search", "other"}
+
+
+def _check_heard_from(v):
+    if v is None or not str(v).strip():
+        return None
+    v = str(v).strip().lower()
+    if v not in HEARD_FROM:
+        raise ValueError("Непознат отговор за произход.")
+    return v
+
+
 class RegisterRequest(BaseModel):
     display_name: str = Field(max_length=80)
     username: Optional[str] = Field(default=None, max_length=20)
@@ -52,8 +66,11 @@ class RegisterRequest(BaseModel):
     phone: Optional[str] = Field(default=None, max_length=32)
     password: str
 
+    heard_from: Optional[str] = Field(default=None, max_length=20)
+
     _clean_username = field_validator("username")(_check_username)
     _clean_phone = field_validator("phone")(_check_phone)
+    _clean_heard = field_validator("heard_from")(_check_heard_from)
     # По подразбиране "ученик": така стар клиент, който още не праща роля,
     # продължава да работи и създава точно каквото е създавал досега.
     role: Literal["student", "parent", "teacher"] = "student"
