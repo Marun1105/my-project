@@ -5,15 +5,13 @@ const Focus = (() => {
   const $ = id => document.getElementById(id);
   const BACKEND = window.CLIMBY_BACKEND;
   const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
-  const SAMPLE_MS = 600; // достатъчно често за да усеща рамката около лицето "на живо", tinyFaceDetector е лек
   const ENABLED_KEY = 'climby-focus-enabled';
 
   let stream = null;
   let modelReady = false;
-  let sampleTimer = null;
   let sessionStart = null;
-  let focusedTicks = 0;
-  let awayTicks = 0;
+  let focusedMs = 0;   // време, а не кадри
+  let awayMs = 0;
 
   function isEnabled() { return localStorage.getItem(ENABLED_KEY) === '1'; }
 
@@ -90,8 +88,8 @@ const Focus = (() => {
     if (!window.Auth || !Auth.isLoggedIn()) return;
     const durationSeconds = Math.round(totalMs / 1000);
     if (durationSeconds < 60) return; // твърде кратка сесия, за да си струва да се пази
-    const totalTicks = focusedTicks + awayTicks;
-    const focusPct = totalTicks ? Math.round((focusedTicks / totalTicks) * 100) : null;
+    const trackedMs = focusedMs + awayMs;
+    const focusPct = trackedMs ? Math.round((focusedMs / trackedMs) * 100) : null;
     try {
       await Net.fetch(BACKEND + '/focus', {
         method: 'POST',
@@ -144,66 +142,253 @@ const Focus = (() => {
 
     $('focusVideo').srcObject = stream;
     sessionStart = Date.now();
-    focusedTicks = 0;
-    awayTicks = 0;
-    drawOverlay(null);
+    focusedMs = 0;
+    awayMs = 0;
     showStage('Running');
     $('focusBadge').classList.remove('hidden');
-    sampleTimer = setInterval(sampleFrame, SAMPLE_MS);
+    startTracking();
   }
 
-  // рисува рамка около засеченото лице, за да се вижда, че камерата наистина разпознава —
-  // изцяло козметично, координатите идват от face-api и никога не напускат браузъра
+  // ---------- разпознаване и рисуване ----------
+  //
+  // Наивният вариант беше "има ли лице в кадъра" на всеки 600 ms. По него човек,
+  // който гледа през прозореца, се брои за фокусиран, а всяко мигване — за
+  // отсъствие. Затова тук се смятат няколко сигнала и се решава по тях заедно.
+  //
+  // Срещу трептенето стоят четири неща:
+  //   • разпознаването и рисуването са разделени — моделът се пуска шест пъти в
+  //     секундата, а се рисува на всеки кадър, като точките догонват находката;
+  //   • всеки сигнал минава през плъзгаща средна, вместо да се ползва суров;
+  //   • състоянието има два прага, не един: влиза се във "фокусиран" при 0.62 и
+  //     се излиза чак под 0.38, така че на границата не мига;
+  //   • мигането и краткото навеждане към тетрадката имат гратис.
+  const DETECT_MS = 160;          // колко често пускаме модела
+  const SMOOTH = 0.35;            // плъзгаща средна на сигналите
+  const POINT_SMOOTH = 0.45;      // догонване на точките при рисуване
+  const EAR_CLOSED = 0.19;        // под това окото се води затворено
+  const BLINK_GRACE_MS = 500;     // затворени очи дотук още не са "не гледа"
+  const LOST_GRACE_MS = 1600;     // липсващо лице дотук още не е "излязъл"
+  const ENTER_FOCUS = 0.62;
+  const LEAVE_FOCUS = 0.38;       // нарочно по-нисък от горния
+  const MIN_FACE_FRAC = 0.10;     // по-малко лице от това = твърде далеч
+
+  let rafId = null;
+  let lastDetect = 0;
+  let landmarks = null;           // последните намерени точки, в координати на видеото
+  let drawPoints = null;          // изгладените, които реално рисуваме
+  let faceBox = null, drawBox = null;
+  let lastSeen = 0;
+  let eyesClosedSince = 0;
+  let scores = { eyes: 0, gaze: 0, near: 0 };
+  let focusScore = 0;
+  let isFocused = false;
+  let lastTickAt = 0;
+
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+  // Отношението височина/ширина на окото: отворено е около 0.30, затворено пада
+  // към 0.10. Затова мигането личи като рязък спад, а не като изчезнало лице.
+  function eyeAspect(e) {
+    const wide = dist(e[0], e[3]) || 1;
+    return (dist(e[1], e[5]) + dist(e[2], e[4])) / (2 * wide);
+  }
+
+  // Накъде гледа главата. Носът стои по средата между очите, когато гледаш
+  // право напред; извърнеш ли се, се измества спрямо тях.
+  function gazeScore(pts, box) {
+    const eyesMid = {
+      x: (pts.leftEye[0].x + pts.rightEye[3].x) / 2,
+      y: (pts.leftEye[0].y + pts.rightEye[3].y) / 2,
+    };
+    const tip = pts.nose[pts.nose.length - 1] || pts.nose[0];
+    const yaw = Math.abs(tip.x - eyesMid.x) / (box.width || 1);
+    const pitch = Math.abs(tip.y - eyesMid.y) / (box.height || 1);
+    return Math.max(0, 1 - Math.max(0, yaw - 0.05) / 0.14) *
+           Math.max(0, 1 - Math.max(0, pitch - 0.30) / 0.42);
+  }
+
   function sizeOverlay(video, canvas) {
     if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth;
     if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
   }
 
-  function drawOverlay(box) {
-    const canvas = $('focusOverlay');
-    if (!canvas || !canvas.width) return;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (!box) return;
-
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2ec25f';
-    const { x, y, width, height } = box;
-    const r = Math.min(18, width * 0.18, height * 0.18);
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = Math.max(3, canvas.width * 0.012);
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + width, y, x + width, y + height, r);
-    ctx.arcTo(x + width, y + height, x, y + height, r);
-    ctx.arcTo(x, y + height, x, y, r);
-    ctx.arcTo(x, y, x + width, y, r);
-    ctx.closePath();
-    ctx.stroke();
+  async function detectOnce(video) {
+    const res = await faceapi
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.4 }))
+      .withFaceLandmarks(true);
+    if (!res) return null;
+    const lm = res.landmarks;
+    return {
+      box: res.detection.box,
+      leftEye: lm.getLeftEye(),
+      rightEye: lm.getRightEye(),
+      nose: lm.getNose(),
+    };
   }
 
-  async function sampleFrame() {
-    const video = $('focusVideo');
-    const canvas = $('focusOverlay');
-    if (!video || !video.videoWidth || !canvas) return;
-    sizeOverlay(video, canvas);
-    try {
-      const result = await faceapi.detectSingleFace(
-        video,
-        new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.4 })
-      );
-      if (result) { focusedTicks++; drawOverlay(result.box); }
-      else { awayTicks++; drawOverlay(null); }
-    } catch {
-      // тих пропуск на този сампъл — една неуспешна проверка не бива да спира сесията
+  function updateSignals(found, video, now) {
+    if (!found) {
+      // Лицето може да липсва за миг, защото ученикът се е навел към тетрадката.
+      // Гратисът пази точно този случай, вместо веднага да го брои за отсъствие.
+      if (now - lastSeen > LOST_GRACE_MS) {
+        scores = { eyes: 0, gaze: 0, near: 0 };
+        landmarks = null;
+        faceBox = null;
+      }
+      return;
     }
+    lastSeen = now;
+    landmarks = found;
+    faceBox = found.box;
+
+    const ear = (eyeAspect(found.leftEye) + eyeAspect(found.rightEye)) / 2;
+    if (ear < EAR_CLOSED) {
+      if (!eyesClosedSince) eyesClosedSince = now;
+    } else {
+      eyesClosedSince = 0;
+    }
+    const blinking = eyesClosedSince && (now - eyesClosedSince) < BLINK_GRACE_MS;
+    const eyesOpen = (ear >= EAR_CLOSED || blinking) ? 1 : 0;
+
+    const frac = (found.box.width * found.box.height) /
+                 ((video.videoWidth * video.videoHeight) || 1);
+
+    scores.eyes = lerp(scores.eyes, eyesOpen, SMOOTH);
+    scores.gaze = lerp(scores.gaze, gazeScore(found, found.box), SMOOTH);
+    scores.near = lerp(scores.near, Math.min(1, frac / MIN_FACE_FRAC), SMOOTH);
+  }
+
+  function updateState(now) {
+    const present = landmarks ? 1 : 0;
+    const raw = present * (0.45 * scores.eyes + 0.40 * scores.gaze + 0.15 * scores.near);
+    focusScore = lerp(focusScore, raw, SMOOTH);
+    if (!isFocused && focusScore >= ENTER_FOCUS) isFocused = true;
+    else if (isFocused && focusScore <= LEAVE_FOCUS) isFocused = false;
+
+    // Броим време, а не кадри: иначе бавен телефон би "учил" по-малко от бърз.
+    if (lastTickAt) {
+      const dt = Math.min(now - lastTickAt, 1000);
+      if (isFocused) focusedMs += dt; else awayMs += dt;
+    }
+    lastTickAt = now;
+  }
+
+  function drawOverlay(ctx, cw, ch) {
+    ctx.clearRect(0, 0, cw, ch);
+    if (!drawPoints || !drawBox) return;
+
+    const line = isFocused ? "#ffffff" : "rgba(255,255,255,0.45)";
+    const w = Math.max(1.5, cw * 0.006);
+
+    ctx.save();
+    ctx.strokeStyle = line;
+    ctx.lineWidth = w;
+    ctx.lineJoin = "round";
+
+    // ъглови скоби около лицето, вместо цяла кутия — по-малко закриват образа
+    const bx = drawBox.x, by = drawBox.y, bw = drawBox.width, bh = drawBox.height;
+    const arm = Math.min(bw, bh) * 0.22;
+    const corners = [[bx, by, 1, 1], [bx + bw, by, -1, 1], [bx + bw, by + bh, -1, -1], [bx, by + bh, 1, -1]];
+    for (const c of corners) {
+      ctx.beginPath();
+      ctx.moveTo(c[0] + c[2] * arm, c[1]);
+      ctx.lineTo(c[0], c[1]);
+      ctx.lineTo(c[0], c[1] + c[3] * arm);
+      ctx.stroke();
+    }
+
+    // очертанието на очите — това прави явно, че се следи лице, а не просто кутия
+    ctx.lineWidth = Math.max(1, w * 0.7);
+    for (const eye of [drawPoints.leftEye, drawPoints.rightEye]) {
+      ctx.beginPath();
+      eye.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    // лентичка отдолу: колко силен е фокусът точно сега
+    const pad = cw * 0.06;
+    const barW = cw - pad * 2;
+    const barH = Math.max(2, ch * 0.018);
+    const barY = ch - pad;
+    ctx.fillStyle = "#ffffff";
+    ctx.globalAlpha = 0.3;
+    ctx.fillRect(pad, barY, barW, barH);
+    ctx.globalAlpha = 1;
+    ctx.fillRect(pad, barY, barW * Math.max(0, Math.min(1, focusScore)), barH);
+    ctx.restore();
+  }
+
+  function tick(now) {
+    rafId = requestAnimationFrame(tick);
+    const video = $("focusVideo");
+    const canvas = $("focusOverlay");
+    if (!video || !canvas || !video.videoWidth || !stream) return;
+    sizeOverlay(video, canvas);
+
+    if (now - lastDetect > DETECT_MS) {
+      lastDetect = now;
+      detectOnce(video)
+        .then(found => updateSignals(found, video, performance.now()))
+        .catch(() => { /* един пропуснат кадър не е повод да спираме сесията */ });
+    }
+    updateState(now);
+
+    // Нарисуваните точки догонват находката, вместо да скачат на нея — оттам
+    // идва усещането, че рамката стои на лицето, а не подскача около него.
+    if (landmarks && faceBox) {
+      if (!drawPoints) {
+        drawPoints = {
+          leftEye: landmarks.leftEye.map(p => ({ x: p.x, y: p.y })),
+          rightEye: landmarks.rightEye.map(p => ({ x: p.x, y: p.y })),
+        };
+        drawBox = { x: faceBox.x, y: faceBox.y, width: faceBox.width, height: faceBox.height };
+      } else {
+        for (const key of ["leftEye", "rightEye"]) {
+          landmarks[key].forEach((p, i) => {
+            const d = drawPoints[key][i];
+            if (!d) return;
+            d.x = lerp(d.x, p.x, POINT_SMOOTH);
+            d.y = lerp(d.y, p.y, POINT_SMOOTH);
+          });
+        }
+        drawBox.x = lerp(drawBox.x, faceBox.x, POINT_SMOOTH);
+        drawBox.y = lerp(drawBox.y, faceBox.y, POINT_SMOOTH);
+        drawBox.width = lerp(drawBox.width, faceBox.width, POINT_SMOOTH);
+        drawBox.height = lerp(drawBox.height, faceBox.height, POINT_SMOOTH);
+      }
+    } else {
+      drawPoints = null;
+      drawBox = null;
+    }
+
+    drawOverlay(canvas.getContext("2d"), canvas.width, canvas.height);
+  }
+
+  function startTracking() {
+    lastDetect = 0;
+    lastTickAt = 0;
+    lastSeen = performance.now();
+    landmarks = null; drawPoints = null; faceBox = null; drawBox = null;
+    eyesClosedSince = 0;
+    scores = { eyes: 0, gaze: 0, near: 0 };
+    focusScore = 0;
+    isFocused = false;
+    if (rafId === null) rafId = requestAnimationFrame(tick);
+  }
+
+  function stopTracking() {
+    if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    const canvas = $("focusOverlay");
+    if (canvas && canvas.width) canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+    drawPoints = null; drawBox = null; landmarks = null; faceBox = null;
   }
 
   function stopSession(silent) {
-    if (sampleTimer) { clearInterval(sampleTimer); sampleTimer = null; }
+    stopTracking();
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
     $('focusBadge').classList.add('hidden');
-    drawOverlay(null);
 
     if (!sessionStart) {
       if (!silent) showStage('Idle');
@@ -227,8 +412,8 @@ const Focus = (() => {
 
   function showSummary(totalMs) {
     ['Idle', 'Loading', 'Running'].forEach(s => $(`focus${s}`).classList.add('hidden'));
-    const totalTicks = focusedTicks + awayTicks;
-    const pct = totalTicks ? Math.round((focusedTicks / totalTicks) * 100) : null;
+    const trackedMs = focusedMs + awayMs;
+    const pct = trackedMs ? Math.round((focusedMs / trackedMs) * 100) : null;
     const time = formatMinutes(totalMs);
 
     let message;
