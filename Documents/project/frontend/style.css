@@ -1681,3 +1681,15 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 .empty-cta:hover { background: var(--accent-strong); }
 .empty-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- жива рамка на страницата във визьора ---------- */
+.edge-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Общото правило по-горе слага object-fit: cover на всеки canvas. Тук пикселите
+     на платното съвпадат едно към едно с кутията, затова мащабиране не бива да има. */
+  object-fit: fill;
+  pointer-events: none;
+}

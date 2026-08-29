@@ -79,6 +79,7 @@ const Scanner = (() => {
       hasCamera = true;
       $('splash').classList.add('hidden');
       showStage('cameraStage');
+      startEdgeOverlay();
     } catch (err) {
       // Няма камера (обичайно на настолен компютър) — качването на файл не е
       // резервен вариант при грешка, а равностоен път, затова го показваме така.
@@ -91,6 +92,7 @@ const Scanner = (() => {
   // Скриването на раздела не спира камерата само по себе си — лампичката до нея
   // остава светната, докато потребителят чете в "Чеклист". Затова я гасим изрично.
   function stop() {
+    stopEdgeOverlay();
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       stream = null;
@@ -103,6 +105,164 @@ const Scanner = (() => {
   function backToCamera() {
     showStage('cameraStage');
     start();
+  }
+
+
+  // ---------- жива рамка около страницата ----------
+  // Същото разпознаване, което се ползва при снимане, но пуснато върху живия
+  // образ. Не е AI и не пита сървъра — Canny + търсене на най-големия
+  // четириъгълник, точно както при натискане на копчето. Рисува се на отделен
+  // canvas върху видеото.
+  //
+  // Три неща я правят гледаема, вместо да подскача:
+  //   • работи върху смален кадър (детекцията е скъпа, а ъглите не се нуждаят
+  //     от повече точност, отколкото окото вижда);
+  //   • ъглите се движат плавно към новите, а не скачат;
+  //   • ако за няколко кадъра нищо не се намери, рамката избледнява, вместо да
+  //     изчезне рязко.
+  const EDGE_W = 360;             // ширина на кадъра, върху който търсим
+  const EDGE_EVERY_MS = 90;       // колко често търсим наново
+  const EDGE_SMOOTH = 0.35;       // 0 = не мърда, 1 = скача веднага
+  const EDGE_FORGIVE = 6;         // толкова кадъра без находка още държим рамката
+
+  let edgeCanvas = null;          // смаленото копие, върху което търсим
+  let edgeRaf = null;
+  let edgeLastFind = 0;
+  let edgeCorners = null;         // изгладените ъгли, в координати на видеото
+  let edgeMisses = 0;
+  let edgeDash = 0;
+
+  function _lerpPt(a, b, t) {
+    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+  }
+
+  // Къде точно стои видеото вътре в кутията си (object-fit: cover реже краищата).
+  function _videoBox(video, cw, ch) {
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) return null;
+    const scale = Math.max(cw / vw, ch / vh);
+    const w = vw * scale, h = vh * scale;
+    return { x: (cw - w) / 2, y: (ch - h) / 2, scale };
+  }
+
+  function _findLiveCorners(video) {
+    if (!cvReady || !window.cv) return null;
+    if (!edgeCanvas) edgeCanvas = document.createElement('canvas');
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) return null;
+    edgeCanvas.width = EDGE_W;
+    edgeCanvas.height = Math.round(EDGE_W * vh / vw);
+    edgeCanvas.getContext('2d').drawImage(video, 0, 0, edgeCanvas.width, edgeCanvas.height);
+    let src = null, found = null;
+    try {
+      src = cv.imread(edgeCanvas);
+      found = findPageCorners(src);
+    } catch {
+      found = null;              // OpenCV още се зарежда или кадърът е празен
+    } finally {
+      if (src) src.delete();
+    }
+    if (!found) return null;
+    // обратно в координати на самото видео
+    const k = vw / edgeCanvas.width;
+    const out = {};
+    for (const key of ['tl', 'tr', 'br', 'bl']) out[key] = { x: found[key].x * k, y: found[key].y * k };
+    return out;
+  }
+
+  function _drawEdge(ctx, pts, cw, ch, alpha) {
+    ctx.clearRect(0, 0, cw, ch);
+    if (!pts) return;
+    const order = ['tl', 'tr', 'br', 'bl'];
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    // Дебела тъмна основа отдолу: върху бяла страница тънка светла линия се губи.
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.beginPath();
+    order.forEach((k, i) => (i ? ctx.lineTo(pts[k].x, pts[k].y) : ctx.moveTo(pts[k].x, pts[k].y)));
+    ctx.closePath();
+    ctx.stroke();
+
+    // Отгоре — движещият се пунктир. Той дава усещането, че рамката "живее"
+    // и се прехваща наново при всяко местене на телефона.
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#ffffff';
+    ctx.setLineDash([14, 9]);
+    ctx.lineDashOffset = -edgeDash;
+    ctx.beginPath();
+    order.forEach((k, i) => (i ? ctx.lineTo(pts[k].x, pts[k].y) : ctx.moveTo(pts[k].x, pts[k].y)));
+    ctx.closePath();
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Ъглите се маркират отделно — окото ги ползва, за да центрира листа.
+    const arm = Math.max(16, Math.min(cw, ch) * 0.05);
+    ctx.lineWidth = 3;
+    order.forEach((k, i) => {
+      const p = pts[k];
+      const prev = pts[order[(i + 3) % 4]];
+      const next = pts[order[(i + 1) % 4]];
+      for (const nb of [prev, next]) {
+        const dx = nb.x - p.x, dy = nb.y - p.y;
+        const len = Math.hypot(dx, dy) || 1;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x + (dx / len) * arm, p.y + (dy / len) * arm);
+        ctx.stroke();
+      }
+    });
+    ctx.restore();
+  }
+
+  function _edgeTick(now) {
+    edgeRaf = requestAnimationFrame(_edgeTick);
+    const canvas = $('edgeOverlay');
+    const video = $('video');
+    if (!canvas || !video || !stream || stage !== 'cameraStage') return;
+
+    const cw = canvas.clientWidth, ch = canvas.clientHeight;
+    if (!cw || !ch) return;
+    if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+
+    if (now - edgeLastFind > EDGE_EVERY_MS) {
+      edgeLastFind = now;
+      const found = _findLiveCorners(video);
+      if (found) {
+        edgeMisses = 0;
+        edgeCorners = edgeCorners
+          ? Object.fromEntries(['tl','tr','br','bl'].map(k => [k, _lerpPt(edgeCorners[k], found[k], EDGE_SMOOTH)]))
+          : found;
+      } else if (++edgeMisses > EDGE_FORGIVE) {
+        edgeCorners = null;
+      }
+    }
+
+    edgeDash = (edgeDash + 0.9) % 23;
+    const box = _videoBox(video, cw, ch);
+    const ctx = canvas.getContext('2d');
+    if (!edgeCorners || !box) { ctx.clearRect(0, 0, cw, ch); return; }
+    const onScreen = {};
+    for (const k of ['tl','tr','br','bl']) {
+      onScreen[k] = { x: box.x + edgeCorners[k].x * box.scale, y: box.y + edgeCorners[k].y * box.scale };
+    }
+    _drawEdge(ctx, onScreen, cw, ch, Math.max(0, 1 - edgeMisses / (EDGE_FORGIVE + 1)));
+  }
+
+  function startEdgeOverlay() {
+    // Хора, които са помолили за по-малко движение, получават рамка без пунктир —
+    // спираме анимацията, не разпознаването.
+    if (edgeRaf === null) edgeRaf = requestAnimationFrame(_edgeTick);
+  }
+
+  function stopEdgeOverlay() {
+    if (edgeRaf !== null) { cancelAnimationFrame(edgeRaf); edgeRaf = null; }
+    edgeCorners = null;
+    edgeMisses = 0;
+    const canvas = $('edgeOverlay');
+    if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
   }
 
   function captureRawCanvas() {
