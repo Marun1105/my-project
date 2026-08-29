@@ -172,7 +172,10 @@ def main():
             db.commit()
             print("добавени 3 фокус сесии")
 
-        print(f"\nПарола за трите акаунта: {PASSWORD}")
+        if os.environ.get("CLIMBY_DEMO_PASSWORD"):
+            print("\nПарола: тази от CLIMBY_DEMO_PASSWORD (нарочно не се печата).")
+        else:
+            print(f"\nПарола за трите акаунта: {PASSWORD}")
     finally:
         db.close()
 

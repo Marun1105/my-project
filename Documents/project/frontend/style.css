@@ -200,12 +200,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--ai-gradient);
-  background-size: 200% 100%;
-  animation: climby-ai-wave 7s linear infinite;
+  background: #0d0d10;
   padding: 5px;
 }
-.sidebar-logo img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0); }
+.sidebar-logo img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1); }
 .brand { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
 .brand .name {
   font-family: var(--font-brand);
