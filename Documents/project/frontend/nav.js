@@ -48,6 +48,14 @@ const Nav = (() => {
       });
     });
 
+    // "Към чеклиста" / "Снимай задача" от празните екрани — водят където пише.
+    document.querySelectorAll('[data-goto-view]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activate(btn.dataset.gotoView);
+        closeSidebar();
+      });
+    });
+
     const menuToggle = document.getElementById('menuToggle');
     if (menuToggle) menuToggle.addEventListener('click', openSidebar);
 

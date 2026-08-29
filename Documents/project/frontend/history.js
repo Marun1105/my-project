@@ -26,6 +26,30 @@ const History = (() => {
     return data;
   }
 
+  // Празният блок вече не е просто <p>: вътре има икона и бутон, така че
+  // textContent би ги изтрил. Текстът отива в заглавието.
+  function setEmptyText(el, text) {
+    const title = el.querySelector('.empty-title');
+    if (title) title.textContent = text;
+    else el.textContent = text;
+  }
+
+  // Кой дял се гледа. Изборът се помни, за да не отскача обратно при връщане.
+  const TAB_KEY = 'climby-history-tab';
+
+  function showTab(which) {
+    localStorage.setItem(TAB_KEY, which);
+    document.querySelectorAll('[data-history-tab]').forEach(tab => {
+      const on = tab.dataset.historyTab === which;
+      tab.classList.toggle('active', on);
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    const tasks = $('historyTasksPanel');
+    const scans = $('historyScansPanel');
+    if (tasks) tasks.classList.toggle('hidden', which !== 'tasks');
+    if (scans) scans.classList.toggle('hidden', which !== 'scans');
+  }
+
   function _announceChange() {
     window.dispatchEvent(new CustomEvent('climby:tasks-changed'));
   }
@@ -227,7 +251,7 @@ const History = (() => {
     const empty = $('historyEmpty');
 
     if (!list.children.length) {
-      empty.textContent = t('history.loading');
+      setEmptyText(empty, t('history.loading'));
       empty.classList.remove('hidden');
     }
 
@@ -236,7 +260,7 @@ const History = (() => {
       tasks = await api('/tasks');
     } catch (err) {
       list.innerHTML = '';
-      empty.textContent = err.message || t('history.errLoad');
+      setEmptyText(empty, err.message || t('history.errLoad'));
       empty.classList.remove('hidden');
       return;
     }
@@ -247,7 +271,7 @@ const History = (() => {
 
     list.innerHTML = '';
     if (done.length === 0) {
-      empty.textContent = t('history.emptyDefault');
+      setEmptyText(empty, t('history.emptyDefault'));
       empty.classList.remove('hidden');
       return;
     }
@@ -268,7 +292,12 @@ const History = (() => {
     window.addEventListener('climby:tasks-changed', render);
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) render(); });
     window.addEventListener('climby:view-shown', e => {
-      if (e.detail.view === 'history') updateGate();
+      if (e.detail.view === 'history') { updateGate(); showTab(localStorage.getItem(TAB_KEY) || 'tasks'); }
+    });
+
+    // Двата дяла вече не стоят един под друг, а се сменят от превключвателя.
+    document.querySelectorAll('[data-history-tab]').forEach(tab => {
+      tab.addEventListener('click', () => showTab(tab.dataset.historyTab));
     });
     updateGate();
   }

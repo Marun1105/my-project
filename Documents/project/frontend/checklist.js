@@ -30,6 +30,14 @@ const Checklist = (() => {
     return data;
   }
 
+  // Празният блок вече не е просто <p>: вътре има икона и понякога бутон.
+  // Затова текстът отива в заглавието, а не върху целия контейнер.
+  function setEmptyText(el, text) {
+    const title = el.querySelector('.empty-title');
+    if (title) title.textContent = text;
+    else el.textContent = text;
+  }
+
   function _errorMessage(detail) {
     if (typeof detail === 'string' && detail) return detail;
     if (Array.isArray(detail) && detail.length) return detail.map(d => d.msg).join(' ');
@@ -211,7 +219,7 @@ const Checklist = (() => {
   function showListError(err) {
     const empty = $('taskEmpty');
     $('taskList').innerHTML = '';
-    empty.textContent = err.message || t('checklist.errLoad');
+    setEmptyText(empty, err.message || t('checklist.errLoad'));
     empty.classList.remove('hidden');
   }
 
@@ -223,7 +231,7 @@ const Checklist = (() => {
     const empty = $('taskEmpty');
 
     if (!list.children.length) {
-      empty.textContent = t('checklist.loading');
+      setEmptyText(empty, t('checklist.loading'));
       empty.classList.remove('hidden');
     }
 
@@ -246,11 +254,11 @@ const Checklist = (() => {
     if (filtered.length === 0) {
       // Празно заради филтъра не е същото като празно изобщо — иначе изглежда, че
       // задачите са изчезнали.
-      empty.textContent = subjectFilter && pending.length
+      setEmptyText(empty, subjectFilter && pending.length
         ? t('checklist.emptyForSubject', { subject: subjectFilter })
         : allTasks.length === 0
           ? t('checklist.emptyDefault')
-          : t('checklist.emptyAllDone');
+          : t('checklist.emptyAllDone'));
       empty.classList.remove('hidden');
       return;
     }

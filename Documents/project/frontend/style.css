@@ -225,9 +225,6 @@ body {
   line-height: 1.35;
   font-weight: 600;
   margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .side-nav { display: flex; flex-direction: column; gap: 2px; }
@@ -235,6 +232,9 @@ body {
   flex: none;
   width: 100%;
   text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -251,7 +251,9 @@ body {
 .nav-link.active { position: relative; }
 
 .nav-group { display: flex; flex-direction: column; }
-.nav-parent { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.nav-parent { justify-content: flex-start; }
+/* Надписът заема остатъка, така че стрелката и броячът падат вдясно от само себе си. */
+.nav-link > span:not(.nav-badge) { flex: 1; min-width: 0; }
 .nav-chevron { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-faint); transition: transform 0.2s ease; }
 .nav-group.expanded .nav-chevron { transform: rotate(180deg); }
 
@@ -1594,3 +1596,88 @@ button:disabled { opacity: 0.4; cursor: default; }
 .class-student-stats { font-size: 12px; color: var(--text-dim); text-align: right; }
 .class-student-stats.has-overdue { color: var(--warn); }
 .class-leave { font-size: 12px; padding: 4px 10px; flex-shrink: 0; }
+
+/* ---------- икони в менюто ---------- */
+.nav-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  opacity: 0.7;
+}
+.nav-link.active .nav-icon { opacity: 1; }
+.nav-child .nav-icon { width: 15px; height: 15px; flex-basis: 15px; }
+
+/* ---------- превключвател на дялове ---------- */
+.pill-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: var(--space-3);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.pill-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.pill-tab:hover { color: var(--text); }
+.pill-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* избраното е плътно, а не оцветено — разликата трябва да личи и без тон */
+.pill-tab.active { background: var(--accent); color: var(--on-accent); }
+
+/* ---------- празни състояния ---------- */
+/* Празният екран е първото, което вижда нов ученик. Затова не е един сив ред,
+   а има какво да гледа и какво да натисне. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+  width: 100%;
+}
+.empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 62px;
+  margin-bottom: var(--space-1);
+  border-radius: 50%;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  color: var(--text-faint);
+}
+.empty-icon svg { width: 27px; height: 27px; }
+.empty-title {
+  font-size: 14px;
+  color: var(--text-dim);
+  max-width: 42ch;
+  line-height: 1.5;
+}
+.empty-cta {
+  margin-top: var(--space-2);
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.empty-cta:hover { background: var(--accent-strong); }
+.empty-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
