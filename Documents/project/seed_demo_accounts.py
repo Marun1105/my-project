@@ -30,7 +30,10 @@ from models import (  # noqa: E402
     User,
 )
 
-PASSWORD = "climby1234"
+# Паролата по подразбиране стои тук нарочно — тя важи само за файла на този
+# компютър. За всяка друга база _resolve_target() иска CLIMBY_DEMO_PASSWORD и
+# отказва без нея, защото това тук е публично четимо.
+PASSWORD = os.environ.get("CLIMBY_DEMO_PASSWORD") or "climby1234"
 
 # Домейнът не е .test нарочно: email-validator отказва запазените домейни
 # (.test/.example/.invalid/.localhost) и входът връща 422, макар редът в базата
@@ -77,23 +80,48 @@ def _upsert_user(db, email, name, role):
     return user, action
 
 
-def _refuse_production():
-    # Скриптът слага акаунти с публично известна парола. На истинската база това
-    # е дупка, не удобство — затова тръгва само срещу локална база, освен ако
-    # някой изрично не напише --yes-production.
-    url = os.environ.get("DATABASE_URL") or "sqlite:///./climby.db"
-    local = url.startswith("sqlite") or "localhost" in url or "127.0.0.1" in url
-    if local or "--yes-production" in sys.argv:
-        return url
-    print("Отказвам: DATABASE_URL не сочи локална база.")
-    print(f"  {url.split('@')[-1]}")
-    print("Ако наистина искаш демо акаунти там, добави --yes-production.")
-    sys.exit(1)
+DEFAULT_LOCAL = "sqlite:///./climby.db"
+
+
+def _resolve_target():
+    """Коя база ще пипнем — и имаме ли право.
+
+    Първата версия на тази проверка гледаше схемата: "sqlite значи локално".
+    Това е грешно и опасно. db.py пада на точно същия sqlite:///./climby.db,
+    когато DATABASE_URL липсва — включително в Render. Тоест продукция, която
+    върви на този резервен вариант, минаваше за "локална" и скриптът щеше да
+    ѝ сложи акаунти с парола, която стои публично в хранилището.
+
+    По адреса не може да се познае чия е базата. Затова правилото е просто:
+    без DATABASE_URL пипаме файла до нас и толкова; има ли DATABASE_URL —
+    каквато и да е — искаме изрично разрешение. А публичната парола не отива
+    никъде другаде освен на този файл, при никакви обстоятелства.
+    """
+    raw = os.environ.get("DATABASE_URL")
+    if not raw or not raw.strip():
+        return DEFAULT_LOCAL, False
+
+    if "--yes-production" not in sys.argv:
+        print("Отказвам: зададен е DATABASE_URL, тоест базата може да не е тази на")
+        print("този компютър, а по адреса не може да се разбере чия е.")
+        print("Ако наистина искаш демо акаунти там, добави --yes-production.")
+        sys.exit(1)
+
+    if not os.environ.get("CLIMBY_DEMO_PASSWORD"):
+        print("Отказвам: паролата по подразбиране стои в хранилището и всеки може")
+        print("да я прочете. За чужда база задай своя:")
+        print('  $env:CLIMBY_DEMO_PASSWORD = "..."')
+        sys.exit(1)
+
+    return raw.strip(), True
 
 
 def main():
-    url = _refuse_production()
-    print(f"база: {url.split('@')[-1]}\n")
+    url, foreign = _resolve_target()
+    print("база:", url.split("@")[-1] if foreign else f"локалният файл {DEFAULT_LOCAL}")
+    if foreign:
+        print("ВНИМАНИЕ: не е базата по подразбиране — пише се по изрично разрешение.")
+    print()
     Base.metadata.create_all(bind=engine)
     # create_all прави липсващите таблици, но не и липсващите колони в стари
     # бази — точно затова съществува migrations.py. Стар climby.db без users.role
