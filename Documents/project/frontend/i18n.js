@@ -580,10 +580,17 @@ const I18n = (() => {
 window.t = I18n.t;
 
 // малка "✨ AI отговор" значка, показвана над отговорите на AI учителя/планера
+// Марката, с която се подписва всеки отговор на AI-то. "ClimbAI" е име и не се
+// превежда — на кирилица би станало друго име. За екранния четец обаче стои
+// преведеното "AI отговор", защото "ClimbAI" само по себе си не казва нищо.
+// Звездата е начертана тук, а не сложена като картинка: рисува се на всякакъв
+// размер, взима цвета отвън и не мъкне файл със себе си.
 window.aiBadgeHtml = function () {
-  return '<div class="ai-badge">'
-    + '<span class="ai-badge-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span>'
-    + '<span class="ai-badge-text">' + I18n.t('ai.badge') + '</span>'
+  return '<div class="ai-badge" role="img" aria-label="' + I18n.t('ai.badge') + '">'
+    + '<span class="ai-badge-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+    + '<path d="M12 1.5c0 5.8 4.7 10.5 10.5 10.5C16.7 12 12 16.7 12 22.5 12 16.7 7.3 12 1.5 12 7.3 12 12 7.3 12 1.5z"/>'
+    + '</svg></span>'
+    + '<span class="ai-badge-text">ClimbAI</span>'
     + '</div>';
 };
 

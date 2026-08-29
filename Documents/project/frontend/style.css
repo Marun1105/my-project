@@ -997,26 +997,31 @@ button:disabled { opacity: 0.4; cursor: default; }
 .btn-ai .spark { width: 16px; height: 16px; flex-shrink: 0; display: flex; }
 .btn-ai .spark svg { width: 100%; height: 100%; }
 
+/* Подписът на AI-то: плътна вълна с ЧЕРЕН текст отгоре — същото както при
+   бутоните, които викат AI-то. Черно върху вълната се чете и над четирите тона
+   (бяло пада до ~1.9:1 над жълтото), а плътната лента е и единственият начин
+   черен текст изобщо да се вижда — картата отдолу е тъмна.
+   Без text-transform: "ClimbAI" е име, не етикет, и главното A в AI носи смисъл. */
 .ai-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-}
-.ai-badge svg { width: 14px; height: 14px; flex-shrink: 0; }
-.ai-badge .ai-badge-icon { color: var(--text); }
-.ai-badge .ai-badge-text {
+  padding: 5px 11px 5px 8px;
+  border-radius: 999px;
   background: var(--ai-gradient);
   background-size: 200% 100%;
   animation: climby-ai-wave 7s linear infinite;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--on-ai);
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin-bottom: 12px;
 }
+.ai-badge svg { width: 15px; height: 15px; flex-shrink: 0; display: block; }
+/* И звездата, и надписът са черни — currentColor ги държи еднакви. */
+.ai-badge .ai-badge-icon { color: inherit; display: flex; }
+.ai-badge .ai-badge-text { color: inherit; }
 
 .hint {
   width: 100%;
