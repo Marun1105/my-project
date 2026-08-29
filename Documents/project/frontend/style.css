@@ -1,11 +1,9 @@
 /* style.css — общ дизайн на Climby: тъмна тема (основна) + светла тема (превключваема) */
 
-/* Шрифтът идва от самото лого: надписът CLIMBY е дидон — серифен, с рязка разлика
-   между дебелите и тънките щрихи. Playfair Display е същият вид и, за разлика от
-   Fraunces, има кирилица, така че един серифен шрифт върши работа и за марката, и
-   за заглавията вместо два. За текста остава IBM Plex Sans — избран, не заварен:
-   Inter е това, което всеки инструмент слага по подразбиране. */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+/* Шрифтовете се зареждат от fonts.css, който стои при приложението (виж там защо).
+   Inter носи целия текст и интерфейса; Space Grotesk е само за заглавия и марката.
+   Space Grotesk няма кирилица, затова Inter стои втори в --font-heading и поема
+   българските заглавия — смяната се вижда само на латиница. */
 
 :root {
   /* тъмна тема — основна */
@@ -55,9 +53,12 @@
   --ambient-a: rgba(255, 255, 255, 0.05);
   --ambient-b: rgba(255, 255, 255, 0.03);
 
-  --font-brand: 'Playfair Display', Georgia, serif;   /* марката — както в логото */
-  --font-display: 'Playfair Display', Georgia, serif; /* заглавия, вкл. на кирилица */
-  --font-body: 'IBM Plex Sans', -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Space Grotesk', 'Inter', sans-serif;
+  /* Стари имена, запазени, за да не се пипат десетки правила наведнъж.
+     И двете сочат към заглавния шрифт — марката и заглавията са едно и също. */
+  --font-brand: var(--font-heading);
+  --font-display: var(--font-heading);
 
   /* Стълба за отстояния: хармонията идва от това, че разстоянията се повтарят,
      а не от това, че всяко е "на око". */
@@ -110,6 +111,11 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Заглавията навсякъде — включително тези, които AI отговорът връща като Markdown. */
+h1, h2, h3 {
+  font-family: var(--font-heading);
+}
 
 html { color-scheme: dark; }
 html[data-theme="light"] { color-scheme: light; }
