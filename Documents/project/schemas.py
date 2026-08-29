@@ -1,4 +1,5 @@
 # schemas.py — формите на заявките и отговорите за auth/задачи
+import re
 from datetime import date, datetime
 from typing import List, Literal, Optional
 
@@ -8,6 +9,34 @@ from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 # Горната граница не е каприз: passlib отказва вход над 4096 байта с изключение,
 # което не се хваща никъде и излиза като 500 вместо като "паролата е твърде дълга".
 # bcrypt и без това гледа само първите 72 байта, така че 128 не ограничава никого.
+USERNAME_RE = re.compile(r"^[a-zA-Z0-9_.]{3,20}$")
+# Свободен формат нарочно: български номера се пишат и като 0888..., и като
+# +359888..., и с интервали. Махаме украсата и искаме само да е правдоподобно.
+PHONE_RE = re.compile(r"^\+?\d{6,15}$")
+
+
+def _check_username(v):
+    if v is None:
+        return None
+    v = v.strip()
+    if not v:
+        return None  # празно поле не е избор на име
+    if not USERNAME_RE.match(v):
+        raise ValueError("Потребителското име може да е 3-20 знака: букви, цифри, _ и .")
+    return v
+
+
+def _check_phone(v):
+    if v is None:
+        return None
+    v = "".join(ch for ch in v if not ch.isspace() and ch not in "()-")
+    if not v:
+        return None
+    if not PHONE_RE.match(v):
+        raise ValueError("Телефонният номер не изглежда валиден.")
+    return v
+
+
 def _check_password_length(v: str) -> str:
     if len(v) < 8:
         raise ValueError("Паролата трябва да е поне 8 символа")
@@ -18,8 +47,13 @@ def _check_password_length(v: str) -> str:
 
 class RegisterRequest(BaseModel):
     display_name: str = Field(max_length=80)
+    username: Optional[str] = Field(default=None, max_length=20)
     email: EmailStr
+    phone: Optional[str] = Field(default=None, max_length=32)
     password: str
+
+    _clean_username = field_validator("username")(_check_username)
+    _clean_phone = field_validator("phone")(_check_phone)
     # По подразбиране "ученик": така стар клиент, който още не праща роля,
     # продължава да работи и създава точно каквото е създавал досега.
     role: Literal["student", "parent", "teacher"] = "student"
@@ -70,6 +104,7 @@ class UserOut(BaseModel):
 
     id: str
     display_name: str
+    username: Optional[str] = None
     email: str
     role: str
     phone: Optional[str] = None

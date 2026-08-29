@@ -30,6 +30,10 @@ class User(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     display_name = Column(String, nullable=False)
+    # Потребителското име е по желание и може да липсва: акаунтите отпреди него
+    # нямат такова, а уникалност върху NULL не пречи — и SQLite, и Postgres
+    # позволяват много NULL-а в уникален индекс.
+    username = Column(String, unique=True, nullable=True, index=True)
     email = Column(String, unique=True, nullable=False, index=True)
     phone = Column(String, unique=True, nullable=True, index=True)
     password_hash = Column(String, nullable=False)

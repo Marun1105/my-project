@@ -206,6 +206,49 @@ def test_oversized_inputs_are_rejected_cleanly(monkeypatch):
     assert not called, "отхвърлена заявка не бива да стига до Anthropic"
 
 
+def test_register_accepts_optional_username_and_phone():
+    res = client.post("/auth/register", json={
+        "display_name": "С име", "username": "marto.11", "email": "named@example.com",
+        "phone": "+359 888 000 111", "password": "testpass123",
+    })
+    assert res.status_code == 200, res.text
+
+    from db import SessionLocal
+    from models import User
+    db = SessionLocal()
+    u = db.query(User).filter(User.email == "named@example.com").first()
+    # интервалите се махат при записа, за да не минава един номер за два
+    assert (u.username, u.phone) == ("marto.11", "+359888000111")
+    db.close()
+
+    # заето име
+    dup = client.post("/auth/register", json={
+        "display_name": "Друг", "username": "marto.11",
+        "email": "other@example.com", "password": "testpass123",
+    })
+    assert dup.status_code == 400
+
+    # невалидно име и невалиден телефон не стигат до базата
+    for bad in ({"username": "a b!"}, {"phone": "не-е-телефон"}):
+        res = client.post("/auth/register", json={
+            "display_name": "Х", "email": "bad@example.com", "password": "testpass123", **bad,
+        })
+        assert res.status_code == 422, (bad, res.text)
+
+
+def test_register_still_works_without_them():
+    res = client.post("/auth/register", json={
+        "display_name": "Без", "email": "plain@example.com", "password": "testpass123",
+    })
+    assert res.status_code == 200, res.text
+    from db import SessionLocal
+    from models import User
+    db = SessionLocal()
+    u = db.query(User).filter(User.email == "plain@example.com").first()
+    assert u.username is None and u.phone is None
+    db.close()
+
+
 def test_login_is_rate_limited():
     _register_and_login("brute@example.com", "testpass123")
     for _ in range(19):

@@ -217,6 +217,12 @@ body {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-dim);
+  /* Слоганът се пренася, вместо да се реже с многоточие. По-скоро два реда,
+     отколкото половин изречение — целият е кратък и без него марката куца. */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.35;
   font-weight: 600;
   margin-top: 2px;
   white-space: nowrap;
@@ -559,7 +565,34 @@ body {
   z-index: 40;
 }
 
-.main-area { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.main-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+/* Голямото лого стои в дъното на приложението — достатъчно едро, за да се
+   вижда, че е планина, и достатъчно бледо, за да не се чете през него текст.
+   Стои под съдържанието и не хваща мишката. */
+.main-area::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(60vw, 620px);
+  height: min(60vw, 620px);
+  background: url('logo-icon.png') center/contain no-repeat;
+  filter: brightness(0) invert(1);
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 0;
+}
+:root[data-theme="light"] .main-area::before { filter: brightness(0); opacity: 0.045; }
+/* Съдържанието минава отгоре, иначе водният знак го застъпва. */
+.main-area > * { position: relative; z-index: 1; }
 
 /* ---------- mobile top bar (hidden on desktop) ---------- */
 .mobile-bar {
@@ -800,8 +833,8 @@ body {
   padding: 32px 0 40px;
 }
 .splash img {
-  width: 172px;
-  height: 172px;
+  width: 208px;
+  height: 208px;
   border-radius: 50%;
   background: var(--bg-sunken);
   object-fit: cover;

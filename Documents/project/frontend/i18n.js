@@ -5,7 +5,7 @@ const I18n = (() => {
 
   const STR = {
     bg: {
-      'brand.tagline': 'Изкачи се към успеха',
+      'brand.tagline': 'Изкачи се по своя път към успеха',
       'nav.tutor': 'Учител',
       'nav.checklist': 'Чеклист',
       'nav.history': 'История',
@@ -63,6 +63,8 @@ const I18n = (() => {
       'auth.registerLink': 'Регистрирай се',
       'auth.forgotLink': 'Забравена парола?',
       'auth.nameLabel': 'Как да те наричаме?',
+      'auth.usernameLabel': 'Потребителско име (по желание)',
+      'auth.phoneLabel': 'Телефон (по желание)',
       'auth.namePlaceholder': 'Име',
       'auth.passwordHintPlaceholder': 'Поне 8 символа',
       'auth.registerBtn': 'Регистрирай се',
@@ -265,7 +267,7 @@ const I18n = (() => {
       'settings.closeAria': 'Затвори настройките',
     },
     en: {
-      'brand.tagline': 'Climb to success',
+      'brand.tagline': 'Climb your way to success',
       'nav.tutor': 'Teacher',
       'nav.checklist': 'Checklist',
       'nav.history': 'History',
@@ -323,6 +325,8 @@ const I18n = (() => {
       'auth.registerLink': 'Sign up',
       'auth.forgotLink': 'Forgot password?',
       'auth.nameLabel': 'What should we call you?',
+      'auth.usernameLabel': 'Username (optional)',
+      'auth.phoneLabel': 'Phone (optional)',
       'auth.namePlaceholder': 'Name',
       'auth.passwordHintPlaceholder': 'At least 8 characters',
       'auth.registerBtn': 'Sign up',

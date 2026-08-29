@@ -63,9 +63,28 @@ def test_migration_adds_role_to_an_existing_table(old_engine):
 
 def test_migration_is_idempotent(old_engine):
     _make_old_schema(old_engine)
-    assert migrations.run() == ["users.role"]
+    first = migrations.run()
+    # Проверката е за идемпотентност, не за конкретния списък — иначе всяка нова
+    # миграция чупи теста, без нищо да се е счупило.
+    assert "users.role" in first
     # второто пускане (всяко следващо стартиране на сървъра) не бива да прави нищо
     assert migrations.run() == []
+
+
+def test_migration_adds_username_without_touching_existing_accounts(old_engine):
+    _make_old_schema(old_engine)
+    applied = migrations.run()
+    assert "users.username" in applied
+
+    with old_engine.begin() as conn:
+        # заварен акаунт остава без потребителско име, вместо да получи чуждо
+        assert conn.execute(text("SELECT username FROM users WHERE id = 'u1'")).scalar() is None
+        # а две празни имена не се бият в уникалния индекс
+        conn.execute(text(
+            "INSERT INTO users (id, display_name, email, password_hash, is_email_verified, is_phone_verified) "
+            "VALUES ('u2', 'Втори', 'two@example.com', 'hash', 1, 0)"
+        ))
+        assert conn.execute(text("SELECT COUNT(*) FROM users WHERE username IS NULL")).scalar() == 2
 
 
 def test_migration_is_safe_when_the_table_does_not_exist_yet(old_engine):

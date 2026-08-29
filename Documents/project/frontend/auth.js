@@ -83,8 +83,14 @@ const Auth = (() => {
     return t('auth.errGeneric');
   }
 
-  async function register(displayName, email, password, role) {
-    return _post('/auth/register', { display_name: displayName, email, password, role });
+  async function register(displayName, email, password, role, username, phone) {
+    // Празните полета се пращат като null, а не като "" — сървърът приема липса,
+    // но празен низ би минал за избрано име и би се блъснал в уникалността.
+    return _post('/auth/register', {
+      display_name: displayName, email, password, role,
+      username: username || null,
+      phone: phone || null,
+    });
   }
 
   function getRole() {
@@ -215,7 +221,9 @@ const Auth = (() => {
       return;
     }
     try {
-      await register(name, email, password, role);
+      await register(name, email, password, role,
+                     $('registerUsername').value.trim(),
+                     $('registerPhone').value.trim());
       pendingVerifyEmail = email;
       showForm('verify');
     } catch (err) {

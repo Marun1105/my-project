@@ -100,10 +100,17 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
                         message="Твърде много опити за регистрация — изчакай малко и опитай пак.")
     if db.query(User).filter(User.email == body.email).first():
         raise HTTPException(400, "Вече има акаунт с този имейл. Опитай да влезеш.")
+    # Потребителското име и телефонът са по желание, но щом ги има — са уникални.
+    if body.username and db.query(User).filter(User.username == body.username).first():
+        raise HTTPException(400, "Това потребителско име е заето. Избери друго.")
+    if body.phone and db.query(User).filter(User.phone == body.phone).first():
+        raise HTTPException(400, "Този телефон вече е използван от друг акаунт.")
 
     user = User(
         display_name=body.display_name,
+        username=body.username,
         email=body.email,
+        phone=body.phone,
         role=body.role,
         password_hash=security.hash_password(body.password),
     )
