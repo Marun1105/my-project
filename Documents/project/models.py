@@ -37,12 +37,28 @@ class User(Base):
     # Откъде е чул за Climby — отговор от началния въпросник. По желание и без
     # уникалност: това е статистика, не самоличност.
     heard_from = Column(String, nullable=True)
+    # Уникалността тук е буквална: и SQLite, и Postgres смятат "Ivan@Abv.bg" и
+    # "ivan@abv.bg" за различни низове. Затова адресът се смъква до малки букви
+    # още преди записа (auth.normalize_email), а търсенето минава през
+    # func.lower(), за да намира и заварените редове с главни букви. Изразен
+    # индекс върху lower(email) НЕ правим — SQLAlchemy не може да отрази такъв
+    # индекс и всяка следваща рефлексия на таблицата пада.
     email = Column(String, unique=True, nullable=False, index=True)
-    phone = Column(String, unique=True, nullable=True, index=True)
+    # Телефонът НЕ е уникален на ниво база, и това е нарочно. Докато беше,
+    # всеки можеше да впише чужд номер, да не го потвърди никога и така да
+    # заключи истинския му собственик отвън завинаги — нищо не изтичаше такава
+    # заявка. Сега номерът "заема" мястото си едва когато е потвърден, а тази
+    # уникалност се пази в auth.py, където се вижда и is_phone_verified.
+    phone = Column(String, nullable=True, index=True)
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False, default=Role.student.value, server_default=Role.student.value)
     is_email_verified = Column(Boolean, default=False, nullable=False)
     is_phone_verified = Column(Boolean, default=False, nullable=False)
+    # Версия на сесиите. Вдига се при смяна на паролата и с това всички издадени
+    # дотогава токени спират да важат. Причината е обикновена: детето, което си
+    # е останало отворено на училищния компютър и после си смени паролата вкъщи,
+    # има право да очаква, че оттам нататък никой не му чете домашните.
+    token_version = Column(Integer, nullable=False, default=0, server_default="0")
     created_at = Column(DateTime(timezone=True), default=_now)
 
     tasks = relationship("Task", back_populates="owner", cascade="all, delete-orphan")
@@ -136,6 +152,30 @@ class CodePurpose(str, enum.Enum):
     verify_email = "verify_email"
     verify_phone = "verify_phone"
     reset_password = "reset_password"
+
+
+class CodeAttempt(Base):
+    """Брояч на сгрешените кодове за един акаунт и една цел.
+
+    Шестцифреният код има един милион възможности — това е достатъчно само ако
+    опитите са малко. Досега нямаше таван: с натрупани неизползвани кодове и
+    търпелив скрипт познаването на един от тях беше въпрос на часове, а познат
+    код за reset_password означава чужд акаунт.
+
+    Отделна таблица, а не колони в users: create_all() създава липсващите
+    ТАБЛИЦИ при всяко стартиране, така че тук не е нужна миграция — за разлика
+    от нова колона върху вече пълната users.
+    """
+    __tablename__ = "code_attempts"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    purpose = Column(Enum(CodePurpose), nullable=False)
+    failed_count = Column(Integer, nullable=False, default=0)
+    # Изчакване, а не блокиране: детето, което е сгрешило кода, трябва да може да
+    # влезе пак след малко, без да пише на никого.
+    locked_until = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(DateTime(timezone=True), default=_now)
 
 
 class VerificationCode(Base):
