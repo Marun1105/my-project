@@ -50,6 +50,13 @@ const Scanner = (() => {
   let stream = null;          // живият поток от камерата, за да може да се спре
   let stage = 'cameraStage';  // кой етап се вижда сега — при връщане в раздела не прекъсваме започнато изрязване
 
+  // Разрешението за камера се чака дълго — ученикът спокойно превключва раздела и
+  // се връща, преди то да дойде. Затова помним самото започнато искане, а не само
+  // готовия поток: иначе второто повикване минава покрай проверката и телефонът
+  // отваря втора камера, която никой после не гаси.
+  let starting = null;        // висящото искане, докато трае
+  let wantCamera = false;     // дали визьорът още иска потока, когато той най-сетне пристигне
+
   function showStage(id) {
     stage = id;
     ['cameraStage', 'adjustStage', 'filterStage'].forEach(s => {
@@ -69,12 +76,34 @@ const Scanner = (() => {
 
   // ---------- камера ----------
   async function start() {
-    if (stream) return; // вече върви — второ извикване би поискало камерата пак
+    wantCamera = true;
+    if (stream) return;              // вече върви
+    if (starting) return starting;   // камерата вече е поискана — чакаме същия отговор
+    starting = openCamera();
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
+      await starting;
+    } finally {
+      // Отпуска се и след отказ: инак един отказан достъп заключваше камерата
+      // до края на сесията и копчето "Снимай" не палеше нищо.
+      starting = null;
+    }
+  }
+
+  async function openCamera() {
+    try {
+      const opened = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
+      // Отговорът дойде късно: ученикът чете в друг раздел или вече кадрира снимка.
+      // Потокът вече не е нужен — гасим го веднага. Иначе лампичката до камерата
+      // свети зад гърба му, а рамката смила кадри върху скрито видео.
+      if (!wantCamera || stage !== 'cameraStage') {
+        opened.getTracks().forEach(track => track.stop());
+        $('splash').classList.add('hidden'); // и без поток заставката си е свършила работата
+        return;
+      }
+      stream = opened;
       $('video').srcObject = stream;
       hasCamera = true;
       $('splash').classList.add('hidden');
@@ -85,13 +114,16 @@ const Scanner = (() => {
       // резервен вариант при грешка, а равностоен път, затова го показваме така.
       hasCamera = false;
       $('splash').classList.add('hidden');
-      showStage('cameraStage');
+      // Ако ученикът междувременно е стигнал до ъглите, не го връщаме насила при визьора.
+      if (stage === 'cameraStage') showStage('cameraStage');
     }
   }
 
   // Скриването на раздела не спира камерата само по себе си — лампичката до нея
   // остава светната, докато потребителят чете в "Чеклист". Затова я гасим изрично.
   function stop() {
+    // Казва и на още неприключилото искане, че потокът вече не е желан.
+    wantCamera = false;
     stopEdgeOverlay();
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
@@ -125,12 +157,30 @@ const Scanner = (() => {
   const EDGE_SMOOTH = 0.35;       // 0 = не мърда, 1 = скача веднага
   const EDGE_FORGIVE = 6;         // толкова кадъра без находка още държим рамката
 
+  // Визьорът не е място, където AI говори — затова тук няма лилаво, само сиви
+  // стойности. Тъмното е тъмното на приложението, не чисто черно: чистото черно
+  // изглежда като дупка върху топлия сив интерфейс наоколо.
+  const EDGE_INK = 'rgba(13, 13, 16, 0.55)';    // основата под линията
+  const EDGE_LINE = 'rgba(255, 255, 255, 0.92)'; // самата линия
+  const EDGE_SCRIM = 'rgba(13, 13, 16, 0.26)';   // лекото притъмняване извън листа
+  const EDGE_DASH = [12, 10];     // щрих и пауза
+  const EDGE_DASH_SPEED = 42;     // px в секунда — колкото окото да усети живот, без да го гони
+
   let edgeCanvas = null;          // смаленото копие, върху което търсим
   let edgeRaf = null;
   let edgeLastFind = 0;
   let edgeCorners = null;         // изгладените ъгли, в координати на видеото
   let edgeMisses = 0;
   let edgeDash = 0;
+  let edgeLastFrame = 0;
+
+  // "По-малко движение" спира само пунктира — разпознаването и самата рамка
+  // остават, защото те не са украса, а показват какво ще бъде изрязано.
+  const edgeMotionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  let edgeReduceMotion = edgeMotionQuery ? edgeMotionQuery.matches : false;
+  if (edgeMotionQuery && edgeMotionQuery.addEventListener) {
+    edgeMotionQuery.addEventListener('change', e => { edgeReduceMotion = e.matches; });
+  }
 
   function _lerpPt(a, b, t) {
     return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
@@ -174,33 +224,49 @@ const Scanner = (() => {
     ctx.clearRect(0, 0, cw, ch);
     if (!pts) return;
     const order = ['tl', 'tr', 'br', 'bl'];
+    const quad = () => {
+      ctx.beginPath();
+      order.forEach((k, i) => (i ? ctx.lineTo(pts[k].x, pts[k].y) : ctx.moveTo(pts[k].x, pts[k].y)));
+      ctx.closePath();
+    };
     ctx.save();
     ctx.globalAlpha = alpha;
-
-    // Дебела тъмна основа отдолу: върху бяла страница тънка светла линия се губи.
     ctx.lineJoin = 'round';
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.lineCap = 'round';
+
+    // Извън листа кадърът се притъмнява едва-едва. Това е, което прави рамката
+    // четима и върху бяла страница, и върху тъмно бюро: разликата вече не се носи
+    // само от линията, а от самата граница между светло и тъмно. Едно запълване
+    // на кадър — по-евтино от още едно разпознаване.
     ctx.beginPath();
+    ctx.rect(0, 0, cw, ch);
     order.forEach((k, i) => (i ? ctx.lineTo(pts[k].x, pts[k].y) : ctx.moveTo(pts[k].x, pts[k].y)));
     ctx.closePath();
+    ctx.fillStyle = EDGE_SCRIM;
+    ctx.fill('evenodd');
+
+    // Тъмна основа отдолу: върху бяла страница тънка светла линия се губи.
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = EDGE_INK;
+    quad();
     ctx.stroke();
 
-    // Отгоре — движещият се пунктир. Той дава усещането, че рамката "живее"
-    // и се прехваща наново при всяко местене на телефона.
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#ffffff';
-    ctx.setLineDash([14, 9]);
-    ctx.lineDashOffset = -edgeDash;
-    ctx.beginPath();
-    order.forEach((k, i) => (i ? ctx.lineTo(pts[k].x, pts[k].y) : ctx.moveTo(pts[k].x, pts[k].y)));
-    ctx.closePath();
+    // Отгоре — тънката светла линия. Пунктирът ѝ пълзи бавно и така рамката
+    // "живее": вижда се, че се прехваща наново при всяко местене на телефона.
+    // При поискано по-малко движение остава същата линия, само че цяла.
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = EDGE_LINE;
+    if (!edgeReduceMotion) {
+      ctx.setLineDash(EDGE_DASH);
+      ctx.lineDashOffset = -edgeDash;
+    }
+    quad();
     ctx.stroke();
     ctx.setLineDash([]);
 
     // Ъглите се маркират отделно — окото ги ползва, за да центрира листа.
     const arm = Math.max(16, Math.min(cw, ch) * 0.05);
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.5;
     order.forEach((k, i) => {
       const p = pts[k];
       const prev = pts[order[(i + 3) % 4]];
@@ -240,7 +306,13 @@ const Scanner = (() => {
       }
     }
 
-    edgeDash = (edgeDash + 0.9) % 23;
+    // Пунктирът върви по време, а не по кадри: на телефон със 120 Hz екран
+    // същият код препускаше двойно по-бързо, отколкото е замислен.
+    const dt = Math.min(100, edgeLastFrame ? now - edgeLastFrame : 16.7);
+    edgeLastFrame = now;
+    const cycle = EDGE_DASH[0] + EDGE_DASH[1];
+    edgeDash = (edgeDash + EDGE_DASH_SPEED * dt / 1000) % cycle;
+
     const box = _videoBox(video, cw, ch);
     const ctx = canvas.getContext('2d');
     if (!edgeCorners || !box) { ctx.clearRect(0, 0, cw, ch); return; }
@@ -252,15 +324,14 @@ const Scanner = (() => {
   }
 
   function startEdgeOverlay() {
-    // Хора, които са помолили за по-малко движение, получават рамка без пунктир —
-    // спираме анимацията, не разпознаването.
-    if (edgeRaf === null) edgeRaf = requestAnimationFrame(_edgeTick);
+    if (edgeRaf === null) { edgeLastFrame = 0; edgeRaf = requestAnimationFrame(_edgeTick); }
   }
 
   function stopEdgeOverlay() {
     if (edgeRaf !== null) { cancelAnimationFrame(edgeRaf); edgeRaf = null; }
     edgeCorners = null;
     edgeMisses = 0;
+    edgeLastFrame = 0;
     const canvas = $('edgeOverlay');
     if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
   }
@@ -422,20 +493,35 @@ const Scanner = (() => {
       e.preventDefault();
       handle.setPointerCapture(e.pointerId);
       const wrap = $('adjustWrap');
+      const startPt = { ...screenCorners[key] }; // откъде тръгна ъгълът, ако жестът бъде прекъснат
       const onMove = ev => {
+        if (ev.pointerId !== e.pointerId) return; // втори пръст върху същата дръжка не мести ъгъла
         const rect = wrap.getBoundingClientRect();
         const x = Math.max(0, Math.min(rect.width, ev.clientX - rect.left));
         const y = Math.max(0, Math.min(rect.height, ev.clientY - rect.top));
         screenCorners[key] = { x, y };
         renderAdjustOverlay();
       };
-      const onUp = () => {
-        handle.releasePointerCapture(e.pointerId);
+      // pointercancel идва, когато браузърът вземе жеста за себе си (влаченето
+      // премине в превъртане) или системата отнеме показалеца. Слушахме само
+      // pointerup, затова onMove оставаше закачен и всеки нов опит трупаше още
+      // един жив слушател върху същата дръжка.
+      const onEnd = ev => {
+        if (ev.pointerId !== e.pointerId) return;
+        // Прекъснатият жест не е местене — ъгълът се връща там, откъдето тръгна,
+        // вместо да остане където показалецът е изчезнал.
+        if (ev.type === 'pointercancel') {
+          screenCorners[key] = startPt;
+          renderAdjustOverlay();
+        }
+        if (handle.hasPointerCapture(e.pointerId)) handle.releasePointerCapture(e.pointerId);
         handle.removeEventListener('pointermove', onMove);
-        handle.removeEventListener('pointerup', onUp);
+        handle.removeEventListener('pointerup', onEnd);
+        handle.removeEventListener('pointercancel', onEnd);
       };
       handle.addEventListener('pointermove', onMove);
-      handle.addEventListener('pointerup', onUp);
+      handle.addEventListener('pointerup', onEnd);
+      handle.addEventListener('pointercancel', onEnd);
     });
   }
 
@@ -604,7 +690,14 @@ const Scanner = (() => {
 
   function finishPages() {
     if (pages.length === 0) return;
-    window.dispatchEvent(new CustomEvent('climby:scan-ready', { detail: { dataUrls: pages.map(p => p.dataUrl) } }));
+    const dataUrls = pages.map(p => p.dataUrl);
+    // Питането затваря партидата. tutor.js си взема снимките още в самото
+    // събитие, така че тук вече никой не се нуждае от списъка. Ако страниците
+    // останеха, следващата задача тръгваше заедно с вече отговорената: учителят
+    // обяснява нещо приключено, а качването се плаща втори път.
+    pages.length = 0;
+    renderPageStrip();
+    window.dispatchEvent(new CustomEvent('climby:scan-ready', { detail: { dataUrls } }));
   }
 
   function init() {
