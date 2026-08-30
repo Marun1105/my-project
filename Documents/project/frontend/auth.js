@@ -201,13 +201,17 @@ const Auth = (() => {
     const label = $(labelId);
     const pct = Math.min(100, (score / 5) * 100);
     bar.style.width = pct + '%';
-    let color, text;
-    if (score <= 1) { color = 'var(--danger)'; text = t('auth.pwWeak'); }
-    else if (score <= 2) { color = 'var(--warn)'; text = t('auth.pwFair'); }
-    else if (score <= 3) { color = 'var(--blue)'; text = t('auth.pwGood'); }
-    else { color = 'var(--accent)'; text = t('auth.pwStrong'); }
-    bar.style.background = color;
-    label.style.color = color;
+    // Силата се показваше с цвят — а в черно-бяла тема --danger, --warn, --blue
+    // и --accent са едно и също бяло. Тоест "слаба" се рисуваше най-ярко от
+    // всички, точно обратното на смисъла. Затова степента вече е клас, а
+    // плътността расте заедно с нея (виж .pw-strength-fill в style.css).
+    let level, text;
+    if (score <= 1) { level = 'is-weak'; text = t('auth.pwWeak'); }
+    else if (score <= 2) { level = 'is-fair'; text = t('auth.pwFair'); }
+    else if (score <= 3) { level = 'is-good'; text = t('auth.pwGood'); }
+    else { level = 'is-strong'; text = t('auth.pwStrong'); }
+    bar.className = 'pw-strength-fill ' + level;
+    label.className = 'pw-strength-label ' + level;
     label.textContent = text;
   }
 

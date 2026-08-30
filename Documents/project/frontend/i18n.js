@@ -11,6 +11,15 @@ const I18n = (() => {
       'nav.history': 'История',
       'nav.focus': 'Фокус',
 
+      // Заглавието на всеки екран носи същата дума като менюто, а изречението под
+      // него казва за какво служи екранът — на телефон менюто е извън екрана.
+      'page.tutorSubtitle': 'Снимай задачата от учебника и ще я разгледаме заедно, стъпка по стъпка.',
+      'page.checklistSubtitle': 'Всичко, което имаш за вкъщи, на едно място — най-спешното стои най-отгоре.',
+      'page.historySubtitle': 'Всичко, което вече си свършил. Приятно е да се погледне назад.',
+      'page.focusSubtitle': 'Тих брояч на времето, докато учиш. Нищо не напуска твоето устройство.',
+      'page.familySubtitle': 'Родител и ученик, свързани с код. Споделят се само числата — задачите остават лични.',
+      'page.classesSubtitle': 'Класът ти и кодът, с който се влиза в него. Учителят вижда само числата.',
+
       'net.waking': 'Сървърът се събужда — това отнема половин минута. Изчакай малко…',
 
       'auth.roleLegend': 'Кой си ти?',
@@ -311,6 +320,13 @@ const I18n = (() => {
       'nav.checklist': 'Checklist',
       'nav.history': 'History',
       'nav.focus': 'Focus',
+
+      'page.tutorSubtitle': 'Photograph a problem from your textbook and we will go through it together, step by step.',
+      'page.checklistSubtitle': 'Everything you have to do at home, in one place — the most urgent sits on top.',
+      'page.historySubtitle': 'Everything you have already finished. It is nice to look back.',
+      'page.focusSubtitle': 'A quiet count of the time while you study. Nothing leaves your device.',
+      'page.familySubtitle': 'Parent and student, linked by a code. Only the numbers are shared — the tasks stay private.',
+      'page.classesSubtitle': 'Your class and the code that gets you into it. The teacher sees only the numbers.',
 
       'net.waking': 'The server is waking up — this takes about half a minute. Hang on…',
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Climby — Climb your way to success</title>
 <meta name="description" content="Climby помага на ученици 1–12 клас да разберат уроците си, да си организират домашните и да се изкачат до върха, стъпка по стъпка.">
 <meta name="theme-color" content="#060606" media="(prefers-color-scheme: dark)">
@@ -156,7 +156,7 @@
       <p class="auth-switch"><a href="#" id="resendResetLink" data-i18n="auth.resendCode">Изпрати нов код</a></p>
     </div>
 
-    <p id="authError" class="hint auth-error hidden"></p>
+    <p id="authError" class="auth-error hidden"></p>
   </div>
 </div>
 
@@ -290,6 +290,11 @@
     </header>
 
 <main id="view-tutor" class="view">
+<header class="page-header">
+  <h1 data-i18n="nav.tutor">Учител</h1>
+  <p class="page-subtitle" data-i18n="page.tutorSubtitle">Снимай задачата от учебника и ще я разгледаме заедно, стъпка по стъпка.</p>
+</header>
+
 
 <div id="splash" class="splash">
   <img src="logo.png" alt="Climby лого">
@@ -374,11 +379,16 @@
   </div>
 </div>
 
-<div id="answer" class="answer hidden" role="status" aria-live="polite"></div>
+<div id="answer" class="card answer hidden" role="status" aria-live="polite"></div>
 
 </main>
 
 <main id="view-checklist" class="view hidden">
+<header class="page-header">
+  <h1 data-i18n="nav.checklist">Чеклист</h1>
+  <p class="page-subtitle" data-i18n="page.checklistSubtitle">Всичко, което имаш за вкъщи, на едно място — най-спешното стои най-отгоре.</p>
+</header>
+
 
   <div id="authGate" class="auth-gate-simple">
     <div class="explainer">
@@ -419,13 +429,18 @@
     <div class="controls" style="margin-top: 20px;">
       <button id="planBtn" class="btn-ai" type="button"><span class="spark"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span><span data-i18n="checklist.planBtn">Помощ за плана</span></button>
     </div>
-    <div id="planAdvice" class="answer hidden" role="status" aria-live="polite"></div>
+    <div id="planAdvice" class="card answer hidden" role="status" aria-live="polite"></div>
 
   </div>
 
 </main>
 
 <main id="view-history" class="view hidden">
+<header class="page-header">
+  <h1 data-i18n="nav.history">История</h1>
+  <p class="page-subtitle" data-i18n="page.historySubtitle">Всичко, което вече си свършил. Приятно е да се погледне назад.</p>
+</header>
+
 
   <div id="historyGate" class="auth-gate-simple">
     <div class="explainer">
@@ -474,6 +489,11 @@
 </main>
 
 <main id="view-focus" class="view hidden">
+<header class="page-header">
+  <h1 data-i18n="nav.focus">Фокус</h1>
+  <p class="page-subtitle" data-i18n="page.focusSubtitle">Тих брояч на времето, докато учиш. Нищо не напуска твоето устройство.</p>
+</header>
+
 
   <div class="explainer">
     <strong data-i18n="focus.how">Как работи фокус камерата:</strong> <span data-i18n="focus.howBody">следи тихо колко време си на бюрото, докато учиш. Не те прекъсва и не те подсеща по време на сесията — само брои. Разпознаването става изцяло на твоето устройство — снимки никога не се качват никъде и не се пазят.</span>
@@ -512,17 +532,22 @@
   </div>
 
   <div id="focusSummary" class="hidden">
-    <div id="focusSummaryCard" class="answer"></div>
+    <div id="focusSummaryCard" class="card"></div>
     <div class="controls" style="margin-top: 14px;">
       <button id="focusAgainBtn" class="btn-primary" type="button" data-i18n="focus.againBtn">Нова сесия</button>
     </div>
   </div>
 
-  <p id="focusError" class="hint auth-error hidden"></p>
+  <p id="focusError" class="auth-error hidden"></p>
 
 </main>
 
 <main id="view-family" class="view hidden">
+<header class="page-header">
+  <h1 data-i18n="nav.family">Родител</h1>
+  <p class="page-subtitle" data-i18n="page.familySubtitle">Родител и ученик, свързани с код. Споделят се само числата — задачите остават лични.</p>
+</header>
+
 
   <div id="familyGate" class="auth-gate-simple">
     <div class="explainer">
@@ -547,7 +572,7 @@
              data-i18n-placeholder="family.codePlaceholder" placeholder="Код от ученика">
       <button class="btn-primary" type="submit" data-i18n="family.linkBtn">Свържи</button>
     </form>
-    <p id="familyLinkError" class="hint auth-error hidden"></p>
+    <p id="familyLinkError" class="auth-error hidden"></p>
 
     <h3 class="history-section-title" data-i18n="family.shareTitle">Дай достъп на родител</h3>
     <p class="hint" data-i18n="family.shareBody">Ако ти си ученикът: създай код и го дай на родителя си. Кодът важи 48 часа и може да се използва веднъж.</p>
@@ -562,6 +587,11 @@
 </main>
 
 <main id="view-classes" class="view hidden">
+<header class="page-header">
+  <h1 data-i18n="nav.classes">Клас</h1>
+  <p class="page-subtitle" data-i18n="page.classesSubtitle">Класът ти и кодът, с който се влиза в него. Учителят вижда само числата.</p>
+</header>
+
 
   <div id="classesGate" class="auth-gate-simple">
     <div class="explainer">
@@ -583,7 +613,7 @@
              data-i18n-placeholder="classes.namePlaceholder" placeholder="Име на класа, напр. 7А">
       <button class="btn-primary" type="submit" data-i18n="classes.createBtn">Направи клас</button>
     </form>
-    <p id="classesError" class="hint auth-error hidden"></p>
+    <p id="classesError" class="auth-error hidden"></p>
 
     <div id="classesList"></div>
     <div id="classesEmpty" class="empty-state hidden"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2 2.5 9 12 13.8 21.5 9z"/><path d="M6.5 11.3V16c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-4.7"/></svg></span><p class="empty-title" data-i18n="classes.emptyTeacher">Още нямаш класове — направи първия отгоре.</p></div>
@@ -600,7 +630,7 @@
              data-i18n-placeholder="classes.codePlaceholder" placeholder="Код от учителя">
       <button class="btn-primary" type="submit" data-i18n="classes.joinBtn">Присъедини се</button>
     </form>
-    <p id="studentClassesError" class="hint auth-error hidden"></p>
+    <p id="studentClassesError" class="auth-error hidden"></p>
 
     <div id="studentClassesList"></div>
     <div id="studentClassesEmpty" class="empty-state hidden"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2 2.5 9 12 13.8 21.5 9z"/><path d="M6.5 11.3V16c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-4.7"/></svg></span><p class="empty-title" data-i18n="classes.emptyStudent">Още не си в клас. Поискай код от учителя си.</p></div>
