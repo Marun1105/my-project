@@ -24,6 +24,12 @@ const Net = (() => {
   // Тогава бутонът "Влез" стои изключен до безкрай и приложението изглежда
   // замръзнало — натискаш и нищо не става. Затова всеки опит има краен срок.
   const ATTEMPT_TIMEOUT_MS = 25000;
+  // Заявките към AI са различен вид чакане. Въпросът към учителя носи снимки на
+  // страници и иска дълго обяснение стъпка по стъпка — две минути са в реда на нещата,
+  // а 25 секунди отрязваха отговора по средата и ученикът виждаше "провери интернета
+  // си", докато сървърът още пишеше. Срок все пак има: заявка, която е онемяла
+  // завинаги, трябва да свърши някога, иначе бутонът остава заключен.
+  const AI_TIMEOUT_MS = 120000;
   const PROBE_TIMEOUT_MS = 8000;
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -82,21 +88,26 @@ const Net = (() => {
     if (_banner) _banner.classList.add('hidden');
   }
 
-  // Същият подпис като fetch — заместваме го на място в останалите модули.
+  // Същият подпис като fetch, с една добавка: options.timeout казва колко дълго тази
+  // конкретна заявка има право да мълчи. Колко е "твърде дълго" зависи от заявката —
+  // влизането трябва да се върне за секунди, отговорът на AI учителя честно отнема
+  // минути. Затова срокът се задава от викащия, а не е една стойност за всички.
+  // Ключът се маха, преди да стигне до fetch — той не го разбира.
   async function request(url, options = {}) {
+    const { timeout = ATTEMPT_TIMEOUT_MS, ...init } = options;
     let res;
     try {
-      res = await _fetch(url, options);
+      res = await _fetch(url, init, timeout);
     } catch (err) {
       // Мрежова грешка: повтаряме само ако сървърът наистина е бил долу.
       if (await _isAwake()) throw err;
       if (!(await _waitForWake())) throw err;
-      return _fetch(url, options);
+      return _fetch(url, init, timeout);
     }
 
     if (COLD_START_STATUSES.includes(res.status)) {
       // Приложението не е видяло заявката — безопасно е да я пратим пак.
-      if (await _waitForWake()) return _fetch(url, options);
+      if (await _waitForWake()) return _fetch(url, init, timeout);
     }
     return res;
   }
@@ -115,5 +126,21 @@ const Net = (() => {
     }
   }
 
-  return { fetch: request, guardSubmit };
+  // Същото, но за бутон, който не е в <form> — "Питай", "Помощ за плана", "Създай код".
+  // Там едно нетърпеливо второ натискане праща втора заявка към AI: двойна сметка,
+  // двойно изядена квота и накрая печели онзи отговор, който случайно се е забавил.
+  // Надписът нарочно остава непокътнат: тези бутони показват какво става другаде
+  // (панелът отдолу вече казва "Мисля…"), а вътре имат иконка, която подмяна на
+  // текста би изтрила. Изключеният бутон сам по себе си се вижда — избледнява.
+  async function guardClick(btn, fn) {
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    try {
+      await fn();
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  return { fetch: request, guardSubmit, guardClick, AI_TIMEOUT_MS };
 })();

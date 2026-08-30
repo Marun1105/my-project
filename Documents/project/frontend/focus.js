@@ -12,6 +12,8 @@ const Focus = (() => {
   let sessionStart = null;
   let focusedMs = 0;   // време, а не кадри
   let awayMs = 0;
+  let starting = false;   // тръгва ли се точно в момента сесия — виж startSession
+  let startId = 0;        // номер на опита за тръгване, за да се разпознае изоставеният
 
   function isEnabled() { return localStorage.getItem(ENABLED_KEY) === '1'; }
 
@@ -21,13 +23,22 @@ const Focus = (() => {
     updateToggleUI();
   }
 
+  // Тече ли в момента сесия: или камерата вече върви, или тъкмо се отваря.
+  function sessionLive() { return !!sessionStart || starting; }
+
   function updateToggleUI() {
     const enabled = isEnabled();
     $('focusEnableToggle').checked = enabled;
     $('focusToggleLabel').textContent = enabled ? t('focus.onLabel') : t('focus.offLabel');
     $('focusOff').classList.toggle('hidden', enabled);
     if (enabled) {
-      showStage('Idle');
+      // Смяната на езика минава и оттук. Ако сесията върви, тя не бива да се
+      // връща на началния екран: showStage само сменя класове, а камерата,
+      // броячът и цикълът на разпознаване продължават невидими отзад — така
+      // ученикът вижда пак "Започни сесия", лампичката свети, а изтеклото време
+      // отива на вятъра при следващото тръгване. Надписите вече са преведени от
+      // i18n преди това събитие, така че тук няма какво повече да се прави.
+      if (!sessionLive()) showStage('Idle');
     } else {
       ['Idle', 'Loading', 'Running'].forEach(s => $(`focus${s}`).classList.add('hidden'));
       $('focusSummary').classList.add('hidden');
@@ -118,28 +129,65 @@ const Focus = (() => {
     modelReady = true;
   }
 
+  function dropMedia(media) { media.getTracks().forEach(track => track.stop()); }
+
   async function startSession() {
+    // Между натискането на бутона и отговора на камерата минава близо секунда, а
+    // stream се пълни чак накрая. Дотогава втори натиск отваряше втора камера и
+    // презаписваше първата — тя оставаше да свети до затварянето на раздела.
+    // Флагът пропуска само едно тръгване наведнъж, а номерът разпознава опита,
+    // който е бил изоставен, докато е чакал.
+    if (starting || stream) return;
+    starting = true;
+    const attempt = ++startId;
     clearError();
     showStage('Loading');
 
+    let media = null;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { width: 240, height: 180 }, audio: false });
+      // Кадърът се иска малко по-едър от преди: моделът така или иначе смалява
+      // входа си, но наслагването се рисува в пикселите на видеото и на телефон
+      // с гъст екран тънките линии иначе излизат размити.
+      media = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 320 }, height: { ideal: 240 } },
+        audio: false,
+      });
     } catch {
+      starting = false;
       setError(t('focus.errNoCamera'));
       showStage('Idle');
+      return;
+    }
+
+    // Докато камерата се отваряше, ученикът може вече да е изключил фокус режима
+    // или да е спрял сесията. Тогава пътечките се спират веднага — иначе
+    // лампичката свети за сесия, която никой не е започвал.
+    if (attempt !== startId || !isEnabled()) {
+      dropMedia(media);
+      starting = false;
       return;
     }
 
     try {
       await ensureModel();
     } catch (err) {
+      dropMedia(media);
+      starting = false;
       setError(err.message || t('focus.errModel'));
-      stream.getTracks().forEach(t => t.stop());
-      stream = null;
       showStage('Idle');
       return;
     }
 
+    // Зареждането на модела е второ чакане, значи и второ място, на което сесията
+    // може да е отпаднала под краката ни.
+    if (attempt !== startId || !isEnabled()) {
+      dropMedia(media);
+      starting = false;
+      return;
+    }
+
+    stream = media;
+    starting = false;
     $('focusVideo').srcObject = stream;
     sessionStart = Date.now();
     focusedMs = 0;
@@ -183,6 +231,10 @@ const Focus = (() => {
   let focusScore = 0;
   let isFocused = false;
   let lastTickAt = 0;
+  // Всяка сесия си има номер: разпознаването е обещание и може да се върне след
+  // като ученикът вече е спрял сесията. Тогава номерът не съвпада и находката се
+  // изхвърля, вместо да оживи рамка върху угасена камера.
+  let sessionToken = 0;
 
   const lerp = (a, b, t) => a + (b - a) * t;
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -259,12 +311,21 @@ const Focus = (() => {
     scores.near = lerp(scores.near, Math.min(1, frac / MIN_FACE_FRAC), SMOOTH);
   }
 
+  // Рамката на кутийката с камерата също знае дали ученикът гледа: щом наслагването
+  // изсветлява, границата около него трябва да го последва, иначе двете си
+  // противоречат. Класът се сменя само при смяна на състоянието, не на всеки кадър.
+  function reflectFocusState() {
+    if (previewEl) previewEl.classList.toggle('is-focused', isFocused);
+  }
+
   function updateState(now) {
     const present = landmarks ? 1 : 0;
     const raw = present * (0.45 * scores.eyes + 0.40 * scores.gaze + 0.15 * scores.near);
     focusScore = lerp(focusScore, raw, SMOOTH);
+    const was = isFocused;
     if (!isFocused && focusScore >= ENTER_FOCUS) isFocused = true;
     else if (isFocused && focusScore <= LEAVE_FOCUS) isFocused = false;
+    if (isFocused !== was) reflectFocusState();
 
     // Броим време, а не кадри: иначе бавен телефон би "учил" по-малко от бърз.
     if (lastTickAt) {
@@ -274,49 +335,222 @@ const Focus = (() => {
     lastTickAt = now;
   }
 
-  function drawOverlay(ctx, cw, ch) {
-    ctx.clearRect(0, 0, cw, ch);
-    if (!drawPoints || !drawBox) return;
+  // ---------- как изглежда наслагването ----------
+  //
+  // Първата версия рисуваше четири прави скоби, двата многоъгълника на очите и
+  // правоъгълна лентичка. Работеше, но приличаше на отладъчен изглед, а не на
+  // продукт — а точно тази картинка е единственото доказателство пред ученика, че
+  // фокус режимът наистина го следи. Затова тук всичко е сведено до четири тихи
+  // пласта, в този ред: затъмняване настрани (лицето остава обектът), еднократно
+  // помитане при хващане, мека рамка с ъгли и накрая тънка дъга под брадичката,
+  // която показва колко силен е фокусът.
+  //
+  // Нищо не мига и нищо не щраква: всяка стойност, която се движи, минава през
+  // approach(), а видимостта се води от три плавни числа — presence (има ли лице),
+  // mood (гледа ли) и strength (колко силно). Така смяната на състояние е преливане,
+  // а не превключване, и ученикът може спокойно да я гледа с периферното си зрение.
+  const FRAME_PAD_X = 0.10;       // рамката е малко по-широка от кутията на лицето
+  const FRAME_PAD_Y = 0.16;       // и по-висока, за да поеме челото и брадичката
+  const SWEEP_MS = 1150;          // колко трае помитането при ново хващане
+  const BREATH_MS = 5600;         // дишането на рамката — бавно, за да не дърпа окото
+  const PRESENCE_RATE = 0.10;     // появяване и избледняване на лицевия пласт
+  const MOOD_RATE = 0.055;        // преливане между "гледа" и "не гледа"
+  const AI_PURPLE = "#a855f7";    // единственият цвят тук — началото на вълната на ClimbAI
+  const AI_GLOW = "rgba(168, 85, 247, 0.5)";
+  const SCRIM = "#0d0d10";        // затъмняването е фонът на приложението, не чисто черно
 
-    const line = isFocused ? "#ffffff" : "rgba(255,255,255,0.45)";
-    const w = Math.max(1.5, cw * 0.006);
+  let presence = 0;               // 0..1 колко "го има" лицето в кадъра
+  let mood = 0;                   // 0..1 плавен преход между отсъстващ и фокусиран
+  let strength = 0;               // изгладената сила на фокуса, за дъгата
+  let acquiredAt = 0;             // кога беше хванато лицето — оттам тръгва помитането
+  let lastFrameAt = 0;
+  let previewEl = null;
+  let gradCtx = null, vignetteGrad = null, sweepGrad = null;
+
+  // Системната настройка "по-малко движение" е уважена: под нея остават само
+  // спокойните преливания, без помитане, без дишане и без сияние.
+  const motionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  let reduceMotion = motionQuery ? motionQuery.matches : false;
+  if (motionQuery && motionQuery.addEventListener) {
+    motionQuery.addEventListener('change', e => { reduceMotion = e.matches; });
+  }
+
+  // Изглаждане, вързано за времето, а не за кадрите: на бавен телефон стъпката е
+  // по-голяма, за да стигне до целта за същите милисекунди. Иначе едно и също
+  // движение изглежда мързеливо на слаб телефон и рязко на бърз.
+  function approach(cur, target, rate, dt) {
+    return cur + (target - cur) * (1 - Math.pow(1 - rate, dt / 16.7));
+  }
+
+  // Градиентите се правят по веднъж, в "единични" координати около нулата, и после
+  // се местят с трансформация. Така на всеки кадър не се заделя нов обект —
+  // рисуването е 60 пъти в секундата и точно там боклукът се натрупва най-бързо.
+  function ensureGradients(ctx) {
+    if (gradCtx === ctx && vignetteGrad && sweepGrad) return;
+    gradCtx = ctx;
+    vignetteGrad = ctx.createRadialGradient(0, 0, 0.62, 0, 0, 2.6);
+    vignetteGrad.addColorStop(0, "rgba(13, 13, 16, 0)");
+    vignetteGrad.addColorStop(0.45, "rgba(13, 13, 16, 0.45)");
+    vignetteGrad.addColorStop(1, "rgba(13, 13, 16, 1)");
+    sweepGrad = ctx.createLinearGradient(0, -1, 0, 1);
+    sweepGrad.addColorStop(0, "rgba(255, 255, 255, 0)");
+    sweepGrad.addColorStop(0.42, "rgba(255, 255, 255, 0.10)");
+    sweepGrad.addColorStop(0.5, "rgba(255, 255, 255, 0.85)");
+    sweepGrad.addColorStop(0.58, "rgba(255, 255, 255, 0.10)");
+    sweepGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+  }
+
+  // Ъглите са заоблени и с къси рамене: окото ги събира в една мека рамка около
+  // лицето, докато правите скоби се четат като четири отделни знака.
+  function bracketPath(ctx, x, y, w, h, r, arm) {
+    const x2 = x + w, y2 = y + h;
+    ctx.beginPath();
+    ctx.moveTo(x + r + arm, y); ctx.lineTo(x + r, y);
+    ctx.arcTo(x, y, x, y + r, r); ctx.lineTo(x, y + r + arm);
+    ctx.moveTo(x2 - r - arm, y); ctx.lineTo(x2 - r, y);
+    ctx.arcTo(x2, y, x2, y + r, r); ctx.lineTo(x2, y + r + arm);
+    ctx.moveTo(x2, y2 - r - arm); ctx.lineTo(x2, y2 - r);
+    ctx.arcTo(x2, y2, x2 - r, y2, r); ctx.lineTo(x2 - r - arm, y2);
+    ctx.moveTo(x, y2 - r - arm); ctx.lineTo(x, y2 - r);
+    ctx.arcTo(x, y2, x + r, y2, r); ctx.lineTo(x + r + arm, y2);
+  }
+
+  function roundRectPath(ctx, x, y, w, h, r) {
+    const x2 = x + w, y2 = y + h;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x2 - r, y); ctx.arcTo(x2, y, x2, y + r, r);
+    ctx.lineTo(x2, y2 - r); ctx.arcTo(x2, y2, x2 - r, y2, r);
+    ctx.lineTo(x + r, y2); ctx.arcTo(x, y2, x, y2 - r, r);
+    ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+
+  // Очите се затварят като гладка крива през точките: върховете стават контролни
+  // точки, а среднините — опорни. Правите отсечки издаваха, че това са шест
+  // измерени числа; кривата изглежда като око и пак се сплесква при мигане.
+  function eyeCurvePath(ctx, pts) {
+    const n = pts.length;
+    if (n < 3) return;
+    ctx.moveTo((pts[n - 1].x + pts[0].x) / 2, (pts[n - 1].y + pts[0].y) / 2);
+    for (let i = 0; i < n; i++) {
+      const cur = pts[i], nxt = pts[(i + 1) % n];
+      ctx.quadraticCurveTo(cur.x, cur.y, (cur.x + nxt.x) / 2, (cur.y + nxt.y) / 2);
+    }
+    ctx.closePath();
+  }
+
+  // Докато лице няма, стои една много бледа рамка в средата: показва къде да
+  // застане ученикът и пази наслагването да не е празно, без да мърда.
+  function drawGuide(ctx, cw, ch, fade) {
+    const gw = cw * 0.42, gh = ch * 0.60;
+    const gx = (cw - gw) / 2, gy = ch * 0.16;
+    const m = Math.min(gw, gh);
+    ctx.save();
+    ctx.globalAlpha = fade * 0.16;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = Math.max(1, Math.min(cw, ch) * 0.006);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    bracketPath(ctx, gx, gy, gw, gh, m * 0.30, m * 0.10);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawOverlay(ctx, cw, ch, now, dt) {
+    ctx.clearRect(0, 0, cw, ch);
+    ensureGradients(ctx);
+
+    const here = (landmarks && drawBox && drawPoints) ? 1 : 0;
+    presence = approach(presence, here, PRESENCE_RATE, dt);
+    mood = approach(mood, isFocused ? 1 : 0, MOOD_RATE, dt);
+    strength = approach(strength, Math.max(0, Math.min(1, focusScore)), 0.14, dt);
+
+    if (presence < 0.98) drawGuide(ctx, cw, ch, 1 - presence);
+    if (presence < 0.004 || !drawBox || !drawPoints) return;
+
+    const unit = Math.min(cw, ch);
+    const breath = reduceMotion ? 0 : Math.sin((now / BREATH_MS) * Math.PI * 2);
+
+    // Рамката стои около кутията на лицето, но малко по-широка и по-висока, и
+    // диша едва забележимо — по-силно, когато ученикът е фокусиран.
+    const grow = 1 + breath * 0.012 * (0.4 + 0.6 * mood);
+    const fw = drawBox.width * (1 + FRAME_PAD_X * 2) * grow;
+    const fh = drawBox.height * (1 + FRAME_PAD_Y * 2) * grow;
+    const cx = drawBox.x + drawBox.width / 2;
+    const cy = drawBox.y + drawBox.height / 2;
+    const fx = cx - fw / 2, fy = cy - fh / 2;
+    const m = Math.min(fw, fh);
+
+    // 1. Настрани се затъмнява: ученикът остава осветеният обект в кадъра.
+    const vs = Math.max(fw, fh) * 0.5;
+    ctx.save();
+    ctx.globalAlpha = presence * (0.30 + 0.22 * mood);
+    ctx.translate(cx, cy);
+    ctx.scale(vs, vs);
+    ctx.fillStyle = vignetteGrad;
+    ctx.fillRect(-cx / vs, -cy / vs, cw / vs, ch / vs);
+    ctx.restore();
+
+    // 2. Помитане — само първата секунда след хващане, после рамката се уталожва.
+    const sweep = reduceMotion ? 1 : Math.min(1, (now - acquiredAt) / SWEEP_MS);
+    if (sweep < 1) {
+      const eased = sweep * sweep * (3 - 2 * sweep);
+      const band = fh * 0.34;
+      ctx.save();
+      ctx.globalAlpha = presence * Math.sin(Math.PI * sweep) * 0.55;
+      roundRectPath(ctx, fx, fy, fw, fh, m * 0.30);
+      ctx.clip();
+      ctx.translate(0, fy + fh * eased);
+      ctx.scale(1, band / 2);
+      ctx.fillStyle = sweepGrad;
+      ctx.fillRect(fx, -1, fw, 2);
+      ctx.restore();
+    }
 
     ctx.save();
-    ctx.strokeStyle = line;
-    ctx.lineWidth = w;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // ъглови скоби около лицето, вместо цяла кутия — по-малко закриват образа
-    const bx = drawBox.x, by = drawBox.y, bw = drawBox.width, bh = drawBox.height;
-    const arm = Math.min(bw, bh) * 0.22;
-    const corners = [[bx, by, 1, 1], [bx + bw, by, -1, 1], [bx + bw, by + bh, -1, -1], [bx, by + bh, 1, -1]];
-    for (const c of corners) {
-      ctx.beginPath();
-      ctx.moveTo(c[0] + c[2] * arm, c[1]);
-      ctx.lineTo(c[0], c[1]);
-      ctx.lineTo(c[0], c[1] + c[3] * arm);
-      ctx.stroke();
-    }
+    // 3. Самата рамка: по-плътна, когато лицето е насочено към тетрадката.
+    ctx.globalAlpha = presence * (0.34 + 0.46 * mood);
+    ctx.lineWidth = Math.max(1.1, unit * 0.0075);
+    bracketPath(ctx, fx, fy, fw, fh, m * 0.30, m * 0.12 * (1 + 0.12 * breath));
+    ctx.stroke();
 
-    // очертанието на очите — това прави явно, че се следи лице, а не просто кутия
-    ctx.lineWidth = Math.max(1, w * 0.7);
-    for (const eye of [drawPoints.leftEye, drawPoints.rightEye]) {
-      ctx.beginPath();
-      eye.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-      ctx.closePath();
-      ctx.stroke();
-    }
+    // Очите — те правят явно, че се следи лице, а не просто правоъгълник.
+    ctx.globalAlpha = presence * (0.26 + 0.40 * mood);
+    ctx.lineWidth = Math.max(0.9, unit * 0.0045);
+    ctx.beginPath();
+    eyeCurvePath(ctx, drawPoints.leftEye);
+    eyeCurvePath(ctx, drawPoints.rightEye);
+    ctx.stroke();
 
-    // лентичка отдолу: колко силен е фокусът точно сега
-    const pad = cw * 0.06;
-    const barW = cw - pad * 2;
-    const barH = Math.max(2, ch * 0.018);
-    const barY = ch - pad;
-    ctx.fillStyle = "#ffffff";
-    ctx.globalAlpha = 0.3;
-    ctx.fillRect(pad, barY, barW, barH);
-    ctx.globalAlpha = 1;
-    ctx.fillRect(pad, barY, barW * Math.max(0, Math.min(1, focusScore)), barH);
+    // 4. Силата на фокуса: тънка дъга под брадичката, която расте от средата на
+    // двете страни. Правоъгълната лента изглеждаше като зареждане на файл;
+    // дъгата принадлежи на лицето, защото е част от същата окръжност.
+    const R = fh * 0.5 + m * 0.13;
+    const HALF = 0.52;                  // около 30° на страна
+    const mid = Math.PI / 2;            // долната среда на окръжността
+    ctx.lineWidth = Math.max(1, unit * 0.009);
+    ctx.globalAlpha = presence * 0.20;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, mid - HALF, mid + HALF);
+    ctx.stroke();
+
+    if (strength > 0.02) {
+      ctx.globalAlpha = presence * (0.6 + 0.4 * mood);
+      ctx.strokeStyle = AI_PURPLE;
+      if (!reduceMotion && mood > 0.05) {
+        ctx.shadowColor = AI_GLOW;
+        ctx.shadowBlur = unit * 0.045 * mood;
+      }
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, mid - HALF * strength, mid + HALF * strength);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
     ctx.restore();
   }
 
@@ -327,10 +561,18 @@ const Focus = (() => {
     if (!video || !canvas || !video.videoWidth || !stream) return;
     sizeOverlay(video, canvas);
 
+    // Клампът пази от скок, ако разделът е бил скрит: при връщане между двата
+    // кадъра са минали секунди и без него всичко изгладено би щракнало наведнъж.
+    const dt = lastFrameAt ? Math.min(now - lastFrameAt, 64) : 16.7;
+    lastFrameAt = now;
+
     if (now - lastDetect > DETECT_MS) {
       lastDetect = now;
+      const token = sessionToken;
       detectOnce(video)
-        .then(found => updateSignals(found, video, performance.now()))
+        .then(found => {
+          if (token === sessionToken && stream) updateSignals(found, video, performance.now());
+        })
         .catch(() => { /* един пропуснат кадър не е повод да спираме сесията */ });
     }
     updateState(now);
@@ -338,56 +580,71 @@ const Focus = (() => {
     // Нарисуваните точки догонват находката, вместо да скачат на нея — оттам
     // идва усещането, че рамката стои на лицето, а не подскача около него.
     if (landmarks && faceBox) {
-      if (!drawPoints) {
+      const k = 1 - Math.pow(1 - POINT_SMOOTH, dt / 16.7);
+      if (!drawPoints || drawPoints.leftEye.length !== landmarks.leftEye.length) {
         drawPoints = {
           leftEye: landmarks.leftEye.map(p => ({ x: p.x, y: p.y })),
           rightEye: landmarks.rightEye.map(p => ({ x: p.x, y: p.y })),
         };
         drawBox = { x: faceBox.x, y: faceBox.y, width: faceBox.width, height: faceBox.height };
+        acquiredAt = now;   // ново хващане — оттук тръгва еднократното помитане
       } else {
         for (const key of ["leftEye", "rightEye"]) {
           landmarks[key].forEach((p, i) => {
             const d = drawPoints[key][i];
             if (!d) return;
-            d.x = lerp(d.x, p.x, POINT_SMOOTH);
-            d.y = lerp(d.y, p.y, POINT_SMOOTH);
+            d.x = lerp(d.x, p.x, k);
+            d.y = lerp(d.y, p.y, k);
           });
         }
-        drawBox.x = lerp(drawBox.x, faceBox.x, POINT_SMOOTH);
-        drawBox.y = lerp(drawBox.y, faceBox.y, POINT_SMOOTH);
-        drawBox.width = lerp(drawBox.width, faceBox.width, POINT_SMOOTH);
-        drawBox.height = lerp(drawBox.height, faceBox.height, POINT_SMOOTH);
+        drawBox.x = lerp(drawBox.x, faceBox.x, k);
+        drawBox.y = lerp(drawBox.y, faceBox.y, k);
+        drawBox.width = lerp(drawBox.width, faceBox.width, k);
+        drawBox.height = lerp(drawBox.height, faceBox.height, k);
       }
-    } else {
+    } else if (presence < 0.01) {
+      // Геометрията нарочно се пази, докато рамката избледнява: така изчезването
+      // е преливане на място, а не рязко изгасване. Чисти се чак когато е невидима.
       drawPoints = null;
       drawBox = null;
     }
 
-    drawOverlay(canvas.getContext("2d"), canvas.width, canvas.height);
+    drawOverlay(canvas.getContext("2d"), canvas.width, canvas.height, now, dt);
   }
 
   function startTracking() {
+    sessionToken++;
     lastDetect = 0;
     lastTickAt = 0;
+    lastFrameAt = 0;
     lastSeen = performance.now();
     landmarks = null; drawPoints = null; faceBox = null; drawBox = null;
     eyesClosedSince = 0;
     scores = { eyes: 0, gaze: 0, near: 0 };
     focusScore = 0;
     isFocused = false;
+    presence = 0; mood = 0; strength = 0; acquiredAt = 0;
+    previewEl = $("focusOverlay") ? $("focusOverlay").parentElement : null;
+    reflectFocusState();
     if (rafId === null) rafId = requestAnimationFrame(tick);
   }
 
   function stopTracking() {
+    sessionToken++;
     if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
     const canvas = $("focusOverlay");
     if (canvas && canvas.width) canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
     drawPoints = null; drawBox = null; landmarks = null; faceBox = null;
+    presence = 0; mood = 0; strength = 0;
+    isFocused = false;
+    reflectFocusState();
+    previewEl = null;
   }
 
   function stopSession(silent) {
+    startId++;   // ако точно сега се отваря камера, тя вече е ненужна
     stopTracking();
-    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    if (stream) { dropMedia(stream); stream = null; }
     $('focusBadge').classList.add('hidden');
 
     if (!sessionStart) {
@@ -416,8 +673,11 @@ const Focus = (() => {
     const pct = trackedMs ? Math.round((focusedMs / trackedMs) * 100) : null;
     const time = formatMinutes(totalMs);
 
+    // Ако нищо не е било измерено (сесията е свършила, преди камерата да проработи),
+    // процент няма — тогава се казва само колко е траяла. Проверката е през самия
+    // pct, за да не може по-долните прагове да получат null и да сравняват с него.
     let message;
-    if (totalTicks === 0) {
+    if (pct === null) {
       message = t('focus.summaryShort', { time });
     } else if (pct >= 80) {
       message = t('focus.summaryGreat', { time, pct });

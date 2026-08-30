@@ -33,6 +33,9 @@ const Planner = (() => {
     try {
       const tasks = await Checklist.getPendingTasks();
       const res = await Net.fetch(BACKEND + '/plan', {
+        // И тук отговорът се пише от AI — по-кратък от този на учителя, но пак
+        // по-бавен от обикновена заявка към базата. Ползваме същия дълъг срок.
+        timeout: Net.AI_TIMEOUT_MS,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tasks, lang: I18n.get() }),
@@ -54,7 +57,7 @@ const Planner = (() => {
   }
 
   function init() {
-    $('planBtn').addEventListener('click', ask);
+    $('planBtn').addEventListener('click', () => Net.guardClick($('planBtn'), ask));
   }
 
   return { init };

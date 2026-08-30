@@ -55,6 +55,9 @@ const Tutor = (() => {
       // Без него сървърът не знае чий е въпросът и не го записва в историята.
       const token = Auth.getToken();
       const res = await Net.fetch(BACKEND + '/ask', {
+        // Тук отиват няколко снимани страници и се чака дълго обяснение — обичайният
+        // кратък срок отрязваше отговора и ученикът получаваше "провери интернета си".
+        timeout: Net.AI_TIMEOUT_MS,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +84,7 @@ const Tutor = (() => {
 
   function init() {
     window.addEventListener('climby:scan-ready', e => revealQuestionBox(e.detail.dataUrls));
-    $('askBtn').addEventListener('click', ask);
+    $('askBtn').addEventListener('click', () => Net.guardClick($('askBtn'), ask));
   }
 
   return { init };

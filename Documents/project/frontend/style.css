@@ -782,14 +782,26 @@ body {
   align-items: center;
   margin-top: 20px;
 }
+/* Кутийката с камерата е малко по-голяма от преди: наслагването върху лицето е
+   единственото доказателство пред ученика, че режимът наистина следи, и при
+   168 px тънките линии на рамката просто не се четяха. */
 .focus-preview {
   position: relative;
-  width: 168px;
-  height: 126px;
+  width: 208px;
+  height: 156px;
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--bg-sunken);
+  box-shadow: 0 10px 30px var(--shadow);
+  transition: border-color 0.45s ease, box-shadow 0.45s ease;
+}
+/* Когато ученикът гледа в тетрадката, самата рамка на кутийката го потвърждава
+   тихо — иначе наслагването изсветлява, а границата около него му противоречи.
+   Сиянието е едва загатнато и точно толкова бавно, че да не дърпа погледа. */
+.focus-preview.is-focused {
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 10px 30px var(--shadow), 0 0 22px var(--ai-glow);
 }
 .focus-preview video {
   width: 100%;
