@@ -27,6 +27,33 @@ const Family = (() => {
     return data;
   }
 
+  // Празният блок носи икона и заглавие, затова надписът отива в заглавието,
+  // а не върху целия контейнер (същото като в checklist.js).
+  function setEmptyText(el, text) {
+    const title = el.querySelector('.empty-title');
+    if (title) title.textContent = text;
+    else el.textContent = text;
+  }
+
+  // Отпаднала заявка не е отговор. Съобщението застава до списъка, вместо
+  // списъкът да бъде изтрит и на негово място да се появи твърдение.
+  function inlineError(after, key) {
+    let el = after.nextElementSibling;
+    if (!el || !el.classList.contains('family-load-error')) {
+      el = document.createElement('p');
+      el.className = 'hint auth-error family-load-error';
+      after.insertAdjacentElement('afterend', el);
+    }
+    el.textContent = t(key);
+    el.classList.remove('hidden');
+    return el;
+  }
+
+  function clearInlineError(after) {
+    const el = after.nextElementSibling;
+    if (el && el.classList.contains('family-load-error')) el.classList.add('hidden');
+  }
+
   function statCell(label, value, tone) {
     const cell = document.createElement('div');
     cell.className = 'family-stat' + (tone ? ` ${tone}` : '');
@@ -80,13 +107,28 @@ const Family = (() => {
   async function renderStudents() {
     const wrap = $('familyStudents');
     const empty = $('familyStudentsEmpty');
+
+    // Сървърът се буди по минута; дотогава родителят не бива да чете, че няма дете.
+    if (!wrap.children.length) {
+      setEmptyText(empty, t('family.loading'));
+      empty.classList.remove('hidden');
+    }
+
     let students;
     try {
       students = await api('/family/students');
     } catch {
-      students = [];
+      // Тук стоеше students = [], тоест паднал интернет се показваше като
+      // "Още нямаш свързан ученик" — приложението отричаше връзка, която си
+      // има. Каквото вече се вижда, остава; отдолу пише, че не сме се свързали.
+      inlineError(wrap, 'family.errLoadStudents');
+      if (!wrap.children.length) empty.classList.add('hidden');
+      return;
     }
+
+    clearInlineError(wrap);
     wrap.innerHTML = '';
+    setEmptyText(empty, t('family.noStudents'));
     empty.classList.toggle('hidden', students.length > 0);
     for (const s of students) wrap.appendChild(buildStudentCard(s));
   }
@@ -97,8 +139,12 @@ const Family = (() => {
     try {
       parents = await api('/family/parents');
     } catch {
-      parents = [];
+      // Липсващият списък казва "никой няма достъп до данните ти" — точно
+      // обратното на истината, ако заявката просто не е стигнала.
+      inlineError(wrap, 'family.errLoadParents');
+      return;
     }
+    clearInlineError(wrap);
     wrap.innerHTML = '';
     if (!parents.length) return;
 
