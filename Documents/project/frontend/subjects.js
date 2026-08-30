@@ -25,6 +25,23 @@ const Subjects = (() => {
   // пази последната обявена стойност, за да не пращаме едно и също събитие
   // повторно при всеки render (напр. смяна на език не пипа филтъра)
   let lastNotified;
+  // Всяко рисуване си носи номер — по-бавен отговор, изпреварен от по-нов,
+  // се изхвърля, вместо да върне чипове за задачи, които вече ги няма.
+  let seq = 0;
+  // Чия сметка са чиповете на екрана: предметите също са домашни данни и не
+  // бива да преживяват смяната на ученика.
+  let renderedFor = null;
+  // Имаше ли изобщо предмети при последното рисуване, и струва ли си да питаме
+  // сървъра пак. Докато чеклистът е скрит, само си отбелязваме, че сме остарели.
+  let hasSubjects = false;
+  let stale = true;
+
+  // Лентата филтрира чеклиста и нищо друго, а стои закована най-долу над целия
+  // екран. На другите изгледи тя само покрива бутоните им — затова я няма там.
+  function checklistIsVisible() {
+    const view = document.getElementById('view-checklist');
+    return !!view && !view.classList.contains('hidden');
+  }
 
   function notify() {
     if (selected === lastNotified) return;
@@ -84,9 +101,29 @@ const Subjects = (() => {
     const bar = document.getElementById('subjectBar');
     if (!bar) return; // контейнерът още не е добавен в index.html — нищо не правим
 
+    if (!checklistIsVisible()) {
+      // Филтърът се пази — само лентата се маха от чуждия екран. Ще я
+      // преправим при следващото отваряне на чеклиста.
+      bar.classList.add('hidden');
+      stale = true;
+      return;
+    }
+
+    const mySeq = ++seq;
+    const account = (typeof Auth !== 'undefined' && Auth.isLoggedIn()) ? Auth.getToken() : null;
+    if (renderedFor !== account) {
+      renderedFor = account;
+      hasSubjects = false;
+      bar.innerHTML = '';
+      bar.classList.add('hidden');
+    }
+
     const subjects = await collectSubjects();
+    if (mySeq !== seq) return; // изпреварени сме от по-ново рисуване
+    stale = false;
 
     if (subjects.length === 0) {
+      hasSubjects = false;
       bar.classList.add('hidden');
       bar.innerHTML = '';
       if (selected !== null) {
@@ -96,6 +133,7 @@ const Subjects = (() => {
       notify();
       return;
     }
+    hasSubjects = true;
 
     // избран предмет, който вече няма чакащи задачи — филтърът се нулира,
     // иначе лентата показва "Всички" активно, но чеклистът остава филтриран
@@ -126,6 +164,16 @@ const Subjects = (() => {
     window.addEventListener('climby:tasks-changed', render);
     window.addEventListener('climby:auth-changed', render);
     window.addEventListener('climby:lang-changed', render);
+    window.addEventListener('climby:view-shown', e => {
+      if (e.detail.view !== 'checklist') {
+        bar.classList.add('hidden');
+        return;
+      }
+      // Ако нищо не се е случвало, докато лентата е била скрита, няма защо да
+      // питаме сървъра пак — чиповете си стоят в DOM-а такива, каквито бяха.
+      if (stale) render();
+      else bar.classList.toggle('hidden', !hasSubjects);
+    });
   }
 
   return { init };

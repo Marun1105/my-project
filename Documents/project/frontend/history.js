@@ -34,6 +34,13 @@ const History = (() => {
     else el.textContent = text;
   }
 
+  // Изгледът може да стои скрит зад друг раздел. nav.js маха класа 'hidden'
+  // преди да обяви climby:view-shown, така че проверката е винаги актуална.
+  function isVisible() {
+    const view = document.getElementById('view-history');
+    return !!view && !view.classList.contains('hidden');
+  }
+
   // Кой дял се гледа. Изборът се помни, за да не отскача обратно при връщане.
   const TAB_KEY = 'climby-history-tab';
 
@@ -48,6 +55,9 @@ const History = (() => {
     const scans = $('historyScansPanel');
     if (tasks) tasks.classList.toggle('hidden', which !== 'tasks');
     if (scans) scans.classList.toggle('hidden', which !== 'scans');
+    // Сканиранията се теглят чак когато дялът им се отвори. Преди това всяко
+    // отмятане на задача дърпаше и /scans — за списък, който никой не гледа.
+    if (which === 'scans' && Auth.isLoggedIn()) renderScans();
   }
 
   function _announceChange() {
@@ -226,15 +236,36 @@ const History = (() => {
     return li;
   }
 
+  // Чия сметка е нарисувана в момента на екрана. Таблетът е семеен и минава от
+  // ръка на ръка — щом влезе друг, чуждите домашни трябва да изчезнат веднага,
+  // а не когато сървърът отговори (буден Render се бави и минута).
+  let renderedFor = null;
+  // Всяко рисуване си носи номер. Изпревари ли го по-ново, старият отговор се
+  // изхвърля — иначе изтрита задача се появява пак, защото по-бавната заявка е
+  // тръгнала преди триенето и се връща след него.
+  let tasksSeq = 0;
+  let scansSeq = 0;
+
+  function dropForeignRows() {
+    const account = Auth.getToken();
+    if (renderedFor === account) return;
+    renderedFor = account;
+    $('historyList').innerHTML = '';
+    $('scanHistoryList').innerHTML = '';
+  }
+
   async function renderScans() {
     const list = $('scanHistoryList');
     const empty = $('scanHistoryEmpty');
+    const seq = ++scansSeq;
+    dropForeignRows();
     let scans;
     try {
       scans = await api('/scans');
     } catch {
       scans = [];
     }
+    if (seq !== scansSeq) return; // изпреварени сме от по-ново рисуване
     list.innerHTML = '';
     if (!scans.length) {
       empty.classList.remove('hidden');
@@ -246,9 +277,16 @@ const History = (() => {
 
   async function render() {
     if (!Auth.isLoggedIn()) return;
-    renderScans();
+    // Скрит изглед не се рисува: иначе едно отмятане в чеклиста теглеше и
+    // /tasks, и /scans за екран, който никой не гледа. Връщането тук минава
+    // през climby:view-shown, който рисува наново — така Историята никога не
+    // пристига остаряла.
+    if (!isVisible()) return;
+
     const list = $('historyList');
     const empty = $('historyEmpty');
+    const seq = ++tasksSeq;
+    dropForeignRows();
 
     if (!list.children.length) {
       setEmptyText(empty, t('history.loading'));
@@ -259,11 +297,16 @@ const History = (() => {
     try {
       tasks = await api('/tasks');
     } catch (err) {
+      if (seq !== tasksSeq) return;
       list.innerHTML = '';
       setEmptyText(empty, err.message || t('history.errLoad'));
       empty.classList.remove('hidden');
       return;
     }
+    if (seq !== tasksSeq) return;
+    // Броячът в менюто се вижда и оттук — подаваме му вече изтеглените задачи,
+    // за да не прави чеклистът втора заявка за същото.
+    if (window.Checklist && typeof Checklist.syncBadge === 'function') Checklist.syncBadge(tasks);
 
     const done = tasks
       .filter(t => t.done)
@@ -283,7 +326,19 @@ const History = (() => {
     const loggedIn = Auth.isLoggedIn();
     $('historyGate').classList.toggle('hidden', loggedIn);
     $('historyApp').classList.toggle('hidden', !loggedIn);
-    if (loggedIn) render();
+    if (loggedIn) {
+      render();
+    } else {
+      // Домашните на предишния ученик си отиват заедно с него, а не чакат
+      // следващия да дочете списъка, докато сървърът се събужда.
+      $('historyList').innerHTML = '';
+      $('scanHistoryList').innerHTML = '';
+      $('historyEmpty').classList.add('hidden');
+      $('scanHistoryEmpty').classList.add('hidden');
+      renderedFor = null;
+      tasksSeq++; // отговор по вече тръгнала заявка от старата сметка не важи
+      scansSeq++;
+    }
   }
 
   function init() {

@@ -7,6 +7,13 @@ const Checklist = (() => {
   // се показва целият списък, преди събитието да пристигне.
   let subjectFilter = localStorage.getItem('climby-subject-filter') || null;
 
+  // Изгледът може да стои скрит зад друг раздел. nav.js маха класа 'hidden'
+  // преди да обяви climby:view-shown, така че проверката е винаги актуална.
+  function isVisible() {
+    const view = document.getElementById('view-checklist');
+    return !!view && !view.classList.contains('hidden');
+  }
+
   async function api(path, options = {}) {
     const token = Auth.getToken();
     let res;
@@ -224,11 +231,34 @@ const Checklist = (() => {
   }
 
   let lastTasks = null;
+  // Чия сметка е нарисувана в момента на екрана. Устройството е семейно и се
+  // подава от ръка на ръка — щом влезе друг, чуждите редове трябва да изчезнат
+  // веднага, а не когато сървърът отговори (буден Render се бави и минута).
+  let renderedFor = null;
+  // Всяко рисуване си носи номер. Изпревари ли го по-ново, старият отговор се
+  // изхвърля — иначе изтрита задача се появява пак, защото по-бавната заявка е
+  // тръгнала преди триенето и се връща след него.
+  let renderSeq = 0;
 
   async function render() {
     if (!Auth.isLoggedIn()) return;
+    // Скрит изглед не се рисува: иначе едно отмятане тегли /tasks и за трите
+    // модула наведнъж. Връщането тук минава през climby:view-shown, който рисува
+    // наново — така чеклистът никога не пристига остарял.
+    // Първото зареждане е изключение: броячът в менюто се вижда от всеки раздел
+    // и трябва да има какво да покаже, преди чеклистът да е отварян.
+    if (!isVisible() && lastTasks !== null) return;
+
     const list = $('taskList');
     const empty = $('taskEmpty');
+    const seq = ++renderSeq;
+
+    const account = Auth.getToken();
+    if (renderedFor !== account) {
+      renderedFor = account;
+      lastTasks = null;
+      list.innerHTML = '';
+    }
 
     if (!list.children.length) {
       setEmptyText(empty, t('checklist.loading'));
@@ -239,9 +269,11 @@ const Checklist = (() => {
     try {
       allTasks = await api('/tasks');
     } catch (err) {
+      if (seq !== renderSeq) return;
       showListError(err);
       return;
     }
+    if (seq !== renderSeq) return;
     lastTasks = allTasks;
     updateBadge(allTasks);
 
@@ -286,7 +318,15 @@ const Checklist = (() => {
     if (loggedIn) {
       render();
     } else {
+      // Таблетът е семеен: домашните на предишния ученик не бива да дочакат
+      // следващия. Списъкът се изпразва още при излизането, а не при влизането —
+      // дотогава сървърът може да мълчи цяла минута.
+      $('taskList').innerHTML = '';
+      $('taskEmpty').classList.add('hidden');
       $('checklistBadge').classList.add('hidden');
+      lastTasks = null;
+      renderedFor = null;
+      renderSeq++; // отговор по вече тръгнала заявка от старата сметка не важи
     }
   }
 
@@ -308,7 +348,16 @@ const Checklist = (() => {
     updateGate();
   }
 
-  return { init, getPendingTasks };
+  // Броячът стои в менюто и се вижда от всеки раздел. Затова Историята, която
+  // и без това си тегли задачите, го обновява оттам — вместо чеклистът да прави
+  // втора заявка за същите данни, само за да е точно числото.
+  function syncBadge(tasks) {
+    if (!Array.isArray(tasks) || !Auth.isLoggedIn()) return;
+    lastTasks = tasks;
+    updateBadge(tasks);
+  }
+
+  return { init, getPendingTasks, syncBadge };
 })();
 
 document.addEventListener('DOMContentLoaded', Checklist.init);

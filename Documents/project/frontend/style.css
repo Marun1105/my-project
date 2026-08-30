@@ -16,7 +16,11 @@
   --border: #2c2c33;
   --text: #f7f7f8;
   --text-dim: #a4a4ad;
-  --text-faint: #70707a;
+  /* Третото стъпало носи истински текст — етикетите на полетата в покой и всеки
+     placeholder. При #70707a то стоеше на 3.96:1 върху --bg и 3.65:1 върху
+     картите, тоест под прага за четим текст. #8a8a94 дава 5.68:1 и 5.23:1 и пак
+     остава явно по-тихо от --text-dim (7.85:1) — стъпалата си остават три. */
+  --text-faint: #8a8a94;
   /* Черно-бяло: единственият цвят в приложението е вълната на AI бутоните.
      Затова всичко, което по-рано беше зелено/лилаво/червено, тук е бяло с
      различна плътност — разликата се носи от контраста и тежестта, не от тон. */
@@ -69,11 +73,32 @@
   --space-5: 36px;
   --space-6: 56px;
 
+  /* Стълба за размера на текста. Дотук всяко заглавие си избираше размер само
+     (18/600, 18/700, 19/700, 17/600, 15/700) и приликите между тях бяха случайни.
+     Пет стъпала стигат: екран, заглавие на карта, текст, второстепенно, надпис. */
+  --fs-page: 26px;
+  --fs-section: 18px;
+  --fs-body: 15px;
+  --fs-meta: 13px;
+  --fs-micro: 11px;
+
+  /* 16px е прагът, под който iOS сам увеличава страницата при фокус в поле.
+     Полетата стоят точно на него, за да няма нужда мащабирането да се забранява. */
+  --fs-input: 16px;
+
   --radius-sm: 6px;
   --radius: 10px;
   --radius-lg: 14px;
   --content-width: 720px;
   --gutter: 24px;
+  /* Големината на тапване, под която пръстът започва да греши. Установена е още
+     в subjects.css при чиповете за предмети; тук само се прилага навсякъде. */
+  --tap: 44px;
+}
+
+/* Под 420 px 24 px от всяка страна изяждат една осма от реда. */
+@media (max-width: 420px) {
+  :root { --gutter: 16px; }
 }
 
 :root[data-theme="light"] {
@@ -83,7 +108,10 @@
   --border: #d7d7dd;
   --text: #16161a;
   --text-dim: #585858;
-  --text-faint: #8a8a8a;
+  /* Същото и на светло: #8a8a8a падаше до 3.14:1 върху --bg. #6e6e73 държи
+     4.62:1 върху фона и 4.95:1 върху картите, а спрямо --text-dim (6.48:1)
+     разликата се вижда. */
+  --text-faint: #6e6e73;
   --accent: #16161a;
   --accent-strong: #262626;
   --accent-soft: rgba(0, 0, 0, 0.08);
@@ -156,6 +184,11 @@ body {
   font-family: var(--font-body);
   min-height: 100vh;
   transition: background 0.2s ease, color 0.2s ease;
+  /* Предпазна мрежа: една контрола, която не се е побрала, не бива да разлюлява
+     цялата страница настрани — това се усеща като счупено приложение, не като
+     тесен елемент. `clip`, а не `hidden`, за да си остане страничната лента
+     "лепната" (hidden прави от body скролер и разваля position: sticky). */
+  overflow-x: clip;
 }
 
 
@@ -317,6 +350,10 @@ body {
 }
 .theme-switch-option {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap);
   border: 0;
   background: transparent;
   color: var(--text-dim);
@@ -477,6 +514,16 @@ body {
 }
 .entry-gate-close:hover { color: var(--text); border-color: var(--text-dim); }
 .entry-gate-close:active { transform: scale(0.92); }
+/* Кръгчето остава дискретно, зоната около него — не. */
+.entry-gate-close::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--tap);
+  height: var(--tap);
+  transform: translate(-50%, -50%);
+}
 .entry-gate-card { margin: 32px 0; animation: climby-rise 0.3s ease both; }
 .entry-gate-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
 .entry-gate-brand .sidebar-logo { width: 60px; height: 60px; padding: 7px; }
@@ -554,7 +601,7 @@ body {
   color: var(--text-dim);
 }
 .settings-card h2 + .settings-row { border-top: none; }
-.settings-close { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; font-size: 13px; }
+.settings-close { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; font-size: var(--fs-meta); }
 
 /* ---------- simplified "why login" panels (checklist/history when not logged in) ---------- */
 .auth-gate-simple { width: 100%; }
@@ -606,9 +653,10 @@ body {
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
 }
+/* Единственият път до навигацията на телефон. Не бива да е "почти" достатъчно голям. */
 .menu-toggle {
-  width: 36px;
-  height: 36px;
+  width: var(--tap);
+  height: var(--tap);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg);
@@ -672,7 +720,7 @@ body {
 .field input {
   width: 100%;
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-input);
   color: var(--text);
   background: var(--bg);
   border: 1.5px solid var(--border);
@@ -714,14 +762,27 @@ body {
   overflow: hidden;
   clip-path: polygon(0% 100%, 6% 55%, 14% 100%, 24% 25%, 34% 100%, 44% 65%, 54% 100%, 64% 15%, 74% 100%, 84% 45%, 94% 100%, 100% 70%, 100% 100%);
 }
+/* Силата расте само нагоре. По-рано четирите степени бяха четири цвята, които в
+   черно-бяло са едно и също бяло — "слаба" излизаше най-ярката лента от всички.
+   Тук лентата е винаги --accent и се различава по плътност: слабата е едва
+   загатната, силната е плътна. Класовете чакат auth.js да ги слага вместо
+   inline цвят (виж бележката в доклада). */
 .pw-strength-fill {
   display: block;
   height: 100%;
   width: 0%;
-  background: var(--danger);
-  transition: width 0.25s ease, background 0.2s ease;
+  background: var(--accent);
+  opacity: 0.35;
+  transition: width 0.25s ease, opacity 0.2s ease;
 }
-.pw-strength-label { font-size: 11px; font-weight: 700; color: var(--text-faint); flex-shrink: 0; min-width: 46px; text-align: right; }
+.pw-strength-fill.is-weak { opacity: 0.35; }
+.pw-strength-fill.is-fair { opacity: 0.55; }
+.pw-strength-fill.is-good { opacity: 0.78; }
+.pw-strength-fill.is-strong { opacity: 1; }
+.pw-strength-label { font-size: var(--fs-micro); font-weight: 700; color: var(--text-faint); flex-shrink: 0; min-width: 46px; text-align: right; }
+/* Надписът също върви от тих към силен, за да не е плътността единствената следа. */
+.pw-strength-label.is-good { color: var(--text-dim); }
+.pw-strength-label.is-strong { color: var(--text); }
 
 .auth-switch {
   font-size: 13px;
@@ -730,16 +791,59 @@ body {
 }
 .auth-switch a { color: var(--blue); font-weight: 600; text-decoration: none; }
 .auth-switch a:hover { text-decoration: underline; }
+/* Кутията се показва в най-лошия момент — ученикът вече е спрян. Затова има
+   собствено място за дишане и не дели правило с .hint (по-рано `hint auth-error`
+   вземаше подравняването от .hint и текстът опираше в рамката).
+   Разликата "грешка"/"готово" не може да мине през цвят — приложението е
+   черно-бяло. Носят я знакът и плътността: плътен кръг с "!" и пълна рамка при
+   грешка, очертан кръг с отметка и тиха рамка при успех. */
 .auth-error {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   margin-top: 16px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: var(--radius-sm);
-  background: var(--warn-soft);
-  border: 1px solid var(--warn);
-  color: var(--warn);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  color: var(--text);
+  font-size: var(--fs-meta);
+  line-height: 1.5;
   font-weight: 600;
 }
-.auth-error.is-error { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+/* Знакът е в основното правило, защото повечето кутии (фокус, родител, класове)
+   се показват само при проблем и никога не получават клас от кода. */
+.auth-error::before {
+  content: "!";
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+/* Успехът е новина, не тревога: по-тиха рамка, кух знак, същият ръст.
+   Без него "Изпратихме нов код" изглеждаше точно като "нещо се обърка" и
+   ученикът натискаше пак. */
+.auth-error.is-success {
+  background: var(--warn-soft);
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+.auth-error.is-success::before {
+  content: "✓";
+  background: transparent;
+  border: 1.5px solid var(--text-dim);
+  color: var(--text-dim);
+  font-weight: 600;
+  line-height: 15px;
+}
 
 /* ---------- focus camera ---------- */
 .focus-toggle-row {
@@ -827,15 +931,44 @@ body {
 .view {
   width: 100%;
   max-width: var(--content-width);
-  /* auto top/bottom margins center short views (login gates, empty states) in the
-     viewport instead of leaving them stranded at the top of a tall empty page;
-     once content is taller than the viewport this degrades to normal top alignment */
-  margin: auto auto;
+  margin: 0 auto;
   padding: 28px var(--gutter) 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
+}
+/* Центрирането по височина беше писано за екраните "влез, за да продължиш" —
+   те са къси и увиснали в горния край изглеждат като недозаредена страница.
+   Но правилото важеше за всеки изглед, а .main-area е колона: щом съдържанието
+   е по-ниско от екрана, всяко добавяне (отговорът на AI, зареден списък,
+   лентата с миниатюри, появила се грешка) местеше цялата страница и бутонът
+   бягаше изпод пръста по средата на натискането. Затова остава само там. */
+.view:has(> .auth-gate-simple:not(.hidden)) { margin-block: auto; }
+
+/* ---------- заглавие на екрана ---------- */
+/* На телефон единственото, което казваше на ученика къде се намира, беше
+   осветеният ред в менюто — а то е извън екрана. Всеки изглед започва с името
+   си, със същите думи като в менюто, и с едно изречение отдолу, което казва за
+   какво служи екранът. Space Grotesk е тук на мястото си: това са заглавия. */
+.page-header {
+  width: 100%;
+  margin-bottom: var(--space-2);
+}
+.page-header h1 {
+  font-family: var(--font-heading);
+  font-size: var(--fs-page);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text);
+}
+.page-subtitle {
+  margin-top: 6px;
+  font-size: var(--fs-meta);
+  line-height: 1.5;
+  color: var(--text-dim);
+  max-width: 56ch;
 }
 
 /* ---------- splash logo (shown while camera loads) ---------- */
@@ -965,20 +1098,34 @@ img.result { object-fit: contain; background: var(--bg-sunken); }
   border-radius: 4px;
   padding: 1px 4px;
 }
+/* Миниатюрата реже всичко извън себе си, затова зоната не може да излезе навън.
+   Самото копче пораства до 26 px, а ::after разпъва хватката до 36 px в ъгъла —
+   толкова, колкото се събира, без да се пресече със съседната страница. */
 .page-thumb-remove {
   position: absolute;
   top: 2px;
   right: 2px;
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   border: none;
   background: rgba(0, 0, 0, 0.6);
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
   cursor: pointer;
   padding: 0;
+}
+.page-thumb-remove::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 36px;
+  height: 36px;
 }
 .page-thumb-remove:hover { background: var(--danger); }
 .page-thumb-add {
@@ -1089,7 +1236,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 .qa textarea {
   width: 100%;
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-input);
   color: var(--text);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -1104,8 +1251,11 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 .qa textarea::placeholder { color: var(--text-faint); }
 
-/* ---------- answer ---------- */
-.answer {
+/* ---------- карта: кутията сама по себе си, без глас ---------- */
+/* Досега единствената "кутия с текст" беше .answer, а тя носи вълната на AI-то.
+   Който имаше нужда просто от карта, вземаше .answer и с нея — лилавото.
+   Тук кутията е отделена: .card е хартията, .answer е хартията плюс подписа. */
+.card {
   position: relative;
   width: 100%;
   margin-top: 18px;
@@ -1119,6 +1269,9 @@ button:disabled { opacity: 0.4; cursor: default; }
   animation: climby-rise 0.35s ease both;
   overflow: hidden;
 }
+
+/* ---------- answer ---------- */
+/* Лилавата лента отгоре значи едно-единствено нещо: сега говори AI-то. */
 .answer::before {
   content: "";
   position: absolute;
@@ -1135,24 +1288,25 @@ button:disabled { opacity: 0.4; cursor: default; }
   50% { transform: rotate(180deg) scale(1.15); }
   to { transform: rotate(360deg) scale(1); }
 }
-.answer h1, .answer h2, .answer h3 {
-  font-family: var(--font-display);
+.card h1, .card h2, .card h3 {
+  font-family: var(--font-heading);
+  font-size: var(--fs-section);
   margin: 0.6em 0 0.35em;
   line-height: 1.3;
 }
-.answer h1:first-child, .answer h2:first-child, .answer h3:first-child { margin-top: 0; }
-.answer p { margin: 0.6em 0; }
-.answer p:first-child { margin-top: 0; }
-.answer ul, .answer ol { margin: 0.5em 0 0.5em 1.3em; }
-.answer li { margin: 0.25em 0; }
-.answer code {
+.card h1:first-child, .card h2:first-child, .card h3:first-child { margin-top: 0; }
+.card p { margin: 0.6em 0; }
+.card p:first-child { margin-top: 0; }
+.card ul, .card ol { margin: 0.5em 0 0.5em 1.3em; }
+.card li { margin: 0.25em 0; }
+.card code {
   background: var(--bg-sunken);
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 0.9em;
 }
-.answer strong { color: var(--accent); }
-.answer .katex { font-size: 1.05em; }
+.card strong { color: var(--accent); }
+.card .katex { font-size: 1.05em; }
 
 /* ---------- gentle, encouraging error state ---------- */
 .answer.error {
@@ -1182,7 +1336,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 .task-form input[type="date"] {
   width: 100%;
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-input);
   color: var(--text);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -1224,12 +1378,25 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 .task-done { opacity: 0.55; }
 .task-done .task-text { text-decoration: line-through; }
+/* Отметката е най-натисканото нещо в приложението, а самото квадратче е 20 px.
+   Етикетът около него става 44 px и се прибира обратно с отрицателни отстояния,
+   така че на екрана нищо не се измества — расте само това, което лови пръста.
+   Горното отстояние е с 2 px по-малко, за да остане подравнено с текста на реда. */
+.task-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 12px;
+  margin: -10px -12px -14px -12px;
+  cursor: pointer;
+}
 .task-check input {
   width: 20px;
   height: 20px;
   accent-color: var(--accent);
   cursor: pointer;
-  margin-top: 2px;
+  margin: 0;
 }
 .task-body { flex: 1; min-width: 0; }
 .task-text {
@@ -1251,14 +1418,38 @@ button:disabled { opacity: 0.4; cursor: default; }
   border-radius: 999px;
   padding: 3px 10px;
 }
+/* Кое домашно е закъсняло и кое е за днес е най-важното нещо в целия чеклист,
+   а в черно-бяло --blue и --danger са един и същи бял. Затова разликата е в
+   формата, не в тона: обикновеният срок е само текст, "за днес" е очертан
+   кръгъл етикет, а просроченото е плътно запълнено — най-плътното нещо в реда,
+   което се вижда преди да си го прочел. И трите имат еднакви размери, за да
+   стоят на един ред. */
 .deadline {
   font-size: 12px;
   font-weight: 600;
+  line-height: 1.5;
   color: var(--text-dim);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 2px 0;
 }
-.deadline.soon { color: var(--blue); }
-.deadline.overdue { color: var(--danger); font-weight: 700; }
+.deadline.soon {
+  color: var(--text);
+  border-color: var(--text-dim);
+  padding: 2px 9px;
+}
+.deadline.overdue {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 700;
+  padding: 2px 9px;
+}
+/* Изтриването остава малко на вид — то не бива да се набива в очи — но зоната,
+   която го хваща, е цели 44 px. Пораства през ::after, не през padding, за да
+   не помръдне нищо в реда. */
 .task-delete {
+  position: relative;
   flex: 0 0 auto;
   width: 30px;
   height: 30px;
@@ -1266,9 +1457,18 @@ button:disabled { opacity: 0.4; cursor: default; }
   border: none;
   background: transparent;
   color: var(--text-faint);
-  font-size: 15px;
+  font-size: var(--fs-body);
   border-radius: var(--radius-sm);
   cursor: pointer;
+}
+.task-delete::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--tap);
+  height: var(--tap);
+  transform: translate(-50%, -50%);
 }
 .task-delete:hover { color: var(--danger); background: var(--danger-soft); }
 
@@ -1292,19 +1492,6 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--accent);
   cursor: pointer;
 }
-/* Празен списък не е грешка, а начална точка — дава му се място и рамка,
-   вместо да изглежда като забравен сив ред под заглавието. */
-.empty-state {
-  width: 100%;
-  margin-top: 14px;
-  padding: 26px 20px;
-  text-align: center;
-  line-height: 1.6;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elevated);
-}
-
 /* ---------- компютър без камера: качването е основният път, не грешка ---------- */
 .no-camera {
   width: 100%;
@@ -1383,7 +1570,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--text-dim);
 }
 .family-link-form { width: 100%; display: flex; gap: 10px; margin-top: 16px; }
-.family-link-form input { flex: 1; text-transform: uppercase; letter-spacing: 0.12em; }
+.family-link-form input { flex: 1; font-size: var(--fs-input); text-transform: uppercase; letter-spacing: 0.12em; }
 .family-link-form button { flex: 0 0 auto; }
 .family-code {
   width: 100%;
@@ -1620,22 +1807,40 @@ button:disabled { opacity: 0.4; cursor: default; }
 .nav-child .nav-icon { width: 15px; height: 15px; flex-basis: 15px; }
 
 /* ---------- превключвател на дялове ---------- */
+/* Двата дяла в Историята мерят около 355 px, а на телефон от 360 px за тях
+   остават 312 px. Дотук лентата просто изтичаше извън екрана и повличаше цялата
+   страница настрани. Сега тя се плъзга в себе си — лентата е тясна, не приложението.
+   Плъзгачът се скрива: две копчета не се нуждаят от лента за скролиране, за да
+   се разбере, че се движат. */
 .pill-tabs {
-  display: inline-flex;
+  display: flex;
+  max-width: 100%;
   gap: 2px;
   padding: 3px;
   margin-bottom: var(--space-3);
+  margin-right: auto;
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: 999px;
+  width: fit-content;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
+.pill-tabs::-webkit-scrollbar { display: none; }
 .pill-tab {
   appearance: none;
+  /* Общото правило за button дава flex: 1, а тук това стиска копчето под текста му. */
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap);
   border: 0;
   background: transparent;
   color: var(--text-dim);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-meta);
   font-weight: 600;
   padding: 7px 15px;
   border-radius: 999px;
@@ -1650,14 +1855,19 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* ---------- празни състояния ---------- */
 /* Празният екран е първото, което вижда нов ученик. Затова не е един сив ред,
-   а има какво да гледа и какво да натисне. */
+   а има какво да гледа и какво да натисне.
+   По-рано тук имаше две правила с това име — по-старото рисуваше пунктирана
+   карта, по-новото центрирана колона, и се събираха в пунктирана карта с
+   56 px отстояние, каквото никой не е искал. Остава колоната: без рамка и без
+   фон, защото празното място не е обект, а покана. */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: var(--space-2);
-  padding: var(--space-6) var(--space-4);
+  padding: var(--space-5) var(--space-4);
+  margin-top: var(--space-2);
   width: 100%;
 }
 .empty-icon {
@@ -1674,20 +1884,22 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 .empty-icon svg { width: 27px; height: 27px; }
 .empty-title {
-  font-size: 14px;
+  font-size: var(--fs-body);
   color: var(--text-dim);
   max-width: 42ch;
   line-height: 1.5;
 }
 .empty-cta {
+  flex: 0 0 auto;
+  min-height: var(--tap);
   margin-top: var(--space-2);
-  padding: 9px 18px;
+  padding: 9px 20px;
   border: 0;
   border-radius: 999px;
   background: var(--accent);
   color: var(--on-accent);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-meta);
   font-weight: 600;
   cursor: pointer;
 }
