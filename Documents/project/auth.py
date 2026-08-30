@@ -160,15 +160,31 @@ def _issue_code(db: Session, user: User, purpose: CodePurpose) -> str:
     return code
 
 
-def _consume_code(db: Session, user: User, purpose: CodePurpose, code: str) -> bool:
+def _consume_code(db: Session, user: User, purpose: CodePurpose, code: str,
+                  reveal_lock: bool = False) -> bool:
+    """reveal_lock=True само там, където вече знаем КОЙ пита.
+
+    Заключването се брои по акаунт, тоест съществува само за адрес, зад който
+    има акаунт. Ако при заключване отговаряхме различно (429 вместо 400), самото
+    заключване ставаше справка: пращаш пет грешни кода към чужд адрес и шестият
+    отговор ти казва дали този адрес изобщо има профил в Climby. Точно тази
+    справка беше затворена при неправилния код и щеше да се отвори наново
+    отстрани. Затова навън заключването изглежда като поредния грешен код, а
+    текстът горе казва и на сгрешилото дете какво да направи.
+
+    При вход с вече доказана самоличност (потвърждаване на телефон) няма какво
+    да се издаде — там честният отговор е по-полезен.
+    """
     attempts = _attempt_row(db, user, purpose)
     left = _lock_minutes_left(attempts)
     if left:
-        raise HTTPException(
-            429,
-            f"Твърде много грешни кодове. Опитай пак след около {left} мин. "
-            "и поискай нов код — акаунтът ти си остава твой, само изчакай малко.",
-        )
+        if reveal_lock:
+            raise HTTPException(
+                429,
+                f"Твърде много грешни кодове. Опитай пак след около {left} мин. "
+                "и поискай нов код — акаунтът ти си остава твой, само изчакай малко.",
+            )
+        return False
     candidates = (
         db.query(VerificationCode)
         .filter(
@@ -293,7 +309,8 @@ def verify_email(body: VerifyEmailRequest, request: Request, db: Session = Depen
     # Съобщението остава полезно: покрива и трите неща, които наистина може да
     # са се объркали, вместо да оставя детето да гадае.
     BAD_CODE = ("Грешен или изтекъл код. Провери имейла, който си написал, "
-                "поискай нов код или — ако вече си потвърдил профила си — просто влез.")
+                "поискай нов код или — ако вече си потвърдил профила си — просто влез. "
+                "Ако си опитвал няколко пъти подред, изчакай петнайсетина минути.")
     user = db.query(User).filter(_email_matches(body.email)).first()
     if not user or user.is_email_verified:
         security.verify_code(body.code, security.DUMMY_PASSWORD_HASH)
@@ -381,7 +398,7 @@ def verify_phone(
                         message="Твърде много опити — изчакай малко и опитай пак.")
     if not user.phone:
         raise HTTPException(400, "Първо добави телефонен номер.")
-    if not _consume_code(db, user, CodePurpose.verify_phone, body.code):
+    if not _consume_code(db, user, CodePurpose.verify_phone, body.code, reveal_lock=True):
         raise HTTPException(400, "Грешен или изтекъл код.")
     # Проверката се прави ПАК тук, а не само при добавянето: между двете стъпки
     # някой друг може да е потвърдил същия номер, а потвърден номер е един.
@@ -435,7 +452,8 @@ def reset_password(body: ResetPasswordRequest, request: Request, db: Session = D
         raise HTTPException(400, "Невалиден начин за връзка.")
 
     if not user or not _consume_code(db, user, CodePurpose.reset_password, body.code):
-        raise HTTPException(400, "Грешен или изтекъл код.")
+        raise HTTPException(400, "Грешен или изтекъл код. Поискай нов, а ако си "
+                                 "опитвал няколко пъти подред — изчакай петнайсетина минути.")
 
     user.password_hash = security.hash_password(body.new_password)
     # Смяната на паролата прекратява и всички стари сесии. Ако някой е влязъл с

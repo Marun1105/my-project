@@ -197,17 +197,20 @@ def test_wrong_codes_lock_the_account_after_a_handful_of_tries(codes):
         }))
 
     assert [r.status_code for r in statuses[:auth.MAX_CODE_ATTEMPTS]] == [400] * auth.MAX_CODE_ATTEMPTS
+    # Заключването НЕ се обявява навън: отвън изглежда като пореден грешен код.
+    # Иначе шестият отговор ставаше справка дали адресът има профил — виж
+    # test_the_lock_does_not_reveal_which_addresses_exist.
     blocked = statuses[-1]
-    assert blocked.status_code == 429
-    # съобщението трябва да казва на детето, че става дума за изчакване
-    assert "мин" in blocked.json()["detail"]
+    assert blocked.status_code == 400
+    # съобщението пак насочва сгрешилото дете към изчакване, без да твърди нищо
+    assert "изчакай" in blocked.json()["detail"]
     # дори ВЕРНИЯТ код не минава, докато трае изчакването
     rate_limit._hits.clear()
     right = client.post("/auth/reset-password", json={
         "channel": "email", "contact": "bruteforce@example.com",
         "code": codes[-1], "new_password": "realownerpw1",
     })
-    assert right.status_code == 429
+    assert right.status_code == 400
 
 
 def test_two_mistyped_codes_do_not_lock_anyone_out(codes):
@@ -424,3 +427,45 @@ def test_a_simultaneous_duplicate_registration_gets_400_not_500(monkeypatch):
     res = _register("race@example.com")
     assert res.status_code == 400, res.text
     assert "акаунт" in res.json()["detail"]
+
+
+def test_the_lock_does_not_reveal_which_addresses_exist(codes):
+    """Заключването се брои по акаунт, тоест го има само за адрес с профил.
+
+    Ако то се обявяваше навън с друг код на състоянието, петте грешни опита
+    ставаха точно справката, която затворихме другаде: пращаш кодове към чужд
+    адрес и по шестия отговор разбираш дали детето има профил в Climby. Затова
+    двата случая — има акаунт и няма — трябва да си останат неразличими докрай.
+    """
+    _account("exists@example.com")
+    codes.clear()
+
+    def hammer(address):
+        out = []
+        for _ in range(auth.MAX_CODE_ATTEMPTS + 2):
+            rate_limit._hits.clear()
+            r = client.post("/auth/reset-password", json={
+                "channel": "email", "contact": address,
+                "code": "000000", "new_password": "guessedpass1",
+            })
+            out.append((r.status_code, r.json().get("detail")))
+        return out
+
+    assert hammer("exists@example.com") == hammer("nobody-here@example.com")
+
+    # същото и при потвърждаването на имейл
+    # тук нарочно НЕ потвърждаваме акаунта — това е случаят, който verify-email
+    # обслужва, а и единственият, в който заключване изобщо може да се натрупа
+    rate_limit._hits.clear()
+    assert _register("unverified@example.com").status_code == 200
+    codes.clear()
+
+    def hammer_verify(address):
+        out = []
+        for _ in range(auth.MAX_CODE_ATTEMPTS + 2):
+            rate_limit._hits.clear()
+            r = client.post("/auth/verify-email", json={"email": address, "code": "000000"})
+            out.append((r.status_code, r.json().get("detail")))
+        return out
+
+    assert hammer_verify("unverified@example.com") == hammer_verify("nobody-here@example.com")
