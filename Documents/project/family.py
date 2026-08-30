@@ -3,11 +3,13 @@
 # на задачите или въпросите към учителя — ако детето знае, че всеки въпрос се чете,
 # спира да пита честно, а точно питането е смисълът на приложението.
 import secrets
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import List
+from typing import Dict, Iterable, List
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import and_, case, func
 from sqlalchemy.orm import Session
 
 import rate_limit
@@ -118,8 +120,8 @@ def link_student(
     return {"status": "ok"}
 
 
-def _focus_streak(sessions: List[FocusSession]) -> int:
-    days = {_local_date(s.created_at) for s in sessions}
+def _streak_from_days(days: Iterable) -> int:
+    days = set(days)
     if not days:
         return 0
     cursor = _today_local()
@@ -134,34 +136,138 @@ def _focus_streak(sessions: List[FocusSession]) -> int:
     return streak
 
 
+# ---------------------------------------------------------------------------
+# Обобщените числа за група ученици. Ползват се и от родителския изглед тук, и от
+# учителския в classes.py — двата показват едно и също и е по-добре да го смятат
+# на едно място, отколкото да се разминат някой ден.
+#
+# Досега за всеки ученик поотделно се дърпаха ВСИЧКИТЕ му задачи и ВСИЧКИТЕ му
+# сесии като обекти, за да се преброят в Python. За учител с тридесет класа по
+# тридесет ученици това е към две хиляди обиколки до базата на едно отваряне на
+# страницата. Броенето е работа на базата; тук остава само това, което тя не
+# може да свърши преносимо.
+# ---------------------------------------------------------------------------
+
+# Серията е низ от последователни дни до днес, затова сесия отпреди повече от
+# година не може да я удължи, без да има сесия и във всеки ден между двете.
+# Границата пази заявката да не издърпа цялата история на всички ученици наведнъж.
+STREAK_LOOKBACK_DAYS = 400
+
+# SQLite приема най-много 999 стойности в един IN (...). Postgres няма такъв
+# праг, но разделянето на партиди не му пречи.
+_ID_BATCH = 400
+
+
+def _batched(ids: Iterable[str]):
+    ids = list(ids)
+    for start in range(0, len(ids), _ID_BATCH):
+        yield ids[start:start + _ID_BATCH]
+
+
+def _users_by_id(db: Session, ids: Iterable[str]) -> Dict[str, User]:
+    found: Dict[str, User] = {}
+    for batch in _batched(set(ids)):
+        for student in db.query(User).filter(User.id.in_(batch)).all():
+            found[student.id] = student
+    return found
+
+
+def _progress_by_student(db: Session, student_ids: Iterable[str]) -> Dict[str, dict]:
+    ids = list(set(student_ids))
+    result = {
+        sid: {"tasks_pending": 0, "tasks_done": 0, "tasks_overdue": 0,
+              "focus_minutes_7d": 0, "focus_streak_days": 0}
+        for sid in ids
+    }
+    if not ids:
+        return result
+
+    today = _today_local()
+    now = datetime.now(timezone.utc)
+    week_ago = now - timedelta(days=7)
+    streak_floor = now - timedelta(days=STREAK_LOOKBACK_DAYS)
+
+    # case(...) вместо count(...).filter(...): FILTER е по-четимо, но иска SQLite 3.30+,
+    # а тази форма върви навсякъде.
+    n_pending = func.sum(case((Task.done.is_(False), 1), else_=0))
+    n_done = func.sum(case((Task.done.is_(True), 1), else_=0))
+    n_overdue = func.sum(case(
+        (and_(Task.done.is_(False), Task.deadline.isnot(None), Task.deadline < today), 1),
+        else_=0,
+    ))
+
+    for batch in _batched(ids):
+        for sid, pending, done, overdue in (
+            db.query(Task.user_id, n_pending, n_done, n_overdue)
+            .filter(Task.user_id.in_(batch))
+            .group_by(Task.user_id)
+            .all()
+        ):
+            result[sid].update(
+                tasks_pending=int(pending or 0),
+                tasks_done=int(done or 0),
+                tasks_overdue=int(overdue or 0),
+            )
+
+        # "последните седем дни" минава в SQL: досега се четяха всички сесии и се
+        # филтрираха след това.
+        for sid, seconds in (
+            db.query(FocusSession.user_id, func.sum(FocusSession.duration_seconds))
+            .filter(
+                FocusSession.user_id.in_(batch),
+                FocusSession.duration_seconds >= MIN_SESSION_SECONDS,
+                FocusSession.created_at >= week_ago,
+            )
+            .group_by(FocusSession.user_id)
+            .all()
+        ):
+            result[sid]["focus_minutes_7d"] = round((seconds or 0) / 60)
+
+        # Серията иска РАЗЛИЧНИТЕ дни по календара на ученика, а превръщането на UTC
+        # в местна дата не се пише еднакво в SQLite и в Postgres. Затова остава в
+        # Python — но заявката вади само две колони и само за прозореца на серията,
+        # вместо цялата история като ORM обекти.
+        days = defaultdict(set)
+        for sid, created_at in (
+            db.query(FocusSession.user_id, FocusSession.created_at)
+            .filter(
+                FocusSession.user_id.in_(batch),
+                FocusSession.duration_seconds >= MIN_SESSION_SECONDS,
+                FocusSession.created_at >= streak_floor,
+            )
+            .distinct()
+            .all()
+        ):
+            days[sid].add(_local_date(created_at))
+        for sid, dates in days.items():
+            result[sid]["focus_streak_days"] = _streak_from_days(dates)
+
+    return result
+
+
+def _progress_out(student: User, linked_at: datetime, numbers: dict) -> StudentProgressOut:
+    return StudentProgressOut(
+        student_id=student.id,
+        display_name=student.display_name,
+        linked_at=linked_at,
+        **numbers,
+    )
+
+
 @router.get("/students", response_model=List[StudentProgressOut])
 def list_students(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     links = db.query(FamilyLink).filter(FamilyLink.parent_user_id == user.id).all()
-    today = _today_local()
-    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    if not links:
+        return []
+
+    students = _users_by_id(db, (link.student_user_id for link in links))
+    numbers = _progress_by_student(db, students)
 
     out = []
     for link in links:
-        student = db.get(User, link.student_user_id)
-        if not student:
-            continue
-        tasks = db.query(Task).filter(Task.user_id == student.id).all()
-        sessions = db.query(FocusSession).filter(
-            FocusSession.user_id == student.id,
-            FocusSession.duration_seconds >= MIN_SESSION_SECONDS,
-        ).all()
-        recent_seconds = sum(s.duration_seconds for s in sessions if _aware(s.created_at) >= week_ago)
-
-        out.append(StudentProgressOut(
-            student_id=student.id,
-            display_name=student.display_name,
-            tasks_pending=sum(1 for t in tasks if not t.done),
-            tasks_done=sum(1 for t in tasks if t.done),
-            tasks_overdue=sum(1 for t in tasks if not t.done and t.deadline and t.deadline < today),
-            focus_minutes_7d=round(recent_seconds / 60),
-            focus_streak_days=_focus_streak(sessions),
-            linked_at=link.created_at,
-        ))
+        student = students.get(link.student_user_id)
+        if student:
+            out.append(_progress_out(student, link.created_at, numbers[student.id]))
     return out
 
 

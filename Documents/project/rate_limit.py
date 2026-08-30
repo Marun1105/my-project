@@ -11,6 +11,11 @@ from fastapi import HTTPException, Request
 
 _lock = Lock()
 _hits: dict[str, list] = defaultdict(list)
+# Прозорецът на всяка кофа се помни отделно. Ключовете на всички кофи стоят в един
+# речник, а изтичат по различно време: "register" е с час, "login" — с петнайсет
+# минути. Ако чистенето реши кой ключ е стар по прозореца на кофата, която случайно
+# го е задействала, дългите лимити мълчаливо се съкращават до най-късия в приложението.
+_bucket_windows: dict[str, int] = {}
 
 # Колко обратни проксита стоят пред приложението (Render = 1). Всяко прокси ДОБАВЯ
 # истинския адрес най-отдясно в X-Forwarded-For, затова броим отдясно наляво.
@@ -57,8 +62,17 @@ _CLEANUP_EVERY = 500
 _calls_since_cleanup = 0
 
 
-def _evict_stale(now: float, window_seconds: int) -> None:
-    for key in [k for k, hits in _hits.items() if not hits or hits[-1] < now - window_seconds]:
+def _evict_stale(now: float) -> None:
+    # Ключът е "кофа:адрес", а адресът може сам да съдържа двоеточие (IPv6),
+    # затова режем само по първото.
+    stale = []
+    for key, hits in _hits.items():
+        window = _bucket_windows.get(key.split(":", 1)[0])
+        if window is None:
+            continue  # непозната кофа — по-добре да заеме малко памет, отколкото да падне рано
+        if not hits or hits[-1] < now - window:
+            stale.append(key)
+    for key in stale:
         del _hits[key]
 
 
@@ -67,10 +81,16 @@ def enforce(request: Request, bucket: str, max_calls: int, window_seconds: int, 
     key = f"{bucket}:{_client_key(request)}"
     now = time.time()
     with _lock:
+        # Записваме прозореца, преди да е създаден ключ на тази кофа — така чистенето
+        # никога не среща ключ, за който не знае по колко време изтича.
+        _bucket_windows[bucket] = window_seconds
+
+        # Броят се и отхвърлените заявки: това е ритъм на чистенето, а не квота.
+        # Безопасно е само защото всяка кофа вече се чисти със собствения си прозорец.
         _calls_since_cleanup += 1
         if _calls_since_cleanup >= _CLEANUP_EVERY:
             _calls_since_cleanup = 0
-            _evict_stale(now, window_seconds)
+            _evict_stale(now)
 
         hits = _hits[key]
         cutoff = now - window_seconds

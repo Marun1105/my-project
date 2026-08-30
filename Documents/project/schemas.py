@@ -134,17 +134,41 @@ class AuthResponse(BaseModel):
     user: UserOut
 
 
+# Един ред от чеклиста, не съчинение: и най-дългото домашно се събира в няколко реда,
+# а без таван едно вписване побира мегабайти и ги пише в базата на Render. Числата са
+# същите като в planner.TaskIn (500/100) с широк запас нагоре, за да не се разминават
+# двата пътя, по които една и съща задача влиза в приложението.
+TASK_TEXT_MAX = 2000
+TASK_SUBJECT_MAX = 100
+
+
+def _reject_explicit_null(v):
+    # model_dump(exclude_unset=True) НЕ различава "полето липсва" от "полето е
+    # изрично null" — второто минава нататък и опитва да запише NULL в NOT NULL
+    # колона, което излиза като 500 от db.commit(). Тук се спира като 422.
+    # Полетата, които наистина могат да се изчистват (subject, deadline), нямат
+    # тази проверка и продължават да приемат null.
+    if v is None:
+        raise ValueError("Полето не може да е празно.")
+    return v
+
+
 class TaskIn(BaseModel):
-    text: str
-    subject: Optional[str] = None
+    text: str = Field(max_length=TASK_TEXT_MAX)
+    subject: Optional[str] = Field(default=None, max_length=TASK_SUBJECT_MAX)
     deadline: Optional[date] = None
 
 
 class TaskUpdate(BaseModel):
-    text: Optional[str] = None
-    subject: Optional[str] = None
+    text: Optional[str] = Field(default=None, max_length=TASK_TEXT_MAX)
+    subject: Optional[str] = Field(default=None, max_length=TASK_SUBJECT_MAX)
     deadline: Optional[date] = None
     done: Optional[bool] = None
+
+    # Optional са само за да се различи "непратено" от "пратено" при частично
+    # обновяване — стойността null обаче не е валидна за тези две колони.
+    _text_not_null = field_validator("text")(_reject_explicit_null)
+    _done_not_null = field_validator("done")(_reject_explicit_null)
 
 
 class FamilyInviteOut(BaseModel):
@@ -153,7 +177,9 @@ class FamilyInviteOut(BaseModel):
 
 
 class FamilyLinkRequest(BaseModel):
-    code: str
+    # Кодът е 6 знака; 32 оставя място за интервали и разкрасяване при преписване,
+    # но не и за низ, който да се търси в базата като цял абзац.
+    code: str = Field(max_length=32)
 
 
 class StudentProgressOut(BaseModel):
@@ -207,11 +233,13 @@ class TaskOut(BaseModel):
 
 
 class ClassroomCreate(BaseModel):
-    name: str
+    # Имената на класове са от рода на "7А" или "10Б — математика"; 60 знака стигат
+    # с много запас и на най-описателния учител.
+    name: str = Field(max_length=60)
 
 
 class ClassroomJoinRequest(BaseModel):
-    code: str
+    code: str = Field(max_length=32)
 
 
 class ClassroomOut(BaseModel):

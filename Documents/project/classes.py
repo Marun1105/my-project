@@ -6,7 +6,7 @@
 # и кодът му е дълготраен. Какво СЕ ВИЖДА е едно и също — само числа, никога текст
 # на задача или въпрос към AI учителя.
 import secrets
-from datetime import datetime, timedelta, timezone
+from collections import defaultdict
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -15,15 +15,13 @@ from sqlalchemy.orm import Session
 import rate_limit
 from auth import get_current_user
 from db import get_db
-from family import _aware, _focus_streak, _today_local
-from focus_sessions import MIN_SESSION_SECONDS
-from models import Classroom, ClassroomMember, FocusSession, Role, Task, User
+from family import _progress_by_student, _progress_out, _users_by_id
+from models import Classroom, ClassroomMember, Role, User
 from schemas import (
     ClassroomCreate,
     ClassroomJoinRequest,
     ClassroomOut,
     ClassroomWithStudents,
-    StudentProgressOut,
 )
 
 router = APIRouter(prefix="/classes", tags=["classes"])
@@ -46,28 +44,6 @@ def _generate_code(db: Session) -> str:
         if not db.query(Classroom).filter(Classroom.join_code == code).first():
             return code
     raise HTTPException(500, "Не успях да създам код за класа. Опитай пак.")
-
-
-def _student_progress(db: Session, student: User, joined_at: datetime) -> StudentProgressOut:
-    today = _today_local()
-    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    tasks = db.query(Task).filter(Task.user_id == student.id).all()
-    sessions = db.query(FocusSession).filter(
-        FocusSession.user_id == student.id,
-        FocusSession.duration_seconds >= MIN_SESSION_SECONDS,
-    ).all()
-    recent_seconds = sum(s.duration_seconds for s in sessions if _aware(s.created_at) >= week_ago)
-
-    return StudentProgressOut(
-        student_id=student.id,
-        display_name=student.display_name,
-        tasks_pending=sum(1 for t in tasks if not t.done),
-        tasks_done=sum(1 for t in tasks if t.done),
-        tasks_overdue=sum(1 for t in tasks if not t.done and t.deadline and t.deadline < today),
-        focus_minutes_7d=round(recent_seconds / 60),
-        focus_streak_days=_focus_streak(sessions),
-        linked_at=joined_at,
-    )
 
 
 @router.post("", response_model=ClassroomOut)
@@ -102,20 +78,37 @@ def create_class(
 def list_classes(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     _require_teacher(user)
     classrooms = db.query(Classroom).filter(Classroom.teacher_user_id == user.id).all()
+    if not classrooms:
+        return []
 
-    out = []
-    for classroom in classrooms:
-        members = db.query(ClassroomMember).filter(ClassroomMember.classroom_id == classroom.id).all()
-        students = []
-        for member in members:
-            student = db.get(User, member.student_user_id)
-            if student:
-                students.append(_student_progress(db, student, member.created_at))
-        out.append(ClassroomWithStudents(
+    # Целият изглед се събира с шепа заявки: членовете на всички класове наведнъж,
+    # после самите ученици, после броевете им. Досега тук се въртеше цикъл в цикъл
+    # и всеки ученик струваше отделни обиколки до базата.
+    members = (
+        db.query(ClassroomMember)
+        .filter(ClassroomMember.classroom_id.in_([c.id for c in classrooms]))
+        .order_by(ClassroomMember.created_at)
+        .all()
+    )
+    students = _users_by_id(db, (m.student_user_id for m in members))
+    numbers = _progress_by_student(db, students)
+
+    by_class = defaultdict(list)
+    for member in members:
+        student = students.get(member.student_user_id)
+        if student:
+            by_class[member.classroom_id].append(
+                _progress_out(student, member.created_at, numbers[student.id])
+            )
+
+    return [
+        ClassroomWithStudents(
             id=classroom.id, name=classroom.name, join_code=classroom.join_code,
-            student_count=len(students), created_at=classroom.created_at, students=students,
-        ))
-    return out
+            student_count=len(by_class[classroom.id]), created_at=classroom.created_at,
+            students=by_class[classroom.id],
+        )
+        for classroom in classrooms
+    ]
 
 
 @router.post("/join")
