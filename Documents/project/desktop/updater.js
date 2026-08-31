@@ -40,12 +40,21 @@ function info(message, detail) {
   say({ type: 'info', buttons: ['Добре'], title: 'Climby', message, detail });
 }
 
+// Пазим сами дали точно сега тече проверка. По върнатата стойност не става:
+// electron-updater връща СЪЩИЯ промис на второто извикване и не вдига събитие
+// втори път, тоест отвън двата случая изглеждат еднакво.
+let checkInFlight = false;
+
 function check() {
-  autoUpdater.checkForUpdates().catch(err => {
-    // checkForUpdates отхвърля промиса И вдига 'error'; хващаме го тук само за
-    // да не остане необработен.
-    console.warn('[updater] проверката не мина:', err && err.message ? err.message : err);
-  });
+  checkInFlight = true;
+  return autoUpdater.checkForUpdates()
+    .catch(err => {
+      // checkForUpdates отхвърля промиса И вдига 'error'; хващаме го тук само за
+      // да не остане необработен.
+      console.warn('[updater] проверката не мина:', err && err.message ? err.message : err);
+      return null;
+    })
+    .finally(() => { checkInFlight = false; });
 }
 
 // Пуска се веднъж, при стартиране. getWindowFn връща главния прозорец (или null),
@@ -87,8 +96,12 @@ function initAutoUpdate(getWindowFn) {
   });
 
   autoUpdater.on('update-downloaded', async info_ => {
-    // Ако ученикът е избрал "По-късно", не го питаме пак при всяка проверка.
-    if (promptShown) return;
+    // Ако ученикът е избрал "По-късно", не го питаме пак при всяка АВТОМАТИЧНА
+    // проверка. Но ако сам е отворил "Провери за обновяване", той чака отговор:
+    // дотук му казвахме "ще ти кажа, когато е готова" и после мълчахме, защото
+    // версията вече е свалена и този ред връщаше веднага.
+    if (promptShown && !manualCheck) return;
+    manualCheck = false;
     promptShown = true;
     try {
       const { response } = await say({
@@ -135,6 +148,15 @@ function checkForUpdatesManually() {
       'Преносимият вариант не се обновява сам.',
       'Изтегли новия „Climby Setup“ от страницата с версиите, за да получаваш обновяванията автоматично.'
     );
+    return;
+  }
+  // Проверката при пускане закъснява 8 секунди и трае, колкото трае мрежата. Ако
+  // ученикът натисне менюто точно тогава, второто извикване се закача за първото
+  // и никое събитие не се вдига повторно: менюто не правеше НИЩО, а manualCheck
+  // оставаше вдигнат и часове по-късно изскачаше прозорец, който никой не е искал
+  // в този момент.
+  if (checkInFlight) {
+    info('Точно сега проверявам.', 'Ще ти кажа веднага щом разбера дали има нещо ново.');
     return;
   }
   manualCheck = true;

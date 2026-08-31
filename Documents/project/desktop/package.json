@@ -44,9 +44,9 @@
         "to": "frontend",
         "filter": [
           "**/*",
-          "!.pytest_cache",
-          "!__pycache__",
-          "!.playwright-mcp"
+          "!**/.pytest_cache/**",
+          "!**/__pycache__/**",
+          "!**/.playwright-mcp/**"
         ]
       }
     ],

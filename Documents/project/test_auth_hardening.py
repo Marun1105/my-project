@@ -469,3 +469,63 @@ def test_the_lock_does_not_reveal_which_addresses_exist(codes):
         return out
 
     assert hammer_verify("unverified@example.com") == hammer_verify("nobody-here@example.com")
+
+
+def _median_ms(call, n=5):
+    xs = []
+    for _ in range(n):
+        rate_limit._hits.clear()
+        t = time.perf_counter()
+        call()
+        xs.append((time.perf_counter() - t) * 1000)
+    xs.sort()
+    return xs[len(xs) // 2]
+
+
+def test_reset_password_takes_similar_time_for_known_and_unknown_addresses(codes):
+    """Същият пропуск като при входа, но една врата по-нататък.
+
+    Кодовете на състоянието и текстовете бяха изравнени, а времето — не:
+    несъществуващият адрес се връщаше, без изобщо да стигне до сравнение на код
+    (~6 мс), докато съществуващият минаваше през bcrypt (~230 мс). Мълчаливият
+    отговор пак казваше кое дете има профил, стига да го измериш.
+    """
+    _account("resettiming@example.com")
+    codes.clear()
+    rate_limit._hits.clear()
+    client.post("/auth/forgot-password",
+                json={"channel": "email", "contact": "resettiming@example.com"})
+
+    def attempt(address):
+        return lambda: client.post("/auth/reset-password", json={
+            "channel": "email", "contact": address,
+            "code": "000000", "new_password": "guessedpass1",
+        })
+
+    known = _median_ms(attempt("resettiming@example.com"))
+    unknown = _median_ms(attempt("reset-nobody@example.com"))
+    assert 0.4 < unknown / known < 2.5, f"known {known:.1f} ms vs unknown {unknown:.1f} ms"
+
+
+def test_a_locked_account_takes_as_long_as_an_unknown_address():
+    """Заключването беше изравнено по код и по текст, но не и по време.
+
+    Заключеният акаунт излизаше веднага, без сравнение (~5 мс), а непознатият
+    адрес плащаше пълно bcrypt (~230 мс) — тоест бързият отговор беше признакът,
+    че този адрес съществува И вече е заключен. Разликата беше дори обърната
+    спрямо първоначалната, но също толкова четима.
+    """
+    rate_limit._hits.clear()
+    assert _register("lockedtiming@example.com").status_code == 200
+    for _ in range(auth.MAX_CODE_ATTEMPTS + 1):
+        rate_limit._hits.clear()
+        client.post("/auth/verify-email",
+                    json={"email": "lockedtiming@example.com", "code": "111111"})
+
+    def attempt(address):
+        return lambda: client.post("/auth/verify-email",
+                                   json={"email": address, "code": "111111"})
+
+    locked = _median_ms(attempt("lockedtiming@example.com"))
+    unknown = _median_ms(attempt("locked-nobody@example.com"))
+    assert 0.4 < unknown / locked < 2.5, f"locked {locked:.1f} ms vs unknown {unknown:.1f} ms"

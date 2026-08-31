@@ -124,9 +124,17 @@ def test_backend_url_is_only_defined_in_config():
     assert not offenders, f"твърд адрес на бекенда в: {offenders}"
 
 
+PRODUCTION_BACKEND = "https://my-project-0gyk.onrender.com"
+
+
 def test_config_points_at_production():
     """Проверява самата стойност, не коментара над нея (там локалният адрес е нарочно)."""
     assignment = re.search(r"window\.CLIMBY_BACKEND\s*=\s*'([^']+)'", _read("config.js"))
     assert assignment, "не намерих window.CLIMBY_BACKEND в config.js"
     url = assignment.group(1)
-    assert url.startswith("https://"), f"config.js е останал насочен към локален бекенд: {url}"
+    # Само "започва с https" пропускаше и адреса на друг сървър — например копие
+    # за проба. Тестът е тук именно за да не тръгне издание срещу чужда база, а
+    # това се познава само по целия адрес.
+    assert url == PRODUCTION_BACKEND, (
+        f"config.js сочи към {url}, а не към продукцията {PRODUCTION_BACKEND}"
+    )

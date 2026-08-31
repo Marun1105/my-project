@@ -41,7 +41,10 @@ const Family = (() => {
     let el = after.nextElementSibling;
     if (!el || !el.classList.contains('family-load-error')) {
       el = document.createElement('p');
-      el.className = 'hint auth-error family-load-error';
+      // Само 'auth-error': .hint е дефиниран по-надолу в style.css и при равна
+      // тежест печели той, тоест текстът опира в рамката и посивява. Точно това
+      // беше оправено на другите места и тук остана.
+      el.className = 'auth-error family-load-error';
       after.insertAdjacentElement('afterend', el);
     }
     el.textContent = t(key);
@@ -104,7 +107,26 @@ const Family = (() => {
     return card;
   }
 
+  // Семейното устройство се подава от ръка на ръка: чуждото дете не бива да
+  // стои на екрана, докато сървърът се събужда. И по-бавен стар отговор не бива
+  // да пребива по-нов — същата защита като в checklist.js.
+  let renderedFor = null;
+  let renderSeq = 0;
+
+  function forgetRendered() {
+    renderedFor = null;
+    renderSeq++;
+    $('familyStudents').innerHTML = '';
+    $('familyParents').innerHTML = '';
+  }
+
   async function renderStudents() {
+    const seq = ++renderSeq;
+    const account = Auth.getToken();
+    if (renderedFor !== account) {
+      renderedFor = account;
+      $('familyStudents').innerHTML = '';
+    }
     const wrap = $('familyStudents');
     const empty = $('familyStudentsEmpty');
 
@@ -121,11 +143,13 @@ const Family = (() => {
       // Тук стоеше students = [], тоест паднал интернет се показваше като
       // "Още нямаш свързан ученик" — приложението отричаше връзка, която си
       // има. Каквото вече се вижда, остава; отдолу пише, че не сме се свързали.
+      if (seq !== renderSeq) return;
       inlineError(wrap, 'family.errLoadStudents');
       if (!wrap.children.length) empty.classList.add('hidden');
       return;
     }
 
+    if (seq !== renderSeq) return;
     clearInlineError(wrap);
     wrap.innerHTML = '';
     setEmptyText(empty, t('family.noStudents'));
@@ -134,6 +158,12 @@ const Family = (() => {
   }
 
   async function renderParents() {
+    const seq = ++renderSeq;
+    const account = Auth.getToken();
+    if (renderedFor !== account) {
+      renderedFor = account;
+      $('familyParents').innerHTML = '';
+    }
     const wrap = $('familyParents');
     let parents;
     try {
@@ -141,9 +171,11 @@ const Family = (() => {
     } catch {
       // Липсващият списък казва "никой няма достъп до данните ти" — точно
       // обратното на истината, ако заявката просто не е стигнала.
+      if (seq !== renderSeq) return;
       inlineError(wrap, 'family.errLoadParents');
       return;
     }
+    if (seq !== renderSeq) return;
     clearInlineError(wrap);
     wrap.innerHTML = '';
     if (!parents.length) return;
@@ -213,6 +245,9 @@ const Family = (() => {
 
   function updateGate() {
     const loggedIn = Auth.isLoggedIn();
+    // Досега тук нямаше нищо за излизането: картите на предишния родител
+    // оставаха на екрана за следващия, докато сървърът мълчи.
+    if (!loggedIn) forgetRendered();
     $('familyGate').classList.toggle('hidden', loggedIn);
     $('familyApp').classList.toggle('hidden', !loggedIn);
     if (loggedIn) render();

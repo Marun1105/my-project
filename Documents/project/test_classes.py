@@ -157,12 +157,25 @@ def test_teacher_cannot_touch_another_teachers_class():
     created = client.post("/classes", json={"name": "11А"}, headers=teacher_a).json()
     client.post("/classes/join", json={"code": created["join_code"]}, headers=student)
 
+    # Истинското id на ученика, както го вижда собственият му учител. Дотук на
+    # мястото му стоеше речникът със заглавките, тоест в адреса влизаше чужд токен,
+    # а 404-та идваше от "няма такъв ученик в класа", а не от "този клас не е твой":
+    # махнеш ли проверката за собственик, тестът пак минаваше.
+    roster = client.get("/classes", headers=teacher_a).json()
+    student_id = roster[0]["students"][0]["student_id"]
+
     # чужд учител не вижда класа и не може да го трие или да маха ученици от него
     assert client.get("/classes", headers=teacher_b).json() == []
     assert client.delete(f"/classes/{created['id']}", headers=teacher_b).status_code == 404
     assert client.delete(
-        f"/classes/{created['id']}/students/{student}", headers=teacher_b
+        f"/classes/{created['id']}/students/{student_id}", headers=teacher_b
     ).status_code == 404
+
+    # а собственият му учител може — иначе горното 404 не доказва нищо за правата
+    assert client.delete(
+        f"/classes/{created['id']}/students/{student_id}", headers=teacher_a
+    ).status_code == 200
+    assert client.get("/classes", headers=teacher_a).json()[0]["students"] == []
 
 
 def test_deleting_a_class_removes_its_members():

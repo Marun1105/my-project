@@ -319,8 +319,32 @@ const Classes = (() => {
     return card;
   }
 
+  // Устройството е общо — в учителската стая и вкъщи. Щом влезе друг, чуждите
+  // карти трябва да изчезнат веднага, а не когато заспалият Render благоволи да
+  // отговори. И всяко рисуване си носи номер: изпревари ли го по-ново, старият
+  // отговор се изхвърля, иначе изтрит клас се появява пак, защото по-бавната
+  // заявка е тръгнала преди триенето и се връща след него. Същото като в
+  // checklist.js — тук просто беше пропуснато.
+  let renderedFor = null;
+  let renderSeq = 0;
+
+  function _forgetRendered() {
+    renderedFor = null;
+    renderSeq++;
+    $('classesList').innerHTML = '';
+    $('studentClassesList').innerHTML = '';
+    $('classesEmpty').classList.add('hidden');
+    $('studentClassesEmpty').classList.add('hidden');
+  }
+
   async function renderTeacher() {
     _clearError('classesError');
+    const seq = ++renderSeq;
+    const account = Auth.getToken();
+    if (renderedFor !== account) {
+      renderedFor = account;
+      $('classesList').innerHTML = '';
+    }
     const list = $('classesList');
     const empty = $('classesEmpty');
 
@@ -336,6 +360,7 @@ const Classes = (() => {
     try {
       classrooms = await api('/classes');
     } catch (err) {
+      if (seq !== renderSeq) return;
       // "Не успях да заредя" не е "нямаш класове". Старите карти падат, за да не
       // висят под грешката като нещо още вярно, а на тяхно място стои причината.
       list.innerHTML = '';
@@ -344,6 +369,7 @@ const Classes = (() => {
       return;
     }
 
+    if (seq !== renderSeq) return;
     list.innerHTML = '';
     classrooms.forEach(c => list.appendChild(_classCard(c)));
     _setEmptyText(empty, t('classes.emptyTeacher'));
@@ -367,6 +393,12 @@ const Classes = (() => {
 
   async function renderStudent() {
     _clearError('studentClassesError');
+    const seq = ++renderSeq;
+    const account = Auth.getToken();
+    if (renderedFor !== account) {
+      renderedFor = account;
+      $('studentClassesList').innerHTML = '';
+    }
     const list = $('studentClassesList');
     const empty = $('studentClassesEmpty');
 
@@ -379,12 +411,14 @@ const Classes = (() => {
     try {
       mine = await api('/classes/mine');
     } catch (err) {
+      if (seq !== renderSeq) return;
       list.innerHTML = '';
       _setEmptyText(empty, err.message || t('classes.errLoad'));
       empty.classList.remove('hidden');
       return;
     }
 
+    if (seq !== renderSeq) return;
     list.innerHTML = '';
 
     mine.forEach(item => {
@@ -462,6 +496,8 @@ const Classes = (() => {
     const role = loggedIn ? Auth.getRole() : null;
     const isTeacher = role === 'teacher';
     const isStudent = role === 'student';
+
+    if (!loggedIn) _forgetRendered();
 
     $('classesGate').classList.toggle('hidden', loggedIn);
     $('teacherApp').classList.toggle('hidden', !isTeacher);

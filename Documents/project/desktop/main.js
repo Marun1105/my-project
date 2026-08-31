@@ -63,14 +63,32 @@ function createWindow() {
 
   // Външните връзки отиват в браузъра по подразбиране, а не отварят втори прозорец
   // на приложението без адресна лента.
+  //
+  // Но НЕ всяка връзка: shell.openExternal подава адреса на Windows, а Windows
+  // отваря с каквото знае — file:// пуска програма от диска, ms-msdt: и search-ms:
+  // са си отделна история. Отговорът на AI учителя е чужд текст, който идва по
+  // мрежата; DOMPurify маха javascript:, но file: не е негова работа, а и кликът
+  // върху връзка изобщо не минава през него. Затова навън пускаме само това, което
+  // наистина е страница в интернет, а всичко останало се преглъща мълчаливо.
+  const EXTERNAL_OK = new Set(['https:', 'http:', 'mailto:']);
+  const openExternally = url => {
+    let protocol;
+    try {
+      protocol = new URL(url).protocol;
+    } catch {
+      return; // неразбираем адрес — няма къде да го отворим
+    }
+    if (EXTERNAL_OK.has(protocol)) shell.openExternal(url);
+  };
+
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    openExternally(url);
     return { action: 'deny' };
   });
   win.webContents.on('will-navigate', (event, url) => {
     if (!url.startsWith('app://')) {
       event.preventDefault();
-      shell.openExternal(url);
+      openExternally(url);
     }
   });
 

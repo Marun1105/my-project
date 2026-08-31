@@ -184,6 +184,12 @@ def _consume_code(db: Session, user: User, purpose: CodePurpose, code: str,
                 f"Твърде много грешни кодове. Опитай пак след около {left} мин. "
                 "и поискай нов код — акаунтът ти си остава твой, само изчакай малко.",
             )
+        # Кодът на състоянието и текстът вече са еднакви за заключен акаунт и за
+        # непознат адрес. Оставаше обаче ВРЕМЕТО: заключеният излизаше оттук
+        # веднага, а непознатият адрес плащаше едно пълно bcrypt сравнение. Пет
+        # милисекунди срещу двеста и двайсет са същият отговор като 429 срещу 400,
+        # само че се чете с хронометър. Затова и тази пътека струва едно сравнение.
+        security.verify_code(code, security.DUMMY_PASSWORD_HASH)
         return False
     candidates = (
         db.query(VerificationCode)
@@ -451,9 +457,16 @@ def reset_password(body: ResetPasswordRequest, request: Request, db: Session = D
     else:
         raise HTTPException(400, "Невалиден начин за връзка.")
 
-    if not user or not _consume_code(db, user, CodePurpose.reset_password, body.code):
-        raise HTTPException(400, "Грешен или изтекъл код. Поискай нов, а ако си "
-                                 "опитвал няколко пъти подред — изчакай петнайсетина минути.")
+    BAD_CODE = ("Грешен или изтекъл код. Поискай нов, а ако си "
+                "опитвал няколко пъти подред — изчакай петнайсетина минути.")
+    if not user:
+        # Същото съображение като при входа: без този ред несъществуващият адрес
+        # отговаря за милисекунди, а съществуващият — за четвърт секунда, и
+        # разликата казва кое дете има профил, колкото и еднакви да са думите.
+        security.verify_code(body.code, security.DUMMY_PASSWORD_HASH)
+        raise HTTPException(400, BAD_CODE)
+    if not _consume_code(db, user, CodePurpose.reset_password, body.code):
+        raise HTTPException(400, BAD_CODE)
 
     user.password_hash = security.hash_password(body.new_password)
     # Смяната на паролата прекратява и всички стари сесии. Ако някой е влязъл с
