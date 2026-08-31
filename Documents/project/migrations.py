@@ -10,10 +10,123 @@
 # колона, ако я няма". Ако някой ден потрябват истински миграции, тук е мястото,
 # което трябва да се смени.
 import sys
+import threading
+from contextlib import contextmanager
 
 from sqlalchemy import inspect, text
+from sqlalchemy.exc import SQLAlchemyError
 
 from db import engine
+
+
+# Ключ за pg_advisory_lock. Произволно, но постоянно число — важното е всички
+# работници да искат ЕДИН И СЪЩ ключ, за да се редят един след друг.
+_SCHEMA_LOCK_KEY = 7311982045123001
+
+
+# Вътре в един процес се редим сами; ключалката в Postgres е за другите процеси.
+# RLock, защото server.py взима ключалката около create_all, а run() я взима пак.
+_local_lock = threading.RLock()
+
+
+@contextmanager
+def schema_lock():
+    """Един работник пипа схемата в даден момент.
+
+    На Render uvicorn вдига няколко процеса и всеки от тях изпълнява стъпките по
+    схемата при внасянето на server.py. Досега между тях нямаше нищо: и двамата
+    виждаха липсваща колона, и двамата пускаха ALTER TABLE, Postgres ги нареждаше
+    по своята ключалка и вторият получаваше DuplicateColumn. Грешката излизаше от
+    внасянето на модула и убиваше работника още при вдигането — тоест половин
+    деплой или безкраен рестарт заради нещо, което вече е било направено.
+
+    В SQLite няма такава ключалка и не трябва: там процесът е един. Затова липсата
+    ѝ не е грешка — просто минаваме без нея.
+    """
+    with _local_lock:
+        conn = None
+        if engine.dialect.name == "postgresql":
+            try:
+                conn = engine.connect()
+                conn.execute(text("SELECT pg_advisory_lock(:k)"),
+                             {"k": _SCHEMA_LOCK_KEY})
+                # Ключалката е на ниво връзка, не на транзакция — приключваме
+                # транзакцията, за да не държим отворена такава през цялата
+                # миграция, но връзката остава жива и ключалката с нея.
+                conn.commit()
+            except SQLAlchemyError as err:
+                # Без ключалка е по-зле, но не е фатално: стъпките по-долу и без
+                # това преживяват "вече съществува". По-добре стартирал сървър с
+                # предупреждение, отколкото мъртъв заради заключване.
+                print(f"[migrations] ключалката за схемата не се взе: {err!r}",
+                      file=sys.stderr)
+                if conn is not None:
+                    conn.close()
+                conn = None
+        try:
+            yield
+        finally:
+            if conn is not None:
+                try:
+                    conn.execute(text("SELECT pg_advisory_unlock(:k)"),
+                                 {"k": _SCHEMA_LOCK_KEY})
+                    conn.commit()
+                except SQLAlchemyError as err:
+                    print(f"[migrations] ключалката не се освободи: {err!r}",
+                          file=sys.stderr)
+                finally:
+                    # Затварянето на връзката така или иначе пуска ключалката.
+                    conn.close()
+
+
+# Признаци, че сме загубили надпревара: другият работник е направил същото нещо
+# милисекунда преди нас. Postgres ги дава като SQLSTATE, SQLite — само като текст.
+_DUPLICATE_SQLSTATES = {
+    "42701",   # duplicate_column
+    "42P07",   # duplicate_table
+    "42710",   # duplicate_object (индекс, ограничение)
+    "23505",   # unique_violation — при backfill на имейлите
+}
+_DUPLICATE_TEXTS = (
+    "duplicate column",
+    "already exists",
+    "duplicate key",
+    "duplicate table",
+)
+
+
+def _is_duplicate_object(err: Exception) -> bool:
+    code = getattr(getattr(err, "orig", None), "pgcode", None)
+    if code in _DUPLICATE_SQLSTATES:
+        return True
+    return any(marker in str(err).lower() for marker in _DUPLICATE_TEXTS)
+
+
+def _tolerantly(name: str, step):
+    """Изпълнява една стъпка така, че загубената надпревара да не убива работника.
+
+    Проверката "има ли я колоната" и самият ALTER не са едно действие. Дори с
+    ключалката отгоре (а тя може и да не се е взела) остава възможността някой
+    да е успял пръв. Тогава единственото вярно поведение е да се провери отново
+    и да се продължи: желаното състояние вече е налице, няма какво да се поправя.
+    """
+    try:
+        return step()
+    except SQLAlchemyError as err:
+        if not _is_duplicate_object(err):
+            raise
+        print(f"[migrations] {name}: вече е направено от друг работник — продължавам.",
+              file=sys.stderr)
+        return None
+
+
+def create_schema(metadata) -> None:
+    """create_all(), но преживяло едновременно вдигане на двама работници.
+
+    checkfirst има същата форма като нашите стъпки — виж, после създай — така че
+    и той може да получи DuplicateTable и да събори вдигането на сървъра.
+    """
+    _tolerantly("create_all", lambda: metadata.create_all(bind=engine))
 
 
 def _table_exists(table: str) -> bool:
@@ -232,36 +345,110 @@ def _create_verified_phone_unique_index() -> bool:
     return True
 
 
+def _create_code_attempts_unique_index() -> bool:
+    """Уникалност на (user_id, purpose) в code_attempts върху заварена таблица.
+
+    На нова база таблицата идва от create_all() и ограничението е в модела.
+    Но Render вече има таблицата отпреди него, а там create_all() не пипа нищо
+    заварено — тоест точно в базата, която трябва да се пази, таванът от пет
+    опита продължаваше да се дели между дублирани броячи. Затова индексът се
+    добавя и оттук.
+
+    Преди създаването дублиращите редове се сливат в един. От двата реда взимаме
+    НАЙ-ГОЛЕМИЯ failed_count и НАЙ-КЪСНИЯ locked_until, а не сбора: излишните
+    редове са наша грешка, не детска, и не е редно тя да се събере в заключване
+    върху човек, който не е сгрешил толкова пъти. Загубеното е най-много няколко
+    опита в един петнадесетминутен прозорец — а прозорците след този вече са
+    защитени от самия индекс.
+    """
+    if not _table_exists("code_attempts"):
+        return False
+    inspector = inspect(engine)
+    cols = ["user_id", "purpose"]
+    already = [
+        c for c in inspector.get_unique_constraints("code_attempts")
+        if list(c.get("column_names") or []) == cols
+    ] + [
+        i for i in inspector.get_indexes("code_attempts")
+        if i.get("unique") and list(i.get("column_names") or []) == cols
+    ]
+    if already:
+        return False
+    name = "uq_code_attempts_user_purpose"
+    with engine.begin() as conn:
+        dupes = conn.execute(text(
+            "SELECT user_id, purpose FROM code_attempts "
+            "GROUP BY user_id, purpose HAVING COUNT(*) > 1"
+        )).fetchall()
+        for user_id, purpose in dupes:
+            rows = conn.execute(text(
+                "SELECT id, failed_count, locked_until FROM code_attempts "
+                "WHERE user_id = :u AND purpose = :p"
+            ), {"u": user_id, "p": purpose}).fetchall()
+            keep = rows[0][0]
+            failed = max((r[1] or 0) for r in rows)
+            locks = [r[2] for r in rows if r[2] is not None]
+            conn.execute(text(
+                "UPDATE code_attempts SET failed_count = :f, locked_until = :l "
+                "WHERE id = :id"
+            ), {"f": failed, "l": max(locks) if locks else None, "id": keep})
+            conn.execute(text(
+                "DELETE FROM code_attempts WHERE user_id = :u AND purpose = :p "
+                "AND id <> :id"
+            ), {"u": user_id, "p": purpose, "id": keep})
+        conn.execute(text(
+            f"CREATE UNIQUE INDEX IF NOT EXISTS {name} "
+            "ON code_attempts (user_id, purpose)"
+        ))
+    return True
+
+
 def run() -> list:
-    """Връща имената на приложените промени — полезно в логовете на Render."""
+    """Връща имената на приложените промени — полезно в логовете на Render.
+
+    Целият блок минава под една ключалка, а всяка стъпка поотделно преживява
+    "вече е направено". Двете заедно са нужни: ключалката подрежда работниците,
+    а търпимостта покрива случая, в който ключалка няма (SQLite) или не се е
+    взела. Функцията си остава идемпотентна — второто пускане връща [].
+    """
     applied = []
-    # Съществуващите акаунти стават "ученик": това е ролята, с която всички са
-    # използвали приложението досега, така че никой не губи достъп до нищо.
-    if _add_column("users", "role", "VARCHAR", "'student'"):
-        applied.append("users.role")
-    # Потребителското име идва по-късно от акаунтите — старите остават без него,
-    # докато собственикът им не си го избере.
-    if _add_nullable_column("users", "username", "VARCHAR"):
-        applied.append("users.username")
-    if _create_unique_index("users", "username", "ix_users_username"):
-        applied.append("ix_users_username")
-    if _add_nullable_column("users", "heard_from", "VARCHAR"):
-        applied.append("users.heard_from")
-    # Всички заварени акаунти тръгват от версия 0 — числото важи само спрямо
-    # само себе си, така че стойността по подразбиране не ощетява никого.
-    if _add_column("users", "token_version", "INTEGER", "0"):
-        applied.append("users.token_version")
-    if _drop_unique_phone_index():
-        applied.append("users.phone:drop-unique")
-    # Подреждане на заварените имейли към смъкнатия вид, с който работи auth.py.
-    normalized = _normalize_existing_emails()
-    if normalized:
-        applied.append(f"users.email:lower x{normalized}")
-    # Телефоните — същото подреждане, и чак след него уникалността върху
-    # потвърдените, за да не се спъне индексът в номер, който още не е приведен.
-    phones = _normalize_existing_phones()
-    if phones:
-        applied.append(f"users.phone:canonical x{phones}")
-    if _create_verified_phone_unique_index():
-        applied.append("ix_users_phone_verified")
+    with schema_lock():
+        # Съществуващите акаунти стават "ученик": това е ролята, с която всички са
+        # използвали приложението досега, така че никой не губи достъп до нищо.
+        if _tolerantly("users.role",
+                       lambda: _add_column("users", "role", "VARCHAR", "'student'")):
+            applied.append("users.role")
+        # Потребителското име идва по-късно от акаунтите — старите остават без него,
+        # докато собственикът им не си го избере.
+        if _tolerantly("users.username",
+                       lambda: _add_nullable_column("users", "username", "VARCHAR")):
+            applied.append("users.username")
+        if _tolerantly("ix_users_username",
+                       lambda: _create_unique_index("users", "username", "ix_users_username")):
+            applied.append("ix_users_username")
+        if _tolerantly("users.heard_from",
+                       lambda: _add_nullable_column("users", "heard_from", "VARCHAR")):
+            applied.append("users.heard_from")
+        # Всички заварени акаунти тръгват от версия 0 — числото важи само спрямо
+        # само себе си, така че стойността по подразбиране не ощетява никого.
+        if _tolerantly("users.token_version",
+                       lambda: _add_column("users", "token_version", "INTEGER", "0")):
+            applied.append("users.token_version")
+        if _tolerantly("users.phone:drop-unique", _drop_unique_phone_index):
+            applied.append("users.phone:drop-unique")
+        # Подреждане на заварените имейли към смъкнатия вид, с който работи auth.py.
+        normalized = _tolerantly("users.email:lower", _normalize_existing_emails)
+        if normalized:
+            applied.append(f"users.email:lower x{normalized}")
+        # Телефоните — същото подреждане, и чак след него уникалността върху
+        # потвърдените, за да не се спъне индексът в номер, който още не е приведен.
+        phones = _tolerantly("users.phone:canonical", _normalize_existing_phones)
+        if phones:
+            applied.append(f"users.phone:canonical x{phones}")
+        if _tolerantly("ix_users_phone_verified", _create_verified_phone_unique_index):
+            applied.append("ix_users_phone_verified")
+        # Броячът на грешните кодове — уникалност на (акаунт, цел) там, където
+        # таблицата е заварена и create_all() няма как да я поправи.
+        if _tolerantly("uq_code_attempts_user_purpose", _create_code_attempts_unique_index):
+            applied.append("uq_code_attempts_user_purpose")
     return applied

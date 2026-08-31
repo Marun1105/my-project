@@ -90,10 +90,29 @@ def _attempt_row(db: Session, user: User, purpose: CodePurpose) -> CodeAttempt:
         .filter(CodeAttempt.user_id == user.id, CodeAttempt.purpose == purpose)
         .first()
     )
-    if row is None:
-        row = CodeAttempt(user_id=user.id, purpose=purpose, failed_count=0)
-        db.add(row)
+    if row is not None:
+        return row
+    # Дотук стигат само първите грешки. Между четенето и записа няма нищо, а на
+    # Render работят няколко процеса — двама души (или един скрипт с две заявки)
+    # спокойно стигат едновременно. Уникалността в базата отсича втория; тук
+    # губенето на надпреварата не е грешка, а нормален изход: връщаме се и
+    # прочитаме реда, който другият вече е записал.
+    row = CodeAttempt(user_id=user.id, purpose=purpose, failed_count=0)
+    db.add(row)
+    try:
         db.commit()
+    except IntegrityError:
+        db.rollback()
+        row = (
+            db.query(CodeAttempt)
+            .filter(CodeAttempt.user_id == user.id, CodeAttempt.purpose == purpose)
+            .first()
+        )
+        if row is None:
+            # Не бива да се случва: отказът значи, че редът съществува. Ако все
+            # пак стане, по-добре да гръмне на глас, отколкото да върнем None и
+            # броенето да спре тихо — а спряло броене значи няма таван.
+            raise
     return row
 
 
@@ -266,8 +285,28 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
                         message="Твърде много опити за регистрация — изчакай малко и опитай пак.")
     email = normalize_email(body.email)
     phone = normalize_phone(body.phone)
+
+    # Регистрацията беше последното място, което казваше на глас кой адрес има
+    # профил: 400 "вече има акаунт" за зает, 200 за свободен. Затова всичко
+    # изравнено другаде (вход, потвърждаване, нова парола) не струваше нищо —
+    # тук се проверяваше направо, с думи.
+    #
+    # Сега екранът отговаря едно и също в двата случая, а разликата отива в
+    # пощата: на нов адрес — код за потвърждение, на зает — писмо "вече имаш
+    # профил, ето как да влезеш". Детето, което е забравило, че се е
+    # регистрирало, пак получава отговор; просто го чете в кутията си, а не на
+    # екрана, където го чете и всеки друг.
+    #
+    # Паролата се хешира и в двата случая, макар в единия да се изхвърля:
+    # bcrypt е бавен нарочно и ако го пропуснехме, заетият адрес щеше да
+    # отговаря забележимо по-бързо — същата справка, само че с хронометър.
+    password_hash = security.hash_password(body.password)
+    NEUTRAL = {"status": "ok", "message": "Изпратихме ти код за потвърждение по имейл."}
+
     if db.query(User).filter(_email_matches(email)).first():
-        raise HTTPException(400, "Вече има акаунт с този имейл. Опитай да влезеш.")
+        email_service.send_account_exists_email(email)
+        return NEUTRAL
+
     # Потребителското име е по желание, но щом го има — е уникално.
     if body.username and db.query(User).filter(User.username == body.username).first():
         raise HTTPException(400, "Това потребителско име е заето. Избери друго.")
@@ -284,7 +323,7 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
         phone=phone,
         role=body.role,
         heard_from=body.heard_from,
-        password_hash=security.hash_password(body.password),
+        password_hash=password_hash,
     )
     db.add(user)
     try:
@@ -296,13 +335,24 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
         # Базата отсича правилно; тук само превеждаме отказа ѝ на човешки език,
         # вместо да оставим единия от двамата да види 500.
         db.rollback()
-        raise HTTPException(400, "Вече има акаунт с този имейл или потребителско име. "
-                                 "Опитай да влезеш или избери друго име.")
+        # Кое ограничение е паднало не личи от самата грешка, а двата случая
+        # искат различен отговор: заетият имейл трябва да мълчи като горе, а
+        # заетото потребителско име трябва да се каже — иначе човекът не знае, че
+        # трябва да избере друго.
+        #
+        # Ако име изобщо не е подадено, сблъсъкът няма как да е по него — значи е
+        # по имейл и отговорът е неутралният. Чак когато има име, питаме базата.
+        # Обратният ред (първо запитване) изглежда по-точен, но стъпва на същата
+        # проверка, която току-що не видя реда — а тя може да не го вижда и сега.
+        if not body.username or db.query(User).filter(_email_matches(email)).first():
+            email_service.send_account_exists_email(email)
+            return NEUTRAL
+        raise HTTPException(400, "Това потребителско име е заето. Избери друго.")
     db.refresh(user)
 
     code = _issue_code(db, user, CodePurpose.verify_email)
     email_service.send_verification_email(user.email, code)
-    return {"status": "ok", "message": "Изпратихме ти код за потвърждение по имейл."}
+    return NEUTRAL
 
 
 @router.post("/verify-email", response_model=AuthResponse)

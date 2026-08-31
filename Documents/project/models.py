@@ -3,7 +3,17 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, Date, DateTime, Enum, ForeignKey, Integer, String
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 
 from db import Base
@@ -167,6 +177,13 @@ class CodeAttempt(Base):
     от нова колона върху вече пълната users.
     """
     __tablename__ = "code_attempts"
+    # Един брояч за един акаунт и една цел — това е самата мярка, не украса.
+    # Без уникалността четенето и записът бяха "виж, после добави" без нищо
+    # между тях: две едновременни грешки правеха два реда, следващите опити се
+    # разделяха между тях и таванът от пет опита ставаше пет по броя редове.
+    __table_args__ = (
+        UniqueConstraint("user_id", "purpose", name="uq_code_attempts_user_purpose"),
+    )
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)

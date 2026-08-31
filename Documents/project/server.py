@@ -34,9 +34,15 @@ from models import ScanHistory, User
 app = FastAPI()
 client = Anthropic()  # чете ANTHROPIC_API_KEY от средата
 
-Base.metadata.create_all(bind=engine)
-# create_all прави липсващите таблици, но не и липсващите колони в стари таблици.
-_applied = migrations.run()
+# Схемата се пипа от всеки работник при вдигане, а на Render работниците са
+# няколко и тръгват едновременно. Затова цялата стъпка минава под една ключалка:
+# без нея двамата виждаха една и съща липсваща колона, и двамата пускаха ALTER, и
+# загубилият падаше с DuplicateColumn още при внасянето на този модул — тоест
+# сървърът се вдигаше наполовина или се рестартираше в кръг.
+with migrations.schema_lock():
+    # create_all прави липсващите таблици, но не и липсващите колони в стари таблици.
+    migrations.create_schema(Base.metadata)
+    _applied = migrations.run()
 if _applied:
     print("migrations applied:", ", ".join(_applied))
 

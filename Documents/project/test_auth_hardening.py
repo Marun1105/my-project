@@ -97,9 +97,12 @@ def _account(email, password="testpass123", **extra):
 def test_the_same_mailbox_cannot_get_two_accounts():
     # Точният случай от продукцията: EmailStr смъква домейна, но не и името
     # преди кучето, и "Ivan@Abv.bg" минаваше за друг адрес.
+    # Отговорът е нарочно еднакъв и за трите: екранът не издава кой адрес е зает
+    # (виж test_register_does_not_reveal_which_addresses_exist). Че вторият и
+    # третият опит НЕ са направили акаунт, се вижда от базата отдолу.
     assert _register("Ivan@Abv.bg").status_code == 200
-    assert _register("ivan@abv.bg").status_code == 400
-    assert _register("  IVAN@ABV.BG  ").status_code == 400
+    assert _register("ivan@abv.bg").status_code == 200
+    assert _register("  IVAN@ABV.BG  ").status_code == 200
 
     db = SessionLocal()
     try:
@@ -419,14 +422,22 @@ def test_optional_authentication_also_honours_the_token_version():
 
 # ------------------------------------------------ едновременна регистрация (6)
 
-def test_a_simultaneous_duplicate_registration_gets_400_not_500(monkeypatch):
+def test_a_simultaneous_duplicate_registration_does_not_crash_or_leak(monkeypatch):
     _register("race@example.com")
     # Симулираме прозореца между "провери" и "запиши": проверката не вижда реда,
     # който другият процес вече е записал. Досега това излизаше като 500.
     monkeypatch.setattr(auth, "_email_matches", lambda value: text("1 = 0"))
     res = _register("race@example.com")
-    assert res.status_code == 400, res.text
-    assert "акаунт" in res.json()["detail"]
+    # 500 със стек беше дефектът. Сега отказът на базата се превежда — и понеже
+    # сблъсъкът е по имейл, отговорът е същият неутрален 200 като горе, за да не
+    # стане самата надпревара справка кой адрес съществува.
+    assert res.status_code == 200, res.text
+
+    db = SessionLocal()
+    try:
+        assert db.query(User).filter(func.lower(User.email) == "race@example.com").count() == 1
+    finally:
+        db.close()
 
 
 def test_the_lock_does_not_reveal_which_addresses_exist(codes):
@@ -529,3 +540,73 @@ def test_a_locked_account_takes_as_long_as_an_unknown_address():
     locked = _median_ms(attempt("lockedtiming@example.com"))
     unknown = _median_ms(attempt("locked-nobody@example.com"))
     assert 0.4 < unknown / locked < 2.5, f"locked {locked:.1f} ms vs unknown {unknown:.1f} ms"
+
+
+# ------------------------------------- един брояч на грешните кодове (7)
+
+def test_the_failed_code_counter_cannot_be_split_into_two_rows():
+    """Два брояча за един акаунт и една цел значеха двоен таван на опитите.
+
+    Броенето беше "виж, после добави", без нищо между двете. Две едновременни
+    първи грешки правеха два реда, следващите опити се разпределяха между тях по
+    волята на .first(), и петте опита ставаха пет по броя редове — тоест
+    защитата срещу отгатване на кода за нова парола просто се умножаваше.
+    """
+    from models import CodeAttempt
+    from sqlalchemy.exc import IntegrityError
+
+    _register("counter-race@example.com")
+    user = _find("counter-race@example.com")
+    db = SessionLocal()
+    row = auth._attempt_row(db, user, CodePurpose.reset_password)
+    assert row is not None
+
+    # базата вече отказва втори брояч за същата двойка
+    other = SessionLocal()
+    other.add(CodeAttempt(user_id=user.id, purpose=CodePurpose.reset_password,
+                          failed_count=0))
+    with pytest.raises(IntegrityError):
+        other.commit()
+    other.rollback()
+
+    # а загубилият надпреварата не гърми — прочита реда на спечелилия
+    again = auth._attempt_row(SessionLocal(), user, CodePurpose.reset_password)
+    assert again.id == row.id
+    assert db.query(CodeAttempt).filter(
+        CodeAttempt.user_id == user.id,
+        CodeAttempt.purpose == CodePurpose.reset_password,
+    ).count() == 1
+
+
+def test_register_does_not_reveal_which_addresses_exist():
+    """Регистрацията беше последното място, което казваше кой адрес има профил.
+
+    Останалите четири входа бяха изравнени, а тук се проверяваше направо и с
+    думи: 400 "вече има акаунт" за зает адрес, 200 за свободен, при това без
+    оглед на изписването. Пет заявки на час от адрес стигат, за да се проверят
+    пет чужди деца — и толкова.
+    """
+    _register("taken@example.com")
+
+    free = _register("brand-new@example.com")
+    taken = _register("taken@example.com")
+    assert (free.status_code, free.json()) == (taken.status_code, taken.json())
+
+    # и заетият адрес наистина не е добил втори акаунт
+    db = SessionLocal()
+    try:
+        assert db.query(User).filter(func.lower(User.email) == "taken@example.com").count() == 1
+    finally:
+        db.close()
+
+
+def test_register_takes_similar_time_for_taken_and_free_addresses():
+    """Еднакви думи не помагат, ако заетият адрес отговаря пет пъти по-бързо."""
+    _register("timing-taken@example.com")
+
+    def attempt(address):
+        return lambda: _register(address)
+
+    taken = _median_ms(attempt("timing-taken@example.com"), n=3)
+    free = _median_ms(lambda: _register(f"free-{time.time_ns()}@example.com"), n=3)
+    assert 0.4 < free / taken < 2.5, f"taken {taken:.1f} ms vs free {free:.1f} ms"

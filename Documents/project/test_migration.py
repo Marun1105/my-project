@@ -267,3 +267,101 @@ def test_unverified_claims_may_share_a_number(old_engine):
             "SELECT COUNT(*) FROM users WHERE phone = '+359888999000'"
         )).scalar()
     assert both == 2
+
+
+OLD_CODE_ATTEMPTS = """
+CREATE TABLE code_attempts (
+    id VARCHAR PRIMARY KEY,
+    user_id VARCHAR NOT NULL,
+    purpose VARCHAR NOT NULL,
+    failed_count INTEGER NOT NULL DEFAULT 0,
+    locked_until DATETIME,
+    updated_at DATETIME
+)
+"""
+
+
+def _make_old_code_attempts(engine):
+    """Таблицата такава, каквато е на Render: създадена от по-стар create_all,
+    тоест без уникалността, която моделът вече носи. create_all не пипа заварена
+    таблица, така че точно там дефектът остава жив без миграция."""
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS code_attempts"))
+        conn.execute(text(OLD_CODE_ATTEMPTS))
+
+
+def test_migration_makes_the_code_attempt_counter_unique(old_engine):
+    """Два брояча за един акаунт и една цел значеха двоен таван на опитите."""
+    _make_old_schema(old_engine)
+    _make_old_code_attempts(old_engine)
+    with old_engine.begin() as conn:
+        for i in ("a1", "a2"):
+            conn.execute(text(
+                "INSERT INTO code_attempts (id, user_id, purpose, failed_count) "
+                f"VALUES ('{i}', 'u1', 'reset_password', 2)"
+            ))
+
+    assert "uq_code_attempts_user_purpose" in migrations.run()
+
+    with old_engine.begin() as conn:
+        rows = conn.execute(text(
+            "SELECT failed_count FROM code_attempts WHERE user_id = 'u1'"
+        )).fetchall()
+    # дублиращите се редове са слети в един — броенето пак е едно
+    assert len(rows) == 1
+    # взимаме най-голямото от двете, не сбора: излишният ред е наша грешка и не
+    # бива да се превърне в заключване върху дете, което не е сгрешило толкова
+    assert rows[0][0] == 2
+
+    # и втори ред за същата двойка вече не се приема от базата
+    with pytest.raises(IntegrityError):
+        with old_engine.begin() as conn:
+            conn.execute(text(
+                "INSERT INTO code_attempts (id, user_id, purpose, failed_count) "
+                "VALUES ('a3', 'u1', 'reset_password', 0)"
+            ))
+
+    # различната цел си остава отделен брояч
+    with old_engine.begin() as conn:
+        conn.execute(text(
+            "INSERT INTO code_attempts (id, user_id, purpose, failed_count) "
+            "VALUES ('a4', 'u1', 'verify_email', 0)"
+        ))
+
+    assert migrations.run() == []
+
+
+def test_a_second_worker_survives_a_step_that_is_already_done(old_engine, monkeypatch):
+    """Двама работници, тръгнали заедно, не бива да си убиват единия.
+
+    На Render uvicorn вдига няколко процеса и всеки изпълнява стъпките по схемата
+    при внасянето на server.py. Дефектът: проверката "има ли я колоната" и самият
+    ALTER не са едно действие: и двамата виждаха липсваща колона, и двамата
+    пускаха ALTER TABLE, а загубилият получаваше duplicate column направо във
+    внасянето на модула — тоест умираше при вдигане заради нещо, което вече е
+    било направено.
+
+    Тук нарочно караме проверката ВИНАГИ да казва "липсва" — така стъпката се
+    изпълнява втори път върху вече поправена таблица, точно както при загубена
+    надпревара.
+    """
+    _make_old_schema(old_engine)
+    assert "users.role" in migrations.run()
+
+    real = migrations._column_exists
+    monkeypatch.setattr(
+        migrations, "_column_exists",
+        lambda table, column: False if column == "role" else real(table, column),
+    )
+    # не гърми, макар ALTER-ът да се проваля — колоната е налице, няма какво да се прави
+    assert "users.role" not in migrations.run()
+
+    with old_engine.begin() as conn:
+        assert conn.execute(text("SELECT role FROM users WHERE id = 'u1'")).scalar() == "student"
+
+
+def test_the_schema_lock_is_not_required_on_sqlite(old_engine):
+    """В SQLite няма pg_advisory_lock и не трябва: процесът е един. Липсата ѝ не
+    бива да е грешка, иначе локалната разработка не тръгва изобщо."""
+    with migrations.schema_lock():
+        pass
