@@ -1,7 +1,7 @@
 {
   "name": "climby",
   "productName": "Climby",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Climby — изкачи се към успеха",
   "author": "Martin Hristov",
   "license": "UNLICENSED",
@@ -34,13 +34,20 @@
       {
         "provider": "github",
         "owner": "Marun1105",
-        "repo": "my-project"
+        "repo": "my-project",
+        "releaseType": "release"
       }
     ],
     "extraResources": [
       {
         "from": "../frontend",
-        "to": "frontend"
+        "to": "frontend",
+        "filter": [
+          "**/*",
+          "!.pytest_cache",
+          "!__pycache__",
+          "!.playwright-mcp"
+        ]
       }
     ],
     "win": {
