@@ -2,6 +2,35 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Content-Security-Policy: списък какво изобщо има право да се зарежда и изпълнява.
+     Стои като <meta>, а не като заглавие от сървъра, защото Climby се раздава по три
+     различни начина — от статичен хостинг, от service worker-а офлайн и от app:// в
+     приложението за компютър. Заглавие би покрило само третия; така правилото пътува
+     заедно със самата страница и е едно-единствено място за поправяне.
+     script-src нарочно е тесен: в localStorage стои входът на ученика, а всеки скрипт
+     оттук може да го прочете.
+     'unsafe-eval' е заради opencv.js — сглобката от Emscripten си прави функциите с
+     new Function и без това не тръгва. Не е добавено за наш код.
+     Двата 'sha256-...' са за двата <script> блока най-долу в тази страница. Ако някой
+     ги промени, дори с един интервал, браузърът спира да ги изпълнява — тогава хешът
+     тук трябва да се пресметне наново.
+     connect-src пуска и data: — opencv.js носи своя wasm вграден в самия файл и си го
+     чете като data: адрес; без това скенерът не тръгва.
+     frame-ancestors нарочно го няма: през <meta> браузърът го пренебрегва и само пише
+     грешка в конзолата. Ако някой ден е нужен, идва като заглавие от сървъра. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' https://cdn.jsdelivr.net 'unsafe-eval' 'sha256-yfXRsbPogFlz+YLz1I3RWkDSvR3u2cHzHXT8Qem/wCU=' 'sha256-cDK2thzqj8AxFRV87i8J5i6yXlNd0J1NnTzfShUyqkQ=';
+  style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline';
+  font-src 'self' https://cdn.jsdelivr.net;
+  img-src 'self' data: blob:;
+  media-src 'self' blob:;
+  connect-src 'self' data: https://my-project-0gyk.onrender.com https://cdn.jsdelivr.net;
+  worker-src 'self' blob:;
+  child-src 'self' blob:;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Climby — Climb your way to success</title>
 <meta name="description" content="Climby помага на ученици 1–12 клас да разберат уроците си, да си организират домашните и да се изкачат до върха, стъпка по стъпка.">
@@ -16,7 +45,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="subjects.css">
 <link rel="stylesheet" href="classes.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
 </head>
 <body>
 
@@ -322,7 +351,7 @@
 </div>
 
 <div class="controls" id="uploadRow" style="margin-top: 10px;">
-  <button id="uploadBtn" class="btn-ghost" type="button" data-i18n="scanner.uploadBtn" onclick="document.getElementById('uploadInput').click()">Качи снимка от файл</button>
+  <button id="uploadBtn" class="btn-ghost" type="button" data-i18n="scanner.uploadBtn">Качи снимка от файл</button>
   <input id="uploadInput" type="file" accept="image/*" class="hidden">
 </div>
 
@@ -643,17 +672,31 @@
   </div>
 </div>
 
-<!-- opencv.js прави разпознаването на ръбове и изправянето на страницата в браузъра -->
-<script async src="https://docs.opencv.org/4.10.0/opencv.js" onload="onCvReady()"></script>
-<!-- marked превръща Markdown отговора в четимо форматиране -->
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<!-- DOMPurify чисти HTML-а, който marked връща, преди да влезе в страницата (AI отговорът не е доверен вход) -->
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js" integrity="sha384-eEu5CTj3qGvu9PdJuS+YlkNi7d2XxQROAFYOr59zgObtlcux1ae1Il3u7jvdCSWu" crossorigin="anonymous"></script>
+<!-- Външните библиотеки са заковани на точна версия и с integrity: без версия jsdelivr
+     дава каквото е най-ново в момента, тоест кодът на страницата може да се смени сам,
+     без ние да сме издали нищо. А тези скриптове живеят на същия произход като входа на
+     ученика — почистването на изхода на marked не помага, ако самият marked е подменен. -->
+
+<!-- opencv.js прави разпознаването на ръбове и изправянето на страницата в браузъра.
+     Идва от jsdelivr, а не от docs.opencv.org: там стои само последната версия, старите
+     папки се трият (4.10.0 вече връща 404, тоест скенерът мълчаливо остана без opencv),
+     а и адресът не дава CORS заглавие, без което integrity изобщо не може да се сложи.
+     Пакетът @techstark/opencv-js е същата сглобка на OpenCV 4.10.0, само публикувана в npm. -->
+<script async id="opencvScript"
+        src="https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js"
+        integrity="sha384-XsTfGA62I8LzqS3D7IcgiSOCrJuECWLcg4s1M0AnrkDCcJ8lXX+j+qdg+o6t7KZa"
+        crossorigin="anonymous"></script>
+<!-- marked превръща Markdown отговора в четимо форматиране, DOMPurify чисти получения HTML
+     (AI отговорът не е доверен вход). Двата стоят при нас, а не на CDN: през тях минава
+     всеки отговор на AI учителя, а в училищна мрежа jsdelivr често е спрян — тогава
+     „инсталираното“ приложение показва празно вместо обяснение. Заедно тежат под 65 KB. -->
+<script src="vendor/marked.min.js"></script>
+<script src="vendor/purify.min.js"></script>
 <!-- KaTeX оформя математическите формули между $...$ и $$...$$ -->
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
 <!-- face-api.js разпознава дали има лице в кадъра — изцяло в браузъра, снимката никога не напуска устройството -->
-<script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.js" integrity="sha384-M5nePoB6/w/a9JhtegEibSLGiJy/+QMZZMfvcxjWVCQW/HPwrQ7i21V/Px/8AyVA" crossorigin="anonymous"></script>
 
 <!-- скрити работни canvas-и, ползвани от scanner.js -->
 <canvas id="capture" class="hidden"></canvas>
@@ -676,6 +719,23 @@
 <script src="family.js"></script>
 <script src="classes.js"></script>
 <script src="onboarding.js"></script>
+<script>
+  // Бутонът „Качи снимка от файл“ отваря скрития файлов диалог. Стоеше като onclick="" в
+  // самия бутон, но CSP не пуска код, написан в атрибут — затова връзката се прави тук.
+  document.getElementById('uploadBtn').addEventListener('click', () => {
+    document.getElementById('uploadInput').click();
+  });
+
+  // opencv.js се зарежда асинхронно и по-рано известяваше скенера през onload="onCvReady()".
+  // Същата причина: атрибутът отпада. Проверява се и дали библиотеката вече е дошла —
+  // scanner.js се зарежда след нея, така че редът на пристигане не е гарантиран.
+  (() => {
+    const notify = () => { if (window.onCvReady) window.onCvReady(); };
+    if (window.cv) notify();
+    else document.getElementById('opencvScript').addEventListener('load', notify);
+  })();
+</script>
+
 <script>
   // service worker: прави Climby инсталируем на телефон и го отваря мигновено при следващо влизане.
   //

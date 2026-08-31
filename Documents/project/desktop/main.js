@@ -162,6 +162,11 @@ if (!gotLock) {
   });
 
   app.whenReady().then(() => {
+    // Content-Security-Policy нарочно не се слага тук с onHeadersReceived: същата
+    // страница върви и в браузър, и като инсталирано уеб приложение, където Electron
+    // го няма. Правилото стои в <meta> в index.html, за да важи и за трите случая и
+    // да не се разминават две копия. Ако някой ден потрябва по-строго правило само за
+    // компютърната версия, то се добавя тук — но остава допълнение, а не замяна.
     protocol.handle('app', request => {
       const target = _resolveInsideFrontend(new URL(request.url).pathname);
       if (!target) return new Response('Forbidden', { status: 403 });
