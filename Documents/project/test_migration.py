@@ -13,6 +13,7 @@ import tempfile
 
 import pytest
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import IntegrityError
 
 import migrations
 
@@ -199,3 +200,70 @@ def test_migration_lowercases_emails_and_leaves_collisions_alone(old_engine):
 
     # второто пускане пак не пипа нищо ново
     assert migrations.run() == []
+
+
+def test_migration_canonicalises_phones_and_protects_the_real_owner(old_engine):
+    """Заварен потвърден номер в стария изписване не бива да губи собственика си.
+
+    Дефектът: новите записи минаваха през normalize_phone, старите не. Тоест
+    "0888123456" в базата и "+359888123456" от клавиатурата бяха един апарат и
+    два различни низа — и понеже уникалността върху phone беше свалена, някой
+    друг можеше да запише международния вид, да го потвърди със СВОЯ SMS и да
+    стане вторият потвърден собственик на същия телефон. При "забравена парола"
+    по SMS търсенето се свежда до международния вид, а .first() връщаше новия.
+    """
+    _make_populated_schema(old_engine)
+    with old_engine.begin() as conn:
+        conn.execute(text(
+            "INSERT INTO users (id, display_name, email, phone, password_hash, "
+            "is_email_verified, is_phone_verified) "
+            "VALUES ('u8', 'Собственик', 'owner@example.com', '0888123456', "
+            "'hash', 1, 1)"
+        ))
+
+    applied = migrations.run()
+    assert any(a.startswith("users.phone:canonical") for a in applied), applied
+    assert "ix_users_phone_verified" in applied, applied
+
+    with old_engine.begin() as conn:
+        phone, verified = conn.execute(text(
+            "SELECT phone, is_phone_verified FROM users WHERE id = 'u8'"
+        )).first()
+        # приведен към международния вид, но все така потвърден
+        assert phone == "+359888123456"
+        assert verified
+
+        # и вече никой втори не може да потвърди същия номер — базата отказва,
+        # тоест except IntegrityError в auth.py пак значи нещо
+        conn.execute(text(
+            "INSERT INTO users (id, display_name, email, password_hash, "
+            "is_email_verified, is_phone_verified) "
+            "VALUES ('u9', 'Втори', 'second@example.com', 'hash', 1, 0)"
+        ))
+    with pytest.raises(IntegrityError):
+        with old_engine.begin() as conn:
+            conn.execute(text(
+                "UPDATE users SET phone = '+359888123456', is_phone_verified = 1 "
+                "WHERE id = 'u9'"
+            ))
+
+    assert migrations.run() == []
+
+
+def test_unverified_claims_may_share_a_number(old_engine):
+    """Уникалността е само върху потвърдените — иначе се връща старият дефект,
+    при който първият вписал чужд номер го заключваше за собственика завинаги."""
+    _make_populated_schema(old_engine)
+    migrations.run()
+    with old_engine.begin() as conn:
+        for i, uid in enumerate(("p1", "p2")):
+            conn.execute(text(
+                "INSERT INTO users (id, display_name, email, phone, password_hash, "
+                "is_email_verified, is_phone_verified) "
+                f"VALUES ('{uid}', 'Заявка', '{uid}@example.com', '+359888999000', "
+                "'hash', 1, 0)"
+            ))
+        both = conn.execute(text(
+            "SELECT COUNT(*) FROM users WHERE phone = '+359888999000'"
+        )).scalar()
+    assert both == 2

@@ -136,6 +136,102 @@ def _normalize_existing_emails() -> int:
     return changed
 
 
+def _normalize_existing_phones() -> int:
+    """Подрежда заварените телефони към международния вид, ред по ред.
+
+    Без това нормализирането е половинчато и опасно. Новите записи минават през
+    auth.normalize_phone, а старите остават както са били въведени — тоест
+    "0888123456" в базата и "+359888123456" от клавиатурата са един и същ
+    телефон, но два различни низа. А точно по този низ се търси акаунтът при
+    възстановяване на паролата по SMS.
+
+    Какво излизаше от това: заварен ред с потвърден "0888123456" не се брои за
+    зает, някой друг записва "+359888123456", потвърждава го със СВОЯ SMS и вече
+    има два потвърдени реда за един апарат. При "забравена парола" по SMS
+    заявката се свежда до международния вид и .first() връща новия акаунт —
+    истинският собственик тихо губи възстановяването по телефон.
+
+    Ред, който би се сблъскал с вече потвърден чужд номер, се прескача и се
+    изписва в лога: кой от двата акаунта е истинският е човешко решение.
+    """
+    if not _table_exists("users"):
+        return 0
+    columns = {col["name"] for col in inspect(engine).get_columns("users")}
+    if not {"phone", "is_phone_verified"} <= columns:
+        return 0
+
+    from auth import normalize_phone  # локален внос: няма нужда от него при всяко пускане
+
+    changed = 0
+    with engine.begin() as conn:
+        rows = conn.execute(text(
+            "SELECT id, phone, is_phone_verified FROM users WHERE phone IS NOT NULL"
+        )).fetchall()
+        for row_id, phone, verified in rows:
+            canonical = normalize_phone(phone)
+            if not canonical or canonical == phone:
+                continue
+            clash = conn.execute(
+                text("SELECT id FROM users WHERE phone = :p AND is_phone_verified = 1 "
+                     "AND id <> :id"),
+                {"p": canonical, "id": row_id},
+            ).first()
+            if clash and verified:
+                print(
+                    f"[migrations] ВНИМАНИЕ: телефонът на акаунт {row_id} не е приведен "
+                    f"към {canonical!r} — вече има потвърден акаунт със същия номер "
+                    f"(id={clash[0]}). Двата трябва да се разгледат на ръка.",
+                    file=sys.stderr,
+                )
+                continue
+            conn.execute(
+                text("UPDATE users SET phone = :p WHERE id = :id"),
+                {"p": canonical, "id": row_id},
+            )
+            changed += 1
+    return changed
+
+
+def _create_verified_phone_unique_index() -> bool:
+    """Уникалност само върху ПОТВЪРДЕНИТЕ номера.
+
+    Пълната уникалност беше свалена нарочно: докато номерът не е потвърден, той
+    не е ничие доказателство и не бива да заключва истинския собственик отвън.
+    Но след като е потвърден, той трябва да е един — иначе двама души минават
+    проверката "не е зает" едновременно и и двамата записват, а при
+    възстановяване по SMS .first() решава кой е собственикът.
+
+    Частичният индекс пази точно това и връща смисъла на except IntegrityError в
+    auth.py, който след сваляне на стария индекс беше останал мъртъв код.
+    Поддържа се и от SQLite, и от Postgres.
+    """
+    if not _table_exists("users"):
+        return False
+    name = "ix_users_phone_verified"
+    if any(i["name"] == name for i in inspect(engine).get_indexes("users")):
+        return False
+    with engine.begin() as conn:
+        dupes = conn.execute(text(
+            "SELECT phone FROM users WHERE phone IS NOT NULL AND is_phone_verified = 1 "
+            "GROUP BY phone HAVING COUNT(*) > 1"
+        )).fetchall()
+        if dupes:
+            # Създаването би гръмнало и сървърът нямаше да тръгне — заради данни,
+            # които и без това искат човешко решение. По-добре без индекс и на глас.
+            print(
+                "[migrations] ВНИМАНИЕ: не създавам ix_users_phone_verified — има "
+                f"потвърдени дублирани номера: {[d[0] for d in dupes]}. Оправи ги и "
+                "пусни отново.",
+                file=sys.stderr,
+            )
+            return False
+        conn.execute(text(
+            f"CREATE UNIQUE INDEX IF NOT EXISTS {name} ON users (phone) "
+            "WHERE is_phone_verified = 1"
+        ))
+    return True
+
+
 def run() -> list:
     """Връща имената на приложените промени — полезно в логовете на Render."""
     applied = []
@@ -161,4 +257,11 @@ def run() -> list:
     normalized = _normalize_existing_emails()
     if normalized:
         applied.append(f"users.email:lower x{normalized}")
+    # Телефоните — същото подреждане, и чак след него уникалността върху
+    # потвърдените, за да не се спъне индексът в номер, който още не е приведен.
+    phones = _normalize_existing_phones()
+    if phones:
+        applied.append(f"users.phone:canonical x{phones}")
+    if _create_verified_phone_unique_index():
+        applied.append("ix_users_phone_verified")
     return applied
