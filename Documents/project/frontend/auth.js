@@ -392,4 +392,11 @@ const Auth = (() => {
   return { getToken, getUser, getRole, isLoggedIn, logout, init, openEntryGate: showEntryGate };
 })();
 
+// Модулите се пишат като `const X = (() => {...})()`, а `const` на най-горно ниво
+// НЕ става свойство на window — попада в лексикалната среда на скрипта. Затова
+// проверки от вида `window.Auth && ...` в други файлове мълчаливо виждаха
+// "няма Auth" и се отказваха: фокус сесиите не се записваха на никого, а менюто
+// не скриваше чуждите роли. Затова връзката се прави тук изрично.
+window.Auth = Auth;
+
 document.addEventListener('DOMContentLoaded', Auth.init);

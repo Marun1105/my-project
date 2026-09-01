@@ -1,0 +1,341 @@
+<!doctype html>
+<!--
+  phone_page.html — единственият екран, който телефонът вижда.
+
+  Нарочно е един файл без нито една външна заявка: нито шрифт, нито библиотека,
+  нито икона. Отваря се на училищен Wi-Fi и на мобилни данни, често върху заспал
+  Render — всяка допълнителна заявка тук е още една възможност страницата да
+  увисне наполовина. Затова и шрифтът е системният, а не Inter: една чужда буква
+  не струва колкото 40 KB чакане.
+
+  Снимката се прави от камерата НА ТЕЛЕФОНА (input capture), а не през
+  getUserMedia в страницата. Причината е проста: производителят на телефона
+  обработва кадъра далеч по-добре, а страница от учебник е точно този случай —
+  дребен текст, който трябва да остане четим.
+-->
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Climby — снимка от телефона</title>
+<style>
+  :root {
+    --bg: #f7f7f8;
+    --surface: #ffffff;
+    --ink: #16161a;
+    --ink-soft: #5c5c66;
+    --line: #dededf;
+    --accent: #16161a;
+    --accent-ink: #ffffff;
+    --ok: #16161a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      /* Никога чисто черно — на OLED текстът върху #000 трепти по ръбовете. */
+      --bg: #0d0d10;
+      --surface: #17171c;
+      --ink: #f2f2f4;
+      --ink-soft: #9a9aa4;
+      --line: #2a2a32;
+      --accent: #f2f2f4;
+      --accent-ink: #0d0d10;
+      --ok: #f2f2f4;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  }
+  main {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 28px 22px;
+    text-align: center;
+  }
+  .brand {
+    font-size: 13px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 20px;
+  }
+  h1 { font-size: 22px; line-height: 1.25; margin: 0 0 10px; font-weight: 650; }
+  p { margin: 0 0 16px; color: var(--ink-soft); }
+  strong { color: var(--ink); font-weight: 600; }
+  .code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 34px;
+    letter-spacing: .22em;
+    font-weight: 600;
+    margin: 4px 0 6px;
+    padding-left: .22em; /* компенсира разредката, за да е наистина центриран */
+  }
+  .code-hint { font-size: 14px; }
+  button, .filebtn {
+    display: block;
+    width: 100%;
+    font: inherit;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 15px 18px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  .ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  button:disabled { opacity: .5; }
+  .filebtn { margin-top: 18px; }
+  input[type=file] { display: none; }
+  .status { min-height: 22px; margin: 14px 0 0; font-size: 15px; }
+  .dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ok); margin-right: 7px; vertical-align: middle;
+  }
+  .count { font-size: 14px; color: var(--ink-soft); margin-top: 14px; }
+  .hidden { display: none !important; }
+  .spin { animation: pulse 1.1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+</style>
+</head>
+<body>
+<main>
+  <p class="brand">Climby</p>
+
+  <section id="loading">
+    <p class="spin">Зареждане…</p>
+  </section>
+
+  <section id="confirm" class="hidden">
+    <h1>Да свържа ли този телефон?</h1>
+    <p>Ще изпраща снимки към профила на <strong id="ownerName"></strong>.</p>
+    <div class="code" id="confirmCode"></div>
+    <p class="code-hint">Провери, че същият код се вижда и на компютъра.</p>
+    <button id="confirmBtn" type="button">Да, свържи телефона</button>
+  </section>
+
+  <section id="ready" class="hidden">
+    <h1><span class="dot"></span>Свързан</h1>
+    <p>Снимай страница и тя ще се появи на компютъра на <strong id="readyName"></strong>.</p>
+    <label class="filebtn" for="shot">Снимай страница</label>
+    <input id="shot" type="file" accept="image/*" capture="environment">
+    <p class="status" id="status"></p>
+    <p class="count" id="count"></p>
+  </section>
+
+  <section id="failed" class="hidden">
+    <h1 id="failTitle">Нещо не се получи</h1>
+    <p id="failText"></p>
+    <button id="retryBtn" class="ghost" type="button">Опитай пак</button>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  // Тайната от QR кода стои в адреса. Тя важи веднъж и десет минути — след
+  // потвърждаване тук остава само токенът на устройството.
+  var secret = decodeURIComponent(location.pathname.replace(/^\/p\//, '').replace(/\/$/, ''));
+  var TOKEN_KEY = 'climby.device.token';
+  var token = null;
+  try { token = localStorage.getItem(TOKEN_KEY); } catch (e) { token = null; }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var sent = 0;
+
+  function show(name) {
+    ['loading', 'confirm', 'ready', 'failed'].forEach(function (s) {
+      $(s).classList.toggle('hidden', s !== name);
+    });
+  }
+
+  function fail(title, text) {
+    $('failTitle').textContent = title;
+    $('failText').textContent = text;
+    show('failed');
+  }
+
+  // Безплатният Render заспива след около 15 минути. Първата заявка тогава пада
+  // или се връща като 502/503 от ръба — за човека това изглежда като счупено
+  // приложение, макар да е само събуждане. Затова един повторен опит след пауза.
+  function call(path, options, retried) {
+    options = options || {};
+    return fetch(path, options).then(function (res) {
+      if (!retried && res.status >= 502 && res.status <= 504) {
+        return wake().then(function () { return call(path, options, true); });
+      }
+      return res;
+    }).catch(function (err) {
+      if (retried) throw err;
+      return wake().then(function () { return call(path, options, true); });
+    });
+  }
+
+  function wake() {
+    setStatus('Сървърът се събужда…', true);
+    return new Promise(function (r) { setTimeout(r, 4000); });
+  }
+
+  function setStatus(text, busy) {
+    var el = $('status');
+    el.textContent = text;
+    el.classList.toggle('spin', !!busy);
+  }
+
+  function detail(res) {
+    return res.json().then(function (d) {
+      return (d && typeof d.detail === 'string') ? d.detail : null;
+    }).catch(function () { return null; });
+  }
+
+  // ---------- стъпка 1: още ли съм свързан ----------
+  function checkExisting() {
+    return call('/devices/me', { headers: { Authorization: 'Device ' + token } })
+      .then(function (res) {
+        if (!res.ok) {
+          // Токенът е бил откачен от компютъра — забравяме го и минаваме по
+          // обичайния път на поканата, ако адресът още носи такава.
+          try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+          token = null;
+          return askToPair();
+        }
+        return res.json().then(function (d) {
+          $('readyName').textContent = d.user_display_name;
+          show('ready');
+        });
+      });
+  }
+
+  // ---------- стъпка 2: поканата ----------
+  function askToPair() {
+    if (!secret) {
+      return fail('Липсва код', 'Отвори QR кода от компютъра още веднъж.');
+    }
+    return call('/devices/pair/' + encodeURIComponent(secret) + '/info').then(function (res) {
+      if (!res.ok) {
+        return detail(res).then(function (msg) {
+          fail('Кодът вече не важи', msg || 'Покажи нов QR код на компютъра и го сканирай пак.');
+        });
+      }
+      return res.json().then(function (d) {
+        $('ownerName').textContent = d.display_name;
+        $('confirmCode').textContent = d.confirm_code;
+        show('confirm');
+      });
+    });
+  }
+
+  $('confirmBtn').addEventListener('click', function () {
+    var btn = $('confirmBtn');
+    btn.disabled = true;
+    btn.textContent = 'Свързвам…';
+    call('/devices/pair/' + encodeURIComponent(secret) + '/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_name: null }),
+    }).then(function (res) {
+      if (!res.ok) {
+        return detail(res).then(function (msg) {
+          fail('Свързването не стана', msg || 'Покажи нов QR код на компютъра и опитай пак.');
+        });
+      }
+      return res.json().then(function (d) {
+        token = d.token;
+        try { localStorage.setItem(TOKEN_KEY, token); } catch (e) {}
+        $('readyName').textContent = d.user_display_name;
+        show('ready');
+      });
+    }).catch(function () {
+      fail('Няма връзка', 'Провери интернета и опитай пак.');
+    }).then(function () {
+      btn.disabled = false;
+      btn.textContent = 'Да, свържи телефона';
+    });
+  });
+
+  $('retryBtn').addEventListener('click', function () { location.reload(); });
+
+  // ---------- стъпка 3: снимане ----------
+  // Същите числа като в frontend/scanner.js: моделът и без това гледа около
+  // 1568 пиксела по дългата страна, а на мобилни данни разликата между 400 KB и
+  // 4 MB е разликата между "веднага" и "предаде се".
+  var MAX_DIM = 1568;
+  var QUALITY = 0.82;
+
+  function downscale(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var scale = Math.min(1, MAX_DIM / Math.max(w, h));
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        var ctx = canvas.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        var dataUrl = canvas.toDataURL('image/jpeg', QUALITY);
+        var comma = dataUrl.indexOf(',');
+        resolve(dataUrl.slice(comma + 1));
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        reject(new Error('bad image'));
+      };
+      img.src = url;
+    });
+  }
+
+  $('shot').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';  // същата снимка да може да се прати пак
+    if (!file) return;
+
+    setStatus('Изпращам…', true);
+    downscale(file).then(function (b64) {
+      return call('/devices/photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Device ' + token },
+        body: JSON.stringify({ image: b64 }),
+      });
+    }).then(function (res) {
+      if (res.status === 401) {
+        try { localStorage.removeItem(TOKEN_KEY); } catch (e2) {}
+        return fail('Телефонът е откачен', 'Свържи го отново от компютъра.');
+      }
+      if (!res.ok) {
+        return detail(res).then(function (msg) {
+          setStatus(msg || 'Не се получи. Опитай пак.', false);
+        });
+      }
+      sent += 1;
+      setStatus('Готово — виж компютъра.', false);
+      $('count').textContent = sent === 1 ? 'Изпратена 1 снимка' : 'Изпратени ' + sent + ' снимки';
+    }).catch(function () {
+      setStatus('Няма връзка. Опитай пак.', false);
+    });
+  });
+
+  // ---------- начало ----------
+  (token ? checkExisting() : askToPair()).catch(function () {
+    fail('Няма връзка', 'Провери интернета и опитай пак.');
+  });
+})();
+</script>
+</body>
+</html>

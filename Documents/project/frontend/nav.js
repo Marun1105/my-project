@@ -75,3 +75,5 @@ const Nav = (() => {
 
   return { activate, openSidebar, closeSidebar };
 })();
+
+window.Nav = Nav;

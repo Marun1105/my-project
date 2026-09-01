@@ -58,6 +58,7 @@ const Scanner = (() => {
   let wantCamera = false;     // дали визьорът още иска потока, когато той най-сетне пристигне
 
   function showStage(id) {
+    const wasBusy = stage !== 'cameraStage';
     stage = id;
     ['cameraStage', 'adjustStage', 'filterStage'].forEach(s => {
       const el = document.getElementById(s);
@@ -72,6 +73,16 @@ const Scanner = (() => {
     $('controls').classList.toggle('hidden', !onCamera || !hasCamera);
     $('scannerHint').classList.toggle('hidden', !onCamera || !hasCamera);
     $('uploadRow').classList.toggle('hidden', !onCamera || !hasCamera);
+    // Свързването с телефон стои при другите начини да започнеш снимка и си
+    // отива заедно с тях, щом кадрирането започне. За разлика от качването на
+    // файл обаче се показва и когато камера няма — точно тогава е най-нужно.
+    const phonePanel = document.getElementById('phonePanel');
+    if (phonePanel) phonePanel.classList.toggle('hidden', !onCamera);
+    // Скенерът се освободи. Ако междувременно е пристигнала снимка от телефона,
+    // тя чака точно този миг — phone.js слуша и я подава.
+    if (onCamera && wasBusy) {
+      window.dispatchEvent(new CustomEvent('climby:scanner-idle'));
+    }
   }
 
   // ---------- камера ----------
@@ -349,23 +360,35 @@ const Scanner = (() => {
     enterAdjustStage(captureRawCanvas());
   }
 
+  // Готова снимка -> етапа с ъглите. Оттук нататък пътят е един и същ, откъдето
+  // и да е дошла: избран файл, или кадър, пратен от телефона (виж phone.js).
+  // Нарочно е една функция, а не две почти еднакви: правилата за изрязване и
+  // филтрите трябва да важат и за трите пътя, а два екземпляра се разминават тихо.
+  function loadIntoAdjust(dataUrl) {
+    const img = new Image();
+    img.onload = () => {
+      const cap = $('capture');
+      cap.width = img.naturalWidth;
+      cap.height = img.naturalHeight;
+      cap.getContext('2d').drawImage(img, 0, 0);
+      enterAdjustStage(cap);
+    };
+    img.src = dataUrl;
+  }
+
   function handleFileUpload(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const cap = $('capture');
-        cap.width = img.naturalWidth;
-        cap.height = img.naturalHeight;
-        cap.getContext('2d').drawImage(img, 0, 0);
-        enterAdjustStage(cap);
-      };
-      img.src = reader.result;
-    };
+    reader.onload = () => loadIntoAdjust(reader.result);
     reader.readAsDataURL(file);
     e.target.value = '';
+  }
+
+  // Свободен ли е скенерът точно сега. Снимка от телефона не бива да блъсне
+  // настрани страница, която човекът в момента кадрира — тя изчаква реда си.
+  function isIdle() {
+    return stage === 'cameraStage';
   }
 
   // ---------- стъпка 2: коригиране на ъглите ----------
@@ -734,7 +757,9 @@ const Scanner = (() => {
     start();
   }
 
-  return { init };
+  return { init, acceptPhoto: loadIntoAdjust, isIdle };
 })();
+
+window.Scanner = Scanner;
 
 document.addEventListener('DOMContentLoaded', Scanner.init);

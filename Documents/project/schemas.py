@@ -253,3 +253,102 @@ class ClassroomOut(BaseModel):
 class ClassroomWithStudents(ClassroomOut):
     """Учителят вижда същите обобщени числа като родителя — никога текст на задача."""
     students: List[StudentProgressOut]
+
+
+# ---------------------------------------------------------------------------
+# Снимка от телефона
+# ---------------------------------------------------------------------------
+
+# По първите байтове познаваме формата — и заедно с това проверяваме, че низът
+# изобщо е образ, а не мегабайт букви "A". Живее тук, а не в server.py, защото
+# две различни врати приемат снимки: /ask от компютъра и /devices/photos от
+# телефона. Втори екземпляр на същата таблица би остарял тихо — точно този вид
+# разминаване после пропуска формат, който едната страна приема, а другата не.
+_IMAGE_SIGNATURES = (
+    (b"\xff\xd8\xff", "image/jpeg"),
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+    (b"GIF87a", "image/gif"),
+    (b"GIF89a", "image/gif"),
+)
+
+
+def image_media_type(b64: str) -> Optional[str]:
+    """Типът на образа по началото на base64 низа, или None ако не е разпознат образ."""
+    import base64 as _base64
+    import binascii as _binascii
+    try:
+        head = _base64.b64decode(b64[:16], validate=True)  # 16 знака -> 12 байта
+    except (_binascii.Error, ValueError):
+        return None
+    for signature, media_type in _IMAGE_SIGNATURES:
+        if head.startswith(signature):
+            return media_type
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+# Един и същ таван като за страница, пратена от компютъра (server.MAX_ASK_IMAGE_CHARS):
+# снимката от телефона тръгва по същия път към AI учителя, само влиза през друга врата.
+MAX_PHOTO_CHARS = 1_400_000
+
+
+class PairStartOut(BaseModel):
+    """Каквото компютърът показва, докато чака телефона."""
+    url: str
+    confirm_code: str
+    expires_at: datetime
+
+
+class PairInfoOut(BaseModel):
+    """Каквото телефонът показва, преди човекът да потвърди."""
+    display_name: str
+    confirm_code: str
+
+
+class PairClaimRequest(BaseModel):
+    # Името е за собствения екран на човека ("Телефонът на Мартин"), затова е
+    # късо и по желание — при празно се слага общо име.
+    device_name: Optional[str] = Field(default=None, max_length=40)
+
+
+class PairClaimOut(BaseModel):
+    token: str
+    user_display_name: str
+    device_name: str
+
+
+class PhotoUploadRequest(BaseModel):
+    image: str = Field(max_length=MAX_PHOTO_CHARS)
+
+    @field_validator("image")
+    @classmethod
+    def _check_image(cls, value: str) -> str:
+        # Редът е нарочен, същият както в /ask: първо евтината проверка по
+        # първите байтове, чак после пълното декодиране. Оразмерена атака не
+        # бива да ни кара да разпакетираме мегабайт, за да я откажем.
+        import base64 as _base64
+        import binascii as _binascii
+        if image_media_type(value) is None:
+            raise ValueError("Снимката не е разпознаваем образ.")
+        try:
+            _base64.b64decode(value, validate=True)
+        except (_binascii.Error, ValueError):
+            raise ValueError("Снимката не е валиден base64.")
+        return value
+
+
+class PhonePhotoOut(BaseModel):
+    id: str
+    data: str
+    media_type: str
+    created_at: datetime
+
+
+class PairedDeviceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    created_at: datetime
+    last_seen_at: Optional[datetime] = None

@@ -20,6 +20,66 @@ const AccountUI = (() => {
   function openSettings() {
     closeMenu();
     $('settingsOverlay').classList.remove('hidden');
+    renderDevices();
+  }
+
+  // Свързаните телефони. Списъкът се презарежда при всяко отваряне, а не се пази:
+  // телефон може да е бил откачен от друго устройство, а тук се идва точно
+  // когато нещо трябва да се откачи.
+  function renderDevices() {
+    const box = $('settingsDevices');
+    if (!box) return;
+    box.textContent = '';
+
+    if (!window.Auth || !Auth.isLoggedIn()) {
+      $('settingsDevicesRow').classList.add('hidden');
+      return;
+    }
+    $('settingsDevicesRow').classList.remove('hidden');
+
+    Promise.resolve(window.Phone ? Phone.refreshDevices() : null).then(() => {
+      const devices = window.Phone ? Phone.listPaired() : [];
+      box.textContent = '';
+      if (!devices.length) {
+        const empty = document.createElement('p');
+        empty.className = 'hint';
+        empty.textContent = t('settings.devicesEmpty');
+        box.appendChild(empty);
+        return;
+      }
+      devices.forEach(device => box.appendChild(_deviceRow(device)));
+    });
+  }
+
+  function _deviceRow(device) {
+    const row = document.createElement('div');
+    row.className = 'device-row';
+
+    const left = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'device-name';
+    name.textContent = device.name;
+    left.appendChild(name);
+
+    if (device.last_seen_at) {
+      const meta = document.createElement('div');
+      meta.className = 'device-meta';
+      meta.textContent = new Date(device.last_seen_at).toLocaleDateString();
+      left.appendChild(meta);
+    }
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-link';
+    btn.textContent = t('settings.forget');
+    btn.addEventListener('click', () => {
+      btn.disabled = true;
+      Phone.forget(device.id).then(renderDevices).catch(() => { btn.disabled = false; });
+    });
+
+    row.appendChild(left);
+    row.appendChild(btn);
+    return row;
   }
 
   function closeSettings() {
@@ -49,6 +109,7 @@ const AccountUI = (() => {
     updateAccount();
     window.addEventListener('climby:auth-changed', updateAccount);
     window.addEventListener('climby:lang-changed', updateAccount);
+    window.addEventListener('climby:auth-changed', renderDevices);
 
     $('accountBtn').addEventListener('click', e => { e.stopPropagation(); toggleMenu(); });
     $('settingsMenuBtn').addEventListener('click', openSettings);

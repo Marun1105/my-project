@@ -9,6 +9,7 @@ load_dotenv()  # трябва да е преди другите импорти, 
 
 import base64
 import binascii
+from pathlib import Path
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -17,10 +18,11 @@ from pydantic import BaseModel, Field, field_validator
 from anthropic import Anthropic, APIError
 from sqlalchemy.orm import Session
 from starlette.datastructures import Headers
-from starlette.responses import JSONResponse
+from starlette.responses import HTMLResponse, JSONResponse
 
 import auth
 import classes
+import devices
 import family
 import focus_sessions
 import planner
@@ -30,6 +32,7 @@ import scans
 import tasks
 from db import Base, engine, get_db
 from models import ScanHistory, User
+from schemas import image_media_type
 
 app = FastAPI()
 client = Anthropic()  # чете ANTHROPIC_API_KEY от средата
@@ -53,6 +56,7 @@ app.include_router(scans.router)
 app.include_router(focus_sessions.router)
 app.include_router(family.router)
 app.include_router(classes.router)
+app.include_router(devices.router)
 
 # Външната граница на всичко, което сървърът изобщо си позволява да прочете в паметта.
 # Pydantic проверява размерите ЧАК СЛЕД като FastAPI е задържал цялото тяло, а после
@@ -182,29 +186,11 @@ MAX_ASK_IMAGE_CHARS = 1_400_000
 # Таванът важи за сбора, защото иначе 8 x 1.4 MB пак прави 11 MB на заявка.
 MAX_ASK_IMAGES_CHARS = 6_000_000
 
-# По първите байтове познаваме формата — и заедно с това проверяваме, че низът
-# изобщо е образ, а не 5 MB букви "A", които Anthropic ще откаже, но ние вече ще сме
-# платили с памет за тях.
-_IMAGE_SIGNATURES = (
-    (b"\xff\xd8\xff", "image/jpeg"),
-    (b"\x89PNG\r\n\x1a\n", "image/png"),
-    (b"GIF87a", "image/gif"),
-    (b"GIF89a", "image/gif"),
-)
-
-
-def _image_media_type(b64: str) -> Optional[str]:
-    """Типът на образа по началото на base64 низа, или None ако не е разпознат образ."""
-    try:
-        head = base64.b64decode(b64[:16], validate=True)  # 16 знака -> 12 байта
-    except (binascii.Error, ValueError):
-        return None
-    for signature, media_type in _IMAGE_SIGNATURES:
-        if head.startswith(signature):
-            return media_type
-    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
-        return "image/webp"
-    return None
+# Разпознаването на формата по първите байтове живее в schemas.py: същата
+# проверка трябва да важи и за снимката, която идва от телефона през
+# /devices/photos. Едно копие на таблицата с подписи, а не две, които се
+# разминават тихо.
+_image_media_type = image_media_type
 
 
 class Ask(BaseModel):
@@ -252,6 +238,37 @@ ASK_ERROR_MESSAGE = {
 }
 
 
+# Единствената страница, която този сървър изобщо сервира. Приложението не се
+# хоства никъде — стига до хората само през инсталатора — но телефонът няма
+# откъде другаде да я вземе, а точно телефонът е камерата, която лаптопът няма.
+# Чете се веднъж при вдигане: файлът не се променя, докато процесът върви, а
+# четене от диска на всяка заявка би било чиста загуба.
+_PHONE_PAGE = (Path(__file__).parent / "phone_page.html").read_text(encoding="utf-8")
+
+# Страницата е един файл със свои стилове и свой скрипт вътре, и нищо не тегли
+# отвън — затова 'unsafe-inline' тук не отпуска нищо: няма чужд произход, от
+# който да дойде код. Всичко останало е забранено.
+_PHONE_PAGE_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
+        "connect-src 'self'; img-src data: blob:; base-uri 'none'; form-action 'none'"
+    ),
+    # Тайната за свързване стои в адреса. Без това тя би тръгнала в заглавката
+    # Referer към всеки адрес, който страницата някога докосне.
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": "no-store",
+}
+
+
+@app.get("/p/{secret}", response_class=HTMLResponse)
+def phone_page(secret: str):
+    # Тайната нарочно НЕ се вгражда в HTML-а — страницата си я чете сама от
+    # адреса. Така никакъв текст от заявката не влиза в разметката и въпросът
+    # "правилно ли е екранирано" изобщо не се появява.
+    return HTMLResponse(_PHONE_PAGE, headers=_PHONE_PAGE_HEADERS)
+
+
 @app.get("/")
 def health():
     # Проста проверка, че сървърът е жив — отваряш адреса и виждаш това.
@@ -289,7 +306,7 @@ def ask(
     answer = "".join(b.text for b in resp.content if b.type == "text")
 
     if user:
-        # Пазим само текста на въпроса/отговора за историята — снимките никога не се записват.
+        # Пазим само текста на въпроса/отговора за историята — снимките, стигнали дотук, не се записват.
         db.add(ScanHistory(user_id=user.id, question=body.question, answer=answer, lang=lang))
         db.commit()
 

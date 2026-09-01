@@ -138,3 +138,40 @@ def test_config_points_at_production():
     assert url == PRODUCTION_BACKEND, (
         f"config.js сочи към {url}, а не към продукцията {PRODUCTION_BACKEND}"
     )
+
+
+def _our_modules():
+    """Модулите, писани в този проект: `const X = (() => {` на най-горно ниво."""
+    found = {}
+    for name in sorted(os.listdir(FRONTEND)):
+        if not name.endswith(".js"):
+            continue
+        for match in re.finditer(r"^const ([A-Z]\w*) = \(\(\) => \{", _read(name), re.MULTILINE):
+            found[match.group(1)] = name
+    return found
+
+
+def test_modules_read_through_window_are_actually_put_on_window():
+    """`const X = ...` на най-горно ниво НЕ става window.X — а кодът разчиташе, че става.
+
+    Това мълчи по най-лошия начин: `window.Auth && Auth.isLoggedIn()` просто
+    решава, че никой не е влязъл, и продължава. Заради него фокус сесиите не се
+    записваха на нито един влязъл ученик, а менюто не скриваше чуждите роли.
+    Нищо не гърми, нищо не се вижда в конзолата.
+    """
+    modules = _our_modules()
+    assert "Auth" in modules, "не намерих модулите — проверката е безполезна"
+
+    sources = {name: _read(name) for name in os.listdir(FRONTEND) if name.endswith(".js")}
+    everything = "\n".join(sources.values())
+
+    missing = []
+    for module, own_file in modules.items():
+        if not re.search(rf"\bwindow\.{module}\b(?!\s*=)", everything):
+            continue  # никой не го чете през window — няма какво да се чупи
+        if f"window.{module} = {module};" not in sources[own_file]:
+            missing.append(f"{module} ({own_file})")
+
+    assert not missing, (
+        "четат се през window, но никога не се слагат на window: " + ", ".join(missing)
+    )

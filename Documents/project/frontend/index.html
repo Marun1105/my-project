@@ -208,6 +208,13 @@
         <button type="button" class="theme-switch-option" data-theme-mode="dark" aria-pressed="false" data-i18n="theme.dark">Тъмна</button>
       </div>
     </div>
+    <!-- Свързаните телефони живеят тук, защото откачането е нещо, което се прави
+         веднъж и обикновено набързо — при изгубен телефон. -->
+    <div class="settings-row settings-row-stack" id="settingsDevicesRow">
+      <span data-i18n="settings.devicesTitle">Свързани телефони</span>
+      <div id="settingsDevices"></div>
+      <p class="hint" data-i18n="settings.devicesHint">Телефон, свързан оттук, може само да праща снимки — нищо друго от профила ти.</p>
+    </div>
   </div>
 </div>
 
@@ -353,6 +360,38 @@
 <div class="controls" id="uploadRow" style="margin-top: 10px;">
   <button id="uploadBtn" class="btn-ghost" type="button" data-i18n="scanner.uploadBtn">Качи снимка от файл</button>
   <input id="uploadInput" type="file" accept="image/*" class="hidden">
+</div>
+
+<!-- Снимка от телефона: лаптопът рядко има камера, годна за страница от учебник,
+     а телефонът в джоба винаги има. Свързва се веднъж и остава свързан. -->
+<div id="phonePanel" class="phone-panel">
+  <p id="phoneLoggedOut" class="hint hidden" data-i18n="phone.loginFirst">Влез в профила си, за да свържеш телефон.</p>
+
+  <div id="phoneUnpaired" class="hidden">
+    <button id="phonePairBtn" class="btn-ghost" type="button" data-i18n="phone.pairBtn">Снимай с телефона</button>
+  </div>
+
+  <div id="phoneConnected" class="hidden">
+    <p class="phone-status">
+      <span class="phone-dot" aria-hidden="true"></span>
+      <span data-i18n="phone.connected">Телефонът е свързан</span>
+      <strong id="phoneDeviceName"></strong>
+    </p>
+    <p class="hint" data-i18n="phone.connectedHint">Снимай страница на телефона — тя се появява тук сама.</p>
+    <button id="phoneRepairBtn" class="btn-link" type="button" data-i18n="phone.another">Свържи друг телефон</button>
+  </div>
+
+  <div id="phoneQr" class="phone-qr hidden">
+    <p class="phone-qr-title" data-i18n="phone.scanThis">Сканирай това с телефона си</p>
+    <div id="phoneQrBox" class="phone-qr-box"></div>
+    <p class="phone-code-label" data-i18n="phone.codeLabel">Телефонът трябва да покаже същия код:</p>
+    <div id="phoneConfirmCode" class="phone-code"></div>
+    <p class="hint" id="phoneExpiry"></p>
+    <button id="phoneQrCancelBtn" class="btn-link" type="button" data-i18n="phone.cancel">Откажи</button>
+  </div>
+
+  <p id="phoneQueue" class="hint phone-queue hidden"></p>
+  <p id="phoneError" class="auth-error hidden"></p>
 </div>
 
 <p class="hint" id="scannerHint" data-i18n="scanner.hint">Постави страницата така, че да се вижда цялата. Скенерът намира ръбовете и я изправя автоматично — ако не успее, ползва цялата снимка, без да спира работата ти.</p>
@@ -692,6 +731,7 @@
      „инсталираното“ приложение показва празно вместо обяснение. Заедно тежат под 65 KB. -->
 <script src="vendor/marked.min.js"></script>
 <script src="vendor/purify.min.js"></script>
+<script src="vendor/qrcode.min.js"></script>
 <!-- KaTeX оформя математическите формули между $...$ и $$...$$ -->
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
@@ -709,6 +749,7 @@
 <script src="settings.js"></script>
 <script src="nav.js"></script>
 <script src="scanner.js"></script>
+<script src="phone.js"></script>
 <script src="tutor.js"></script>
 <script src="auth.js"></script>
 <script src="checklist.js"></script>

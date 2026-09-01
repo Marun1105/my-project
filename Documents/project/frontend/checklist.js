@@ -360,4 +360,6 @@ const Checklist = (() => {
   return { init, getPendingTasks, syncBadge };
 })();
 
+window.Checklist = Checklist;
+
 document.addEventListener('DOMContentLoaded', Checklist.init);

@@ -205,3 +205,79 @@ class VerificationCode(Base):
     expires_at = Column(DateTime(timezone=True), nullable=False)
     used = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), default=_now)
+
+
+# ---------------------------------------------------------------------------
+# Снимка от телефона към компютъра
+#
+# Настолният компютър рядко има камера, годна за страница от учебник, и точно
+# това правеше раздела "Учител" безполезен на лаптоп. Затова телефонът снима, а
+# компютърът получава. Трите таблици по-долу са целият механизъм: едната пази
+# висящата покана (QR кода), втората — вече свързания телефон, третата е самата
+# пратка, която живее секунди.
+# ---------------------------------------------------------------------------
+
+class PairRequest(Base):
+    """Висящата покана зад QR кода — важи веднъж и за кратко.
+
+    Тайната НЕ се пази в чист вид: редът се намира по sha256 от нея. Тук нарочно
+    не се ползва bcrypt, както при паролите — bcrypt слага случайна сол и затова
+    по него не може да се търси, а и бавността му пази СЛАБИ тайни, измислени от
+    човек. Тази тайна е 32 случайни байта; за нея бавното хеширане не добавя
+    нищо, а възможността за пряко търсене е необходима.
+    """
+    __tablename__ = "pair_requests"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    secret_hash = Column(String, unique=True, nullable=False, index=True)
+    # Показва се едновременно на двата екрана, за да види човекът, че е свързал
+    # СВОЯ телефон. Не е тайна и не пази от нищо само по себе си — служи за
+    # разпознаване, затова се пази в чист вид.
+    confirm_code = Column(String, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class PairedDevice(Base):
+    """Свързан телефон.
+
+    Токенът тук НЕ е вход в акаунта. Пуска само две неща: качване на снимка и
+    въпроса "още ли съм свързан". Открадне ли се телефонът, най-лошото, което
+    може да се случи, е някой да прати снимки — не да чете задачи или да сменя
+    парола. Това е нарочно: телефонът стои отключен на масата далеч по-често от
+    компютъра.
+    """
+    __tablename__ = "paired_devices"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    token_hash = Column(String, unique=True, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+    last_seen_at = Column(DateTime(timezone=True), nullable=True)
+    # Часовият таван се брои в базата, а не в паметта на процеса както в
+    # rate_limit.py: там лимитът е по IP и за един работник, а Render пуска
+    # няколко. Телефон, който удари таван при единия работник, иначе просто
+    # продължава при другия.
+    photos_hour_start = Column(DateTime(timezone=True), nullable=True)
+    photos_this_hour = Column(Integer, nullable=False, default=0, server_default="0")
+
+
+class PhonePhoto(Base):
+    """Снимка на път от телефона към компютъра — живее секунди.
+
+    Това е единственото място, където приложението изобщо записва снимка. Редът
+    се изтрива в мига, в който компютърът го вземе, а несъбраното се помита след
+    десет минути. Пази се като base64 текст, а не като байтове, защото и
+    scanner.js, и /ask вече говорят точно това — иначе снимката би се
+    прекодирала два пъти по пътя за нищо.
+    """
+    __tablename__ = "phone_photos"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    device_id = Column(String, ForeignKey("paired_devices.id"), nullable=False, index=True)
+    data = Column(String, nullable=False)
+    media_type = Column(String, nullable=False, default="image/jpeg")
+    created_at = Column(DateTime(timezone=True), default=_now, index=True)
