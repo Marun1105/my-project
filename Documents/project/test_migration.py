@@ -365,3 +365,51 @@ def test_the_schema_lock_is_not_required_on_sqlite(old_engine):
     бива да е грешка, иначе локалната разработка не тръгва изобщо."""
     with migrations.schema_lock():
         pass
+
+
+def test_the_schema_lock_gives_up_instead_of_waiting_forever(monkeypatch):
+    """Заета ключалка не бива да спира вдигането завинаги.
+
+    pg_advisory_lock блокира без срок. Умре ли предишно вдигане, докато я държи,
+    следващото спира преди да е отворило порт — а отвън това не изглежда като
+    грешка: няма следа, само деплой, който изтича с "no open ports detected".
+    Точно това се случи веднъж и остана невидимо, докато не се погледна логът на
+    хостинга.
+    """
+    import time as _time
+
+    calls = {"tries": 0, "slept": 0.0}
+
+    class _FakeResult:
+        def scalar(self):
+            calls["tries"] += 1
+            return False  # ключалката е заета през цялото време
+
+    class _FakeConn:
+        closed = False
+
+        def execute(self, *a, **kw):
+            return _FakeResult()
+
+        def commit(self):
+            pass
+
+        def close(self):
+            _FakeConn.closed = True
+
+    monkeypatch.setattr(migrations.engine.dialect, "name", "postgresql", raising=False)
+    monkeypatch.setattr(migrations.engine, "connect", lambda: _FakeConn())
+    # въртим часовника напред вместо да чакаме наистина
+    monkeypatch.setattr(migrations.time, "sleep", lambda s: calls.__setitem__("slept", calls["slept"] + s))
+    base = _time.monotonic()
+    ticks = iter([base + i * 2.0 for i in range(1, 200)])
+    monkeypatch.setattr(migrations.time, "monotonic", lambda: next(ticks))
+
+    entered = False
+    with migrations.schema_lock():
+        entered = True
+
+    assert entered, "вдигането трябва да продължи, а не да виси на заета ключалка"
+    assert calls["tries"] >= 1
+    assert calls["slept"] <= migrations.LOCK_WAIT_SECONDS + 1, "чакало е по-дълго от срока"
+    assert _FakeConn.closed, "връзката без ключалка трябва да се затвори"

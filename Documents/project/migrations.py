@@ -11,6 +11,7 @@
 # което трябва да се смени.
 import sys
 import threading
+import time
 from contextlib import contextmanager
 
 from sqlalchemy import inspect, text
@@ -27,6 +28,12 @@ _SCHEMA_LOCK_KEY = 7311982045123001
 # Вътре в един процес се редим сами; ключалката в Postgres е за другите процеси.
 # RLock, защото server.py взима ключалката около create_all, а run() я взима пак.
 _local_lock = threading.RLock()
+
+# Колко се чака чужда ключалка, преди да се мине без нея. Стъпките по схемата са
+# идемпотентни, така че по-лошото от два едновременни работника е шумна грешка,
+# която те и без това преживяват. По-лошото от безкрайно чакане е сървър, който
+# никога не отваря порт — а него никой не го вижда като грешка.
+LOCK_WAIT_SECONDS = 15
 
 
 @contextmanager
@@ -48,12 +55,34 @@ def schema_lock():
         if engine.dialect.name == "postgresql":
             try:
                 conn = engine.connect()
-                conn.execute(text("SELECT pg_advisory_lock(:k)"),
-                             {"k": _SCHEMA_LOCK_KEY})
-                # Ключалката е на ниво връзка, не на транзакция — приключваме
-                # транзакцията, за да не държим отворена такава през цялата
-                # миграция, но връзката остава жива и ключалката с нея.
-                conn.commit()
+                # Чака се, но не безкрайно. pg_advisory_lock блокира БЕЗ срок: ако
+                # предишно вдигане е умряло, докато е държало ключалката, а сесията
+                # му още се влачи в Postgres, всяко следващо вдигане спира точно
+                # тук — преди сървърът да е отворил порт. Отвън това не прилича на
+                # грешка: няма грешка, няма следа, само "no open ports detected" и
+                # деплой, който изтича. Затова опитваме и се отказваме навреме.
+                deadline = time.monotonic() + LOCK_WAIT_SECONDS
+                got = False
+                while True:
+                    got = bool(conn.execute(text("SELECT pg_try_advisory_lock(:k)"),
+                                            {"k": _SCHEMA_LOCK_KEY}).scalar())
+                    conn.commit()
+                    if got or time.monotonic() >= deadline:
+                        break
+                    time.sleep(0.5)
+                if not got:
+                    print(
+                        f"[migrations] ключалката за схемата беше заета {LOCK_WAIT_SECONDS}s — "
+                        "продължавам без нея (стъпките понасят 'вече съществува')",
+                        file=sys.stderr,
+                    )
+                    conn.close()
+                    conn = None
+                else:
+                    # Ключалката е на ниво връзка, не на транзакция — приключваме
+                    # транзакцията, за да не държим отворена такава през цялата
+                    # миграция, но връзката остава жива и ключалката с нея.
+                    conn.commit()
             except SQLAlchemyError as err:
                 # Без ключалка е по-зле, но не е фатално: стъпките по-долу и без
                 # това преживяват "вече съществува". По-добре стартирал сървър с
