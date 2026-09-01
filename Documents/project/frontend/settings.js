@@ -117,6 +117,9 @@ const AccountUI = (() => {
     window.addEventListener('climby:auth-changed', updateAccount);
     window.addEventListener('climby:lang-changed', updateAccount);
     window.addEventListener('climby:auth-changed', renderDevices);
+    // Смяната на езика става В ТОЗИ прозорец. Без този ред единственият текст,
+    // който остава на стария език, е точно този под превключвателя.
+    window.addEventListener('climby:lang-changed', renderDevices);
 
     $('accountBtn').addEventListener('click', e => { e.stopPropagation(); toggleMenu(); });
     $('settingsMenuBtn').addEventListener('click', openSettings);
