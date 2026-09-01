@@ -127,6 +127,48 @@ def test_backend_url_is_only_defined_in_config():
 PRODUCTION_BACKEND = "https://my-project-0gyk.onrender.com"
 
 
+def test_the_local_address_is_only_used_when_actually_running_locally():
+    """Локалният адрес вече стои в config.js за постоянно — но зад проверка.
+
+    Така никой не пипа файла на ръка и няма какво да се забрави върнато. Тестът
+    пази точно това: стойността по подразбиране да е продукцията, а локалният
+    адрес да се стига само през проверка на location.hostname. Махне ли някой
+    проверката, изданието тръгва срещу изключен компютър.
+    """
+    src = _read("config.js")
+    default = re.search(r"window\.CLIMBY_BACKEND\s*=\s*'([^']+)'", src)
+    assert default and default.group(1) == PRODUCTION_BACKEND, (
+        "първото присвояване в config.js трябва да е продукцията"
+    )
+    if "127.0.0.1" in src or "localhost" in src:
+        assert "location.hostname" in src, (
+            "config.js споменава локален адрес, но не проверява откъде е отворена страницата"
+        )
+        # локалният адрес не бива да е безусловен
+        for line in src.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("window.CLIMBY_BACKEND") and ("127.0.0.1" in stripped or "localhost" in stripped):
+                raise AssertionError("локалният адрес се присвоява безусловно: " + stripped)
+
+
+def test_the_csp_allows_the_local_backend_config_points_at():
+    """Ако config.js сочи към localhost при разработка, правилото трябва да го пуска.
+
+    Двете се разминаваха: подсказката казваше да се ползва 127.0.0.1, а CSP го
+    отказваше. Тогава нищо не работи и нищо не обяснява защо.
+    """
+    html = _read("index.html")
+    # Търси се в самото правило, а не в коментара над него — там думата
+    # "connect-src" също се среща и мълчаливо подменяше проверката.
+    tag = re.search(r'<meta http-equiv="Content-Security-Policy" content="(.*?)"', html, re.S)
+    assert tag, "не намерих CSP meta в index.html"
+    csp = re.search(r"connect-src([^;]*);", tag.group(1))
+    assert csp, "не намерих connect-src в CSP"
+    connect = csp.group(1)
+    for origin in ("http://127.0.0.1:8000", "http://localhost:8000"):
+        assert origin in connect, f"connect-src не пуска {origin}, а config.js го ползва локално"
+
+
 def test_config_points_at_production():
     """Проверява самата стойност, не коментара над нея (там локалният адрес е нарочно)."""
     assignment = re.search(r"window\.CLIMBY_BACKEND\s*=\s*'([^']+)'", _read("config.js"))

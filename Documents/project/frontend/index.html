@@ -14,6 +14,11 @@
      Двата 'sha256-...' са за двата <script> блока най-долу в тази страница. Ако някой
      ги промени, дори с един интервал, браузърът спира да ги изпълнява — тогава хешът
      тук трябва да се пресметне наново.
+     connect-src пуска и двата адреса на localhost с порт 8000: там стои бекендът при
+     разработка. Без тях подсказката в config.js беше невярна — заявките се блъскаха в
+     това правило и не се случваше нищо. Приложението за компютър се отваря от
+     app://climby и никога не минава оттам, така че за раздадените копия този ред е
+     мъртъв. Портът е изписан нарочно — не е разрешен целият localhost.
      connect-src пуска и data: — opencv.js носи своя wasm вграден в самия файл и си го
      чете като data: адрес; без това скенерът не тръгва.
      frame-ancestors нарочно го няма: през <meta> браузърът го пренебрегва и само пише
@@ -25,7 +30,7 @@
   font-src 'self' https://cdn.jsdelivr.net;
   img-src 'self' data: blob:;
   media-src 'self' blob:;
-  connect-src 'self' data: https://my-project-0gyk.onrender.com https://cdn.jsdelivr.net;
+  connect-src 'self' data: https://my-project-0gyk.onrender.com https://cdn.jsdelivr.net http://127.0.0.1:8000 http://localhost:8000;
   worker-src 'self' blob:;
   child-src 'self' blob:;
   object-src 'none';
