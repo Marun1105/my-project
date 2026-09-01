@@ -372,7 +372,7 @@
   </div>
 
   <div id="phoneConnected" class="hidden">
-    <p class="phone-status">
+    <p class="phone-status" role="status" aria-live="polite">
       <span class="phone-dot" aria-hidden="true"></span>
       <span data-i18n="phone.connected">Телефонът е свързан</span>
       <strong id="phoneDeviceName"></strong>
@@ -383,15 +383,15 @@
 
   <div id="phoneQr" class="phone-qr hidden">
     <p class="phone-qr-title" data-i18n="phone.scanThis">Сканирай това с телефона си</p>
-    <div id="phoneQrBox" class="phone-qr-box"></div>
+    <div id="phoneQrBox" class="phone-qr-box" role="img" data-i18n-aria="phone.qrAria" aria-label="QR код за свързване на телефон"></div>
     <p class="phone-code-label" data-i18n="phone.codeLabel">Телефонът трябва да покаже същия код:</p>
     <div id="phoneConfirmCode" class="phone-code"></div>
-    <p class="hint" id="phoneExpiry"></p>
+    <p class="hint" id="phoneExpiry" role="status" aria-live="polite"></p>
     <button id="phoneQrCancelBtn" class="btn-link" type="button" data-i18n="phone.cancel">Откажи</button>
   </div>
 
-  <p id="phoneQueue" class="hint phone-queue hidden"></p>
-  <p id="phoneError" class="auth-error hidden"></p>
+  <p id="phoneQueue" class="hint phone-queue hidden" role="status" aria-live="polite"></p>
+  <p id="phoneError" class="auth-error hidden" role="alert"></p>
 </div>
 
 <p class="hint" id="scannerHint" data-i18n="scanner.hint">Постави страницата така, че да се вижда цялата. Скенерът намира ръбовете и я изправя автоматично — ако не успее, ползва цялата снимка, без да спира работата ти.</p>

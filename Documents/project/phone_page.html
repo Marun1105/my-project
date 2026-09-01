@@ -12,12 +12,17 @@
   getUserMedia в страницата. Причината е проста: производителят на телефона
   обработва кадъра далеч по-добре, а страница от учебник е точно този случай —
   дребен текст, който трябва да остане четим.
+
+  Езикът идва като ?lang= в адреса, сложен от компютъра при рисуването на QR
+  кода. Приложението е двуезично и телефонът е част от него — да проговори на
+  български на дете, което ползва английския, значи екранът да изглежда чужд
+  точно в мига, в който трябва да вдъхва доверие.
 -->
 <html lang="bg">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Climby — снимка от телефона</title>
+<title>Climby</title>
 <style>
   :root {
     --bg: #f7f7f8;
@@ -27,7 +32,6 @@
     --line: #dededf;
     --accent: #16161a;
     --accent-ink: #ffffff;
-    --ok: #16161a;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -39,7 +43,6 @@
       --line: #2a2a32;
       --accent: #f2f2f4;
       --accent-ink: #0d0d10;
-      --ok: #f2f2f4;
     }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -52,7 +55,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
   }
   main {
     width: 100%;
@@ -60,15 +63,15 @@
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: 18px;
-    padding: 28px 22px;
+    padding: 30px 22px 26px;
     text-align: center;
   }
   .brand {
-    font-size: 13px;
-    letter-spacing: .14em;
+    font-size: 12px;
+    letter-spacing: .16em;
     text-transform: uppercase;
     color: var(--ink-soft);
-    margin: 0 0 20px;
+    margin: 0 0 22px;
   }
   h1 { font-size: 22px; line-height: 1.25; margin: 0 0 10px; font-weight: 650; }
   p { margin: 0 0 16px; color: var(--ink-soft); }
@@ -78,7 +81,8 @@
     font-size: 34px;
     letter-spacing: .22em;
     font-weight: 600;
-    margin: 4px 0 6px;
+    color: var(--ink);
+    margin: 6px 0;
     padding-left: .22em; /* компенсира разредката, за да е наистина центриран */
   }
   .code-hint { font-size: 14px; }
@@ -88,7 +92,7 @@
     font: inherit;
     font-weight: 600;
     border-radius: 12px;
-    padding: 15px 18px;
+    padding: 16px 18px;
     border: 1px solid var(--accent);
     background: var(--accent);
     color: var(--accent-ink);
@@ -97,17 +101,22 @@
   }
   .ghost { background: transparent; color: var(--ink); border-color: var(--line); }
   button:disabled { opacity: .5; }
-  .filebtn { margin-top: 18px; }
-  input[type=file] { display: none; }
-  .status { min-height: 22px; margin: 14px 0 0; font-size: 15px; }
+  /* Това копче се натиска отново и отново, често на ръка с молив в другата —
+     затова е по-високо от останалите и стои само на реда си. */
+  .filebtn { margin-top: 22px; padding: 20px 18px; font-size: 17px; }
+  input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .status { min-height: 22px; margin: 16px 0 0; font-size: 15px; }
   .dot {
     display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-    background: var(--ok); margin-right: 7px; vertical-align: middle;
+    background: var(--ink); margin-right: 8px; vertical-align: middle;
   }
-  .count { font-size: 14px; color: var(--ink-soft); margin-top: 14px; }
+  .count { font-size: 14px; color: var(--ink-soft); margin: 12px 0 0; }
   .hidden { display: none !important; }
   .spin { animation: pulse 1.1s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+  @media (prefers-reduced-motion: reduce) {
+    .spin { animation: none; }
+  }
 </style>
 </head>
 <body>
@@ -115,30 +124,30 @@
   <p class="brand">Climby</p>
 
   <section id="loading">
-    <p class="spin">Зареждане…</p>
+    <p class="spin" data-i18n="loading">Зареждане…</p>
   </section>
 
   <section id="confirm" class="hidden">
-    <h1>Да свържа ли този телефон?</h1>
-    <p>Ще изпраща снимки към профила на <strong id="ownerName"></strong>.</p>
+    <h1 data-i18n="confirmTitle">Да свържа ли този телефон?</h1>
+    <p id="confirmBody"></p>
     <div class="code" id="confirmCode"></div>
-    <p class="code-hint">Провери, че същият код се вижда и на компютъра.</p>
-    <button id="confirmBtn" type="button">Да, свържи телефона</button>
+    <p class="code-hint" data-i18n="codeHint">Провери, че същият код се вижда и на компютъра.</p>
+    <button id="confirmBtn" type="button" data-i18n="confirmBtn">Да, свържи телефона</button>
   </section>
 
   <section id="ready" class="hidden">
-    <h1><span class="dot"></span>Свързан</h1>
-    <p>Снимай страница и тя ще се появи на компютъра на <strong id="readyName"></strong>.</p>
-    <label class="filebtn" for="shot">Снимай страница</label>
+    <h1><span class="dot" aria-hidden="true"></span><span data-i18n="readyTitle">Свързан</span></h1>
+    <p id="readyBody"></p>
+    <label class="filebtn" for="shot" data-i18n="shootBtn">Снимай страница</label>
     <input id="shot" type="file" accept="image/*" capture="environment">
-    <p class="status" id="status"></p>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
     <p class="count" id="count"></p>
   </section>
 
   <section id="failed" class="hidden">
-    <h1 id="failTitle">Нещо не се получи</h1>
+    <h1 id="failTitle"></h1>
     <p id="failText"></p>
-    <button id="retryBtn" class="ghost" type="button">Опитай пак</button>
+    <button id="retryBtn" class="ghost" type="button" data-i18n="retryBtn">Опитай пак</button>
   </section>
 </main>
 
@@ -146,6 +155,99 @@
 (function () {
   'use strict';
 
+  // ---------- език ----------
+  var STR = {
+    bg: {
+      title: 'Climby — снимка от телефона',
+      loading: 'Зареждане…',
+      confirmTitle: 'Да свържа ли този телефон?',
+      confirmBody: 'Ще изпраща снимки към профила на {name}.',
+      codeHint: 'Провери, че същият код се вижда и на компютъра.',
+      confirmBtn: 'Да, свържи телефона',
+      confirmBtnBusy: 'Свързвам…',
+      readyTitle: 'Свързан',
+      readyBody: 'Снимай страница и тя ще се появи на компютъра на {name}.',
+      shootBtn: 'Снимай страница',
+      retryBtn: 'Опитай пак',
+      waking: 'Сървърът се събужда…',
+      sending: 'Изпращам…',
+      sent: 'Готово — виж компютъра.',
+      offline: 'Няма връзка. Опитай пак.',
+      failedOnce: 'Не се получи. Опитай пак.',
+      countOne: 'Изпратена 1 снимка',
+      countMany: 'Изпратени {n} снимки',
+      errNoCodeTitle: 'Липсва код',
+      errNoCodeBody: 'Отвори QR кода от компютъра още веднъж.',
+      errExpiredTitle: 'Кодът вече не важи',
+      errExpiredBody: 'Покажи нов QR код на компютъра и го сканирай пак.',
+      errPairTitle: 'Свързването не стана',
+      errOfflineTitle: 'Няма връзка',
+      errOfflineBody: 'Провери интернета и опитай пак.',
+      errUnlinkedTitle: 'Телефонът е откачен',
+      errUnlinkedBody: 'Свържи го отново от компютъра.',
+    },
+    en: {
+      title: 'Climby — photo from your phone',
+      loading: 'Loading…',
+      confirmTitle: 'Link this phone?',
+      confirmBody: "It will send photos to {name}'s account.",
+      codeHint: 'Check that the same code is showing on your computer.',
+      confirmBtn: 'Yes, link this phone',
+      confirmBtnBusy: 'Linking…',
+      readyTitle: 'Connected',
+      readyBody: "Take a photo of a page and it will show up on {name}'s computer.",
+      shootBtn: 'Photograph a page',
+      retryBtn: 'Try again',
+      waking: 'Waking the server…',
+      sending: 'Sending…',
+      sent: 'Done — check your computer.',
+      offline: 'No connection. Try again.',
+      failedOnce: "That didn't work. Try again.",
+      countOne: '1 photo sent',
+      countMany: '{n} photos sent',
+      errNoCodeTitle: 'No code',
+      errNoCodeBody: 'Open the QR code on your computer once more.',
+      errExpiredTitle: 'This code is no longer valid',
+      errExpiredBody: 'Show a new QR code on your computer and scan it again.',
+      errPairTitle: 'Linking failed',
+      errOfflineTitle: 'No connection',
+      errOfflineBody: 'Check your internet and try again.',
+      errUnlinkedTitle: 'This phone was unlinked',
+      errUnlinkedBody: 'Link it again from your computer.',
+    },
+  };
+
+  var params = new URLSearchParams(location.search);
+  var lang = STR[params.get('lang')] ? params.get('lang') : 'bg';
+
+  function t(key, vars) {
+    var s = STR[lang][key] || STR.bg[key] || key;
+    if (vars) {
+      for (var k in vars) s = s.split('{' + k + '}').join(vars[k]);
+    }
+    return s;
+  }
+
+  // Изречение с име вътре, без innerHTML: шаблонът се реже на „{name}" и
+  // средата се слага като <strong> с textContent. Името идва от сървъра, но
+  // това няма значение — по този път разметка изобщо не може да влезе.
+  function fillWithName(el, key, name) {
+    var parts = t(key).split('{name}');
+    el.textContent = '';
+    el.appendChild(document.createTextNode(parts[0]));
+    var strong = document.createElement('strong');
+    strong.textContent = name;
+    el.appendChild(strong);
+    el.appendChild(document.createTextNode(parts[1] || ''));
+  }
+
+  document.documentElement.lang = lang;
+  document.title = t('title');
+  Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (el) {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+
+  // ---------- състояние ----------
   // Тайната от QR кода стои в адреса. Тя важи веднъж и десет минути — след
   // потвърждаване тук остава само токенът на устройството.
   var secret = decodeURIComponent(location.pathname.replace(/^\/p\//, '').replace(/\/$/, ''));
@@ -162,10 +264,21 @@
     });
   }
 
-  function fail(title, text) {
-    $('failTitle').textContent = title;
-    $('failText').textContent = text;
+  function fail(titleKey, bodyKey, bodyText) {
+    $('failTitle').textContent = t(titleKey);
+    $('failText').textContent = bodyText || t(bodyKey);
     show('failed');
+  }
+
+  function setStatus(text, busy) {
+    var el = $('status');
+    el.textContent = text;
+    el.classList.toggle('spin', !!busy);
+  }
+
+  function forgetToken() {
+    try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* и без запис върви */ }
+    token = null;
   }
 
   // Безплатният Render заспива след около 15 минути. Първата заявка тогава пада
@@ -185,14 +298,8 @@
   }
 
   function wake() {
-    setStatus('Сървърът се събужда…', true);
+    setStatus(t('waking'), true);
     return new Promise(function (r) { setTimeout(r, 4000); });
-  }
-
-  function setStatus(text, busy) {
-    var el = $('status');
-    el.textContent = text;
-    el.classList.toggle('spin', !!busy);
   }
 
   function detail(res) {
@@ -208,12 +315,11 @@
         if (!res.ok) {
           // Токенът е бил откачен от компютъра — забравяме го и минаваме по
           // обичайния път на поканата, ако адресът още носи такава.
-          try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
-          token = null;
+          forgetToken();
           return askToPair();
         }
         return res.json().then(function (d) {
-          $('readyName').textContent = d.user_display_name;
+          fillWithName($('readyBody'), 'readyBody', d.user_display_name);
           show('ready');
         });
       });
@@ -221,17 +327,15 @@
 
   // ---------- стъпка 2: поканата ----------
   function askToPair() {
-    if (!secret) {
-      return fail('Липсва код', 'Отвори QR кода от компютъра още веднъж.');
-    }
+    if (!secret) return fail('errNoCodeTitle', 'errNoCodeBody');
     return call('/devices/pair/' + encodeURIComponent(secret) + '/info').then(function (res) {
       if (!res.ok) {
         return detail(res).then(function (msg) {
-          fail('Кодът вече не важи', msg || 'Покажи нов QR код на компютъра и го сканирай пак.');
+          fail('errExpiredTitle', 'errExpiredBody', msg);
         });
       }
       return res.json().then(function (d) {
-        $('ownerName').textContent = d.display_name;
+        fillWithName($('confirmBody'), 'confirmBody', d.display_name);
         $('confirmCode').textContent = d.confirm_code;
         show('confirm');
       });
@@ -241,7 +345,7 @@
   $('confirmBtn').addEventListener('click', function () {
     var btn = $('confirmBtn');
     btn.disabled = true;
-    btn.textContent = 'Свързвам…';
+    btn.textContent = t('confirmBtnBusy');
     call('/devices/pair/' + encodeURIComponent(secret) + '/claim', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -249,20 +353,20 @@
     }).then(function (res) {
       if (!res.ok) {
         return detail(res).then(function (msg) {
-          fail('Свързването не стана', msg || 'Покажи нов QR код на компютъра и опитай пак.');
+          fail('errPairTitle', 'errExpiredBody', msg);
         });
       }
       return res.json().then(function (d) {
         token = d.token;
-        try { localStorage.setItem(TOKEN_KEY, token); } catch (e) {}
-        $('readyName').textContent = d.user_display_name;
+        try { localStorage.setItem(TOKEN_KEY, token); } catch (e) { /* и без запис върви */ }
+        fillWithName($('readyBody'), 'readyBody', d.user_display_name);
         show('ready');
       });
     }).catch(function () {
-      fail('Няма връзка', 'Провери интернета и опитай пак.');
+      fail('errOfflineTitle', 'errOfflineBody');
     }).then(function () {
       btn.disabled = false;
-      btn.textContent = 'Да, свържи телефона';
+      btn.textContent = t('confirmBtn');
     });
   });
 
@@ -290,8 +394,7 @@
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         var dataUrl = canvas.toDataURL('image/jpeg', QUALITY);
-        var comma = dataUrl.indexOf(',');
-        resolve(dataUrl.slice(comma + 1));
+        resolve(dataUrl.slice(dataUrl.indexOf(',') + 1));
       };
       img.onerror = function () {
         URL.revokeObjectURL(url);
@@ -306,7 +409,7 @@
     e.target.value = '';  // същата снимка да може да се прати пак
     if (!file) return;
 
-    setStatus('Изпращам…', true);
+    setStatus(t('sending'), true);
     downscale(file).then(function (b64) {
       return call('/devices/photos', {
         method: 'POST',
@@ -315,25 +418,25 @@
       });
     }).then(function (res) {
       if (res.status === 401) {
-        try { localStorage.removeItem(TOKEN_KEY); } catch (e2) {}
-        return fail('Телефонът е откачен', 'Свържи го отново от компютъра.');
+        forgetToken();
+        return fail('errUnlinkedTitle', 'errUnlinkedBody');
       }
       if (!res.ok) {
         return detail(res).then(function (msg) {
-          setStatus(msg || 'Не се получи. Опитай пак.', false);
+          setStatus(msg || t('failedOnce'), false);
         });
       }
       sent += 1;
-      setStatus('Готово — виж компютъра.', false);
-      $('count').textContent = sent === 1 ? 'Изпратена 1 снимка' : 'Изпратени ' + sent + ' снимки';
+      setStatus(t('sent'), false);
+      $('count').textContent = sent === 1 ? t('countOne') : t('countMany', { n: sent });
     }).catch(function () {
-      setStatus('Няма връзка. Опитай пак.', false);
+      setStatus(t('offline'), false);
     });
   });
 
   // ---------- начало ----------
   (token ? checkExisting() : askToPair()).catch(function () {
-    fail('Няма връзка', 'Провери интернета и опитай пак.');
+    fail('errOfflineTitle', 'errOfflineBody');
   });
 })();
 </script>

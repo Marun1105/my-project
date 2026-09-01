@@ -272,6 +272,7 @@ const I18n = (() => {
       // нещо свързано веднъж, а не за действие, което се повтаря всеки път.
       'phone.loginFirst': 'Влез в профила си, за да свържеш телефон.',
       'phone.pairBtn': 'Снимай с телефона',
+      'phone.qrAria': 'QR код за свързване на телефон',
       'phone.connected': 'Телефонът е свързан',
       'phone.connectedHint': 'Снимай страница на телефона — тя се появява тук сама.',
       'phone.another': 'Свържи друг телефон',
@@ -600,6 +601,7 @@ const I18n = (() => {
       // not as a step repeated on every scan.
       'phone.loginFirst': 'Log in to link a phone.',
       'phone.pairBtn': 'Shoot with your phone',
+      'phone.qrAria': 'QR code for linking a phone',
       'phone.connected': 'Phone connected',
       'phone.connectedHint': 'Take a photo on your phone and it shows up here by itself.',
       'phone.another': 'Link a different phone',
@@ -713,6 +715,8 @@ const I18n = (() => {
 
   return { t, get, setLang, applyToDom, init };
 })();
+
+window.I18n = I18n;
 
 // глобален пряк път, ползван от другите скриптове: t('key')
 window.t = I18n.t;

@@ -21,7 +21,6 @@ const Phone = (() => {
   let pairing = null;         // { url, confirm_code, expires_at } докато QR кодът се вижда
   let expiryTimer = null;
   let queue = [];             // пристигнали снимки, които чакат скенера да се освободи
-  let qr = null;              // екземплярът на библиотеката, за да не се рисува два пъти
   let viewing = false;        // на раздела "Учител" ли сме
 
   function loggedIn() {
@@ -82,7 +81,7 @@ const Phone = (() => {
     if (queue.length) {
       el.textContent = queue.length === 1
         ? t('phone.queueOne')
-        : t('phone.queueMany').replace('{n}', queue.length);
+        : t('phone.queueMany', { n: queue.length });
     }
   }
 
@@ -106,7 +105,7 @@ const Phone = (() => {
       showError(err.message);
       return;
     }
-    drawQr(pairing.url);
+    drawQr(_localised(pairing.url));
     $('phoneConfirmCode').textContent = pairing.confirm_code;
     watchExpiry();
     render();
@@ -114,10 +113,16 @@ const Phone = (() => {
     poll();  // веднага, за да не се чака до две секунди след потвърждаване
   }
 
+  // Телефонът е част от същото приложение и трябва да говори на същия език.
+  // Кодът е в пътя, езикът — в заявката: не е тайна и няма какво да издаде.
+  function _localised(url) {
+    const lang = window.I18n ? I18n.get() : 'bg';
+    return url + (url.includes('?') ? '&' : '?') + 'lang=' + encodeURIComponent(lang);
+  }
+
   function drawQr(url) {
     const box = $('phoneQrBox');
     box.textContent = '';
-    qr = null;
     if (!window.QRCode) {
       // Библиотеката се раздава заедно с приложението, така че това не се очаква —
       // но адресът е по-полезен на екрана, отколкото празен квадрат.
@@ -129,7 +134,7 @@ const Phone = (() => {
     }
     // Кодът се чете от телефон на една ръка разстояние; 208 пиксела стигат и на
     // най-скромния екран, без да заемат целия раздел.
-    qr = new QRCode(box, {
+    new QRCode(box, {
       text: url,
       width: 208,
       height: 208,
@@ -153,7 +158,7 @@ const Phone = (() => {
       }
       const m = Math.floor(left / 60);
       const s = String(left % 60).padStart(2, '0');
-      $('phoneExpiry').textContent = t('phone.expiresIn').replace('{time}', `${m}:${s}`);
+      $('phoneExpiry').textContent = t('phone.expiresIn', { time: `${m}:${s}` });
     };
     tick();
     expiryTimer = setInterval(tick, 1000);
@@ -163,7 +168,6 @@ const Phone = (() => {
     pairing = null;
     clearInterval(expiryTimer);
     $('phoneQrBox').textContent = '';
-    qr = null;
     render();
     syncPolling();
   }
@@ -204,7 +208,11 @@ const Phone = (() => {
     // страна: QR кодът вече не трябва на никого.
     if (pairing) {
       cancelPairing();
-      refreshDevices();
+      // Изчакваме списъка, преди да преценим дали да продължим да питаме:
+      // cancelPairing вече е нулирал поканата, а устройството още не е в списъка,
+      // така че решение точно сега значи "няма за какво да питам" — и питането
+      // спира завинаги, веднага след първата пристигнала снимка.
+      refreshDevices().then(syncPolling);
     }
     for (const photo of photos) {
       queue.push(`data:${photo.media_type};base64,${photo.data}`);
@@ -219,7 +227,9 @@ const Phone = (() => {
     if (!queue.length || !window.Scanner || !Scanner.isIdle()) return;
     const dataUrl = queue.shift();
     renderQueue();
-    Nav.activate('tutor');
+    // Само ако наистина сме другаде: излишното превключване вдига
+    // climby:view-shown и с това още едно ненужно питане към сървъра.
+    if (!tutorIsShowing()) Nav.activate('tutor');
     Scanner.acceptPhoto(dataUrl);
   }
 

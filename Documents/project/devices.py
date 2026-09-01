@@ -303,10 +303,16 @@ def collect_photos(user: User = Depends(get_current_user), db: Session = Depends
     снимки да се трупат.
     """
     _sweep(db)
+    # with_for_update, защото "вземи и изтрий" не е едно действие: с отворено
+    # приложение и на компютъра, и в браузъра двамата четат един и същ ред,
+    # връщат го и двамата, и снимката влиза два пъти в скенера. Ключалката ги
+    # нарежда един след друг. На SQLite (локално) е без действие, но там втори
+    # едновременен четец и без това няма.
     photos = (
         db.query(PhonePhoto)
         .filter(PhonePhoto.user_id == user.id)
         .order_by(PhonePhoto.created_at.asc())
+        .with_for_update()
         .all()
     )
     out = [
