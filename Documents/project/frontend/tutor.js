@@ -48,7 +48,7 @@ const Tutor = (() => {
     const answerEl = $('answer');
     answerEl.classList.remove('hidden', 'error');
     answerEl.classList.add('thinking');
-    answerEl.innerHTML = '<span class="spark-spin">✨</span> ' + t('scanner.thinking');
+    answerEl.innerHTML = sparkSvg('spark-spin') + ' ' + t('scanner.thinking');
 
     try {
       // Въпросът минава и без вход — затова токенът се праща само ако го има.

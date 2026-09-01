@@ -28,7 +28,7 @@ const Planner = (() => {
     const el = $('planAdvice');
     el.classList.remove('hidden', 'error');
     el.classList.add('thinking');
-    el.innerHTML = '<span class="spark-spin">✨</span> ' + t('checklist.planThinking');
+    el.innerHTML = sparkSvg('spark-spin') + ' ' + t('checklist.planThinking');
 
     try {
       const tasks = await Checklist.getPendingTasks();

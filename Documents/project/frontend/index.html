@@ -193,12 +193,15 @@
   <div class="settings-card">
     <button id="settingsClose" class="entry-gate-close settings-close" type="button" data-i18n-aria="settings.closeAria" aria-label="Затвори настройките">✕</button>
     <h2 data-i18n="settings.title">Настройки</h2>
-    <div class="settings-row">
+    <!-- Език и тема са един и същ вид избор: две-три възможности, всички видими
+         наведнъж. Затова изглеждат еднакво. Дотук езикът беше единствената
+         системна контрола в иначе изцяло начертан интерфейс и си личеше. -->
+    <div class="settings-row settings-row-stack">
       <span data-i18n="settings.language">Език</span>
-      <select id="langSelect" class="lang-select" aria-label="Language / Език">
-        <option value="bg">Български</option>
-        <option value="en">English</option>
-      </select>
+      <div class="theme-switch" role="group" data-i18n-aria-label="settings.language" aria-label="Език">
+        <button type="button" class="theme-switch-option" data-lang="bg" aria-pressed="false">Български</button>
+        <button type="button" class="theme-switch-option" data-lang="en" aria-pressed="false">English</button>
+      </div>
     </div>
     <div class="settings-row settings-row-stack">
       <span data-i18n="settings.theme">Тема</span>
@@ -212,8 +215,7 @@
          веднъж и обикновено набързо — при изгубен телефон. -->
     <div class="settings-row settings-row-stack" id="settingsDevicesRow">
       <span data-i18n="settings.devicesTitle">Свързани телефони</span>
-      <div id="settingsDevices"></div>
-      <p class="hint" data-i18n="settings.devicesHint">Телефон, свързан оттук, може само да праща снимки — нищо друго от профила ти.</p>
+      <div id="settingsDevices" class="device-list"></div>
     </div>
   </div>
 </div>
@@ -267,7 +269,7 @@
 
     <div class="sidebar-spacer"></div>
 
-    <span id="focusBadge" class="user-badge hidden sidebar-status">🎥 <span data-i18n="focus.badge">Фокус сесия тече</span></span>
+    <span id="focusBadge" class="user-badge hidden sidebar-status"><svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6.5" width="12" height="11" rx="2.5"/><path d="m14.5 10.5 5-2.6v8.2l-5-2.6z"/></svg> <span data-i18n="focus.badge">Фокус сесия тече</span></span>
 
     <div class="sidebar-account">
       <button id="accountBtn" class="account-btn" type="button" aria-haspopup="true" aria-expanded="false">
@@ -307,7 +309,7 @@
   <div id="onboarding" class="onboarding hidden" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
     <div class="onboarding-card">
       <div id="onboardingSteps" class="onboarding-steps"></div>
-      <div class="onboarding-icon" id="onboardingIcon">📚</div>
+      <div class="onboarding-icon" id="onboardingIcon" aria-hidden="true"></div>
       <h2 id="onboardingTitle" class="onboarding-title">Добре дошъл в Climby</h2>
       <p id="onboardingBody" class="onboarding-body">Снимай задача от учебника и AI учителят ще ти обясни стъпка по стъпка.</p>
       <div id="onboardingChoices" class="onboarding-choices hidden"></div>
@@ -321,7 +323,7 @@
   <div class="main-area">
 
     <header class="mobile-bar">
-      <button id="menuToggle" class="menu-toggle" type="button" data-i18n-aria="menu.open" aria-label="Отвори менюто">☰</button>
+      <button id="menuToggle" class="menu-toggle" type="button" data-i18n-aria="menu.open" aria-label="Отвори менюто"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <span class="mobile-brand">Climby</span>
     </header>
 
@@ -339,7 +341,16 @@
 
 <!-- показва се вместо камерата на компютри без такава: качването е равностоен път, не грешка -->
 <div id="noCamera" class="no-camera hidden">
-  <div class="no-camera-icon">🖼️</div>
+  <!-- Начертана, а не емоджи: емоджито идва оцветено от операционната система,
+       а тук всичко е нарочно черно-бяло; освен това изглежда различно на всеки компютър. -->
+  <div class="no-camera-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2.5"/>
+      <circle cx="8.5" cy="10" r="1.6"/>
+      <path d="m4 17 4.2-4.2a2 2 0 0 1 2.8 0L14 15.8"/>
+      <path d="m13.2 15 2.3-2.3a2 2 0 0 1 2.8 0L20 14.4"/>
+    </svg>
+  </div>
   <h2 class="no-camera-title" data-i18n="scanner.noCameraTitle">Качи снимка на задачата</h2>
   <p class="no-camera-body" data-i18n="scanner.noCameraBody">На този компютър няма камера (или браузърът не дава достъп). Избери снимка от файл — работи по същия начин.</p>
   <div class="controls">
@@ -567,6 +578,11 @@
     <strong data-i18n="focus.how">Как работи фокус камерата:</strong> <span data-i18n="focus.howBody">следи тихо колко време си на бюрото, докато учиш. Не те прекъсва и не те подсеща по време на сесията — само брои. Разпознаването става изцяло на твоето устройство — снимки никога не се качват никъде и не се пазят.</span>
   </div>
 
+  <!-- Серията е запис на вече учено, а не състояние на камерата. Стоеше вътре в
+       етапа, който се скрива при изключена камера — тоест наградата за десет дни
+       учене изчезваше заради превключвател, който няма нищо общо с нея. -->
+  <p id="focusStreak" class="pill focus-streak-pill hidden" role="status" aria-live="polite"></p>
+
   <div class="focus-toggle-row">
     <label class="switch">
       <input type="checkbox" id="focusEnableToggle">
@@ -578,7 +594,6 @@
   <p id="focusOff" class="hint" data-i18n="focus.offHint">Включи превключвателя отгоре, за да пробваш. Изцяло по избор — много ученици предпочитат да учат без камера, и това е напълно наред.</p>
 
   <div id="focusIdle" class="focus-stage hidden">
-    <p id="focusStreak" class="pill focus-streak-pill hidden"></p>
     <div class="controls">
       <button id="focusStartBtn" class="btn-primary" type="button" data-i18n="focus.startBtn">Започни сесия</button>
     </div>
@@ -636,7 +651,7 @@
     <div id="familyStudentsEmpty" class="empty-state hidden"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8.5" r="3.2"/><path d="M2.5 19.5c0-3.1 2.7-5.2 6-5.2s6 2.1 6 5.2"/><circle cx="17.5" cy="10" r="2.4"/><path d="M17 14.6c2.3.3 4 1.9 4 4.9"/></svg></span><p class="empty-title" data-i18n="family.noStudents">Още нямаш свързан ученик. Поискай код от детето си и го въведи отдолу.</p></div>
 
     <form id="familyLinkForm" class="family-link-form">
-      <input id="familyCodeInput" type="text" maxlength="6" autocomplete="off"
+      <input id="familyCodeInput" class="code-input" type="text" maxlength="6" autocomplete="off"
              data-i18n-placeholder="family.codePlaceholder" placeholder="Код от ученика">
       <button class="btn-primary" type="submit" data-i18n="family.linkBtn">Свържи</button>
     </form>
@@ -694,7 +709,7 @@
     </div>
 
     <form id="classJoinForm" class="family-link-form">
-      <input id="classCodeInput" type="text" maxlength="6" autocomplete="off"
+      <input id="classCodeInput" class="code-input" type="text" maxlength="6" autocomplete="off"
              data-i18n-placeholder="classes.codePlaceholder" placeholder="Код от учителя">
       <button class="btn-primary" type="submit" data-i18n="classes.joinBtn">Присъедини се</button>
     </form>

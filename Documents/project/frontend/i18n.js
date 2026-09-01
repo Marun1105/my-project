@@ -189,7 +189,7 @@ const I18n = (() => {
       'onboarding.b2': 'Записвай домашните със срок. AI помощникът може да раздели голяма задача на малки стъпки.',
       'onboarding.t3': 'Фокус камера',
       'onboarding.b3': 'По избор: брои тихо колко време учиш и трупа серия от дни. Всичко става на твоето устройство.',
-      'checklist.splitBtn': '✨ Раздели на стъпки',
+      'checklist.splitBtn': 'Раздели на стъпки',
       'checklist.splitting': 'Деля задачата…',
       'checklist.splitErr': 'Не успях да разделя задачата. Опитай пак.',
       'checklist.errOffline': 'Не успях да се свържа със сървъра. Провери интернета си и опитай пак — нищо не е загубено.',
@@ -243,7 +243,7 @@ const I18n = (() => {
       'focus.onLabel': 'Фокус камерата е включена',
       'focus.offHint': 'Включи превключвателя отгоре, за да пробваш. Изцяло по избор — много ученици предпочитат да учат без камера, и това е напълно наред.',
       'focus.startBtn': 'Започни сесия',
-      'focus.streak': '🔥 {n} {days} поред',
+      'focus.streak': '{n} {days} поред',
       'focus.sessionsLogged': 'Записани {n} сесии засега',
       'focus.loading': 'Подготвям камерата…',
       'focus.runningStatus': 'Сесията тече — работи спокойно, ще преброя вместо теб.',
@@ -266,7 +266,7 @@ const I18n = (() => {
       'scanner.loadingCamera': 'Зарежда камерата…',
       'scanner.noCameraAccess': 'Няма достъп до камерата. Провери разрешенията в браузъра — можеш и да качиш снимка вместо това.',
       'scanner.noCameraTitle': 'Качи снимка на задачата',
-      'scanner.noCameraBody': 'На този компютър няма камера (или браузърът не дава достъп). Избери снимка от файл — работи по същия начин.',
+      'scanner.noCameraBody': 'На този компютър няма камера. Снимай страницата с телефона си — или избери готова снимка от файл.',
       'scanner.uploadPrimary': 'Избери снимка',
       // Снимка от телефона. Формулировките нарочно говорят за телефона като за
       // нещо свързано веднъж, а не за действие, което се повтаря всеки път.
@@ -518,7 +518,7 @@ const I18n = (() => {
       'onboarding.b2': 'Keep track of homework with deadlines. The AI helper can split a big task into small steps.',
       'onboarding.t3': 'Focus camera',
       'onboarding.b3': 'Optional: quietly counts how long you study and builds a day streak. Everything stays on your device.',
-      'checklist.splitBtn': '✨ Split into steps',
+      'checklist.splitBtn': 'Split into steps',
       'checklist.splitting': 'Splitting…',
       'checklist.splitErr': "Couldn't split the task. Try again.",
       'checklist.errOffline': "Couldn't reach the server. Check your connection and try again — nothing was lost.",
@@ -572,7 +572,7 @@ const I18n = (() => {
       'focus.onLabel': 'Focus camera is on',
       'focus.offHint': "Turn the switch above on to try it. It's entirely optional — many students prefer to study without the camera, and that's completely fine.",
       'focus.startBtn': 'Start session',
-      'focus.streak': '🔥 {n}-day streak',
+      'focus.streak': '{n}-day streak',
       'focus.sessionsLogged': '{n} sessions logged so far',
       'focus.loading': 'Preparing the camera…',
       'focus.runningStatus': "Session running — work calmly, I'll do the counting for you.",
@@ -595,7 +595,7 @@ const I18n = (() => {
       'scanner.loadingCamera': 'Loading camera…',
       'scanner.noCameraAccess': "No camera access. Check your browser permissions — or upload a photo instead.",
       'scanner.noCameraTitle': 'Upload a photo of the problem',
-      'scanner.noCameraBody': "This computer has no camera (or the browser blocked it). Pick a photo from a file instead — it works exactly the same.",
+      'scanner.noCameraBody': 'This computer has no camera. Photograph the page with your phone — or choose a photo you already have.',
       'scanner.uploadPrimary': 'Choose a photo',
       // Phone-as-camera. The wording treats the phone as something linked once,
       // not as a step repeated on every scan.
@@ -696,8 +696,16 @@ const I18n = (() => {
       el.setAttribute('aria-label', t(el.dataset.i18nAria));
     });
     document.documentElement.lang = get();
-    const sel = document.getElementById('langSelect');
-    if (sel) sel.value = get();
+    syncLangSwitch();
+  }
+
+  function syncLangSwitch() {
+    const current = get();
+    document.querySelectorAll('[data-lang]').forEach(btn => {
+      const on = btn.dataset.lang === current;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
   }
 
   function setLang(lang) {
@@ -709,8 +717,9 @@ const I18n = (() => {
 
   function init() {
     applyToDom();
-    const sel = document.getElementById('langSelect');
-    if (sel) sel.addEventListener('change', () => setLang(sel.value));
+    document.querySelectorAll('[data-lang]').forEach(btn => {
+      btn.addEventListener('click', () => setLang(btn.dataset.lang));
+    });
   }
 
   return { t, get, setLang, applyToDom, init };
@@ -721,7 +730,17 @@ window.I18n = I18n;
 // глобален пряк път, ползван от другите скриптове: t('key')
 window.t = I18n.t;
 
-// малка "✨ AI отговор" значка, показвана над отговорите на AI учителя/планера
+// Искрата, с която се разпознава всяко AI действие. Начертана, а не емоджи:
+// емоджито се рисува от операционната система, значи изглежда различно на всеки
+// компютър, носи собствени цветове в приложение, което е нарочно черно-бяло, и
+// не може да поеме цвета на текста около себе си.
+window.sparkSvg = function (cls) {
+  return '<svg class="' + (cls || 'spark-icon') + '" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+    + '<path d="M12 1.5c0 5.8 4.7 10.5 10.5 10.5C16.7 12 12 16.7 12 22.5 12 16.7 7.3 12 1.5 12 7.3 12 12 7.3 12 1.5z"/>'
+    + '</svg>';
+};
+
+// малка "AI отговор" значка, показвана над отговорите на AI учителя/планера
 // Марката, с която се подписва всеки отговор на AI-то. "ClimbAI" е име и не се
 // превежда — на кирилица би станало друго име. За екранния четец обаче стои
 // преведеното "AI отговор", защото "ClimbAI" само по себе си не казва нищо.

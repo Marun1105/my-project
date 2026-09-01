@@ -21,6 +21,7 @@ const Focus = (() => {
     localStorage.setItem(ENABLED_KEY, v ? '1' : '0');
     if (!v) stopSession(true);
     updateToggleUI();
+    renderStreak();
   }
 
   // Тече ли в момента сесия: или камерата вече върви, или тъкмо се отваря.
@@ -49,7 +50,6 @@ const Focus = (() => {
     ['Idle', 'Loading', 'Running'].forEach(s => $(`focus${s}`).classList.toggle('hidden', s !== name));
     $('focusSummary').classList.add('hidden');
     clearError();
-    if (name === 'Idle') renderStreak();
   }
 
   // ---------- история и серия от дни (само за влезли, статистиката е по избор) ----------
@@ -86,9 +86,18 @@ const Focus = (() => {
       const sessions = await res.json();
       if (!sessions.length) { el.classList.add('hidden'); return; }
       const streak = computeStreak(sessions);
-      el.textContent = streak > 0
+      const label = streak > 0
         ? t('focus.streak', { n: streak, days: streak === 1 ? t('history.dayOne') : t('history.dayMany') })
         : t('focus.sessionsLogged', { n: sessions.length });
+      // Пламъкът е начертан, а не емоджи: оцветеното емоджи е единственият цвят,
+      // който би се появил на този екран, а цветът тук значи "AI" и нищо друго.
+      el.innerHTML = streak > 0
+        ? '<svg class="streak-flame" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+          + '<path d="M13.5 2.5c.4 2.6-.7 4.2-2 5.6-1.4 1.5-2.9 2.9-2.9 5.4a5.4 5.4 0 0 0 10.8 0c0-1.6-.6-2.9-1.5-4.2-.3 1-.9 1.6-1.7 1.9.6-2.9-.6-6.6-2.7-8.7z"/>'
+          + '<path d="M12 22a3 3 0 0 1-3-3c0-1.6 1.4-2.5 2.2-3.8.6 1.2 1.6 1.7 2.4 2.6.7.8 1.4 1.4 1.4 2.4a3 3 0 0 1-3 2.8z" opacity=".55"/>'
+          + '</svg>'
+        : '';
+      el.appendChild(document.createTextNode(label));
       el.classList.remove('hidden');
     } catch {
       el.classList.add('hidden');
@@ -711,12 +720,20 @@ const Focus = (() => {
     // не се гледа), защото ученикът наистина е учил дотук.
     window.addEventListener('climby:view-shown', e => {
       if (e.detail.view !== 'focus' && sessionLive()) stopSession(true);
+      // Серията се обновява при всяко влизане в раздела, а не само когато
+      // камерата е включена: тя описва какво вече е учено.
+      if (e.detail.view === 'focus') renderStreak();
     });
+    window.addEventListener('climby:auth-changed', renderStreak);
     // Затваряне на таба е същото като излизане — иначе камерата остава заета,
     // докато браузърът не реши да освободи страницата.
     window.addEventListener('pagehide', () => { if (sessionLive()) stopSession(true); });
 
     updateToggleUI();
+    // climby:view-shown се обажда чак при натискане на връзка в менюто, а
+    // приложението може да е заредено направо тук. Без този ред серията се
+    // появява едва след като човекът излезе от раздела и се върне.
+    renderStreak();
   }
 
   return { init };

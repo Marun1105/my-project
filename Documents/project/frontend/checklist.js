@@ -190,7 +190,11 @@ const Checklist = (() => {
     const split = document.createElement('button');
     split.type = 'button';
     split.className = 'task-split';
-    split.textContent = window.t('checklist.splitBtn');
+    // Иконката се сглобява тук, а не стои в превода: тя е част от езика на
+    // интерфейса ("това е AI"), не част от изречението, и трябва да е една и
+    // съща на всеки език.
+    split.innerHTML = window.sparkSvg('spark-icon');
+    split.appendChild(document.createTextNode(window.t('checklist.splitBtn')));
     split.addEventListener('click', () => splitTask(t, split));
     body.appendChild(split);
 

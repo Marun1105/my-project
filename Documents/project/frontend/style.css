@@ -323,19 +323,6 @@ body {
 }
 .sidebar-status { padding: 8px 8px 0; }
 
-.lang-select {
-  flex: 0 0 auto;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  cursor: pointer;
-}
-.lang-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Избор на тема: Авто / Светла / Тъмна. "Авто" значи каквото каже системата —
    затова е първо и е избраното за нов потребител. Изборът е сегментен, а не
@@ -611,6 +598,11 @@ body {
   position: fixed;
   inset: 0;
   background: var(--scrim);
+  /* Тъмно върху тъмно не разделя: черен воал върху #0d0d10 почти не се вижда и
+     менюто изглежда залепено за съдържанието отзад. Замъгляването отделя по
+     фокус, а не по светлина, затова работи еднакво и на двете теми. */
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   z-index: 40;
 }
 
@@ -1504,7 +1496,24 @@ button:disabled { opacity: 0.4; cursor: default; }
   border-radius: var(--radius-lg);
   animation: climby-rise 0.3s ease both;
 }
-.no-camera-icon { font-size: 38px; line-height: 1; margin-bottom: 12px; }
+.no-camera-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: var(--text-faint);
+}
+.no-camera-icon svg { width: 40px; height: 40px; }
+
+/* Искрата на всяко AI действие. Наследява цвета на текста около себе си —
+   затова една и съща форма върши работа и върху бутон, и в ред текст. */
+.spark-icon {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.14em;
+  margin-right: 0.4em;
+  flex: none;
+}
+.spark-spin { width: 1.1em; height: 1.1em; vertical-align: -0.16em; }
 .no-camera-title { font-size: 18px; font-weight: 700; margin: 0 0 10px; color: var(--text); }
 .no-camera-body {
   font-size: 14px;
@@ -1570,7 +1579,15 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--text-dim);
 }
 .family-link-form { width: 100%; display: flex; gap: 10px; margin-top: 16px; }
-.family-link-form input { flex: 1; font-size: var(--fs-input); text-transform: uppercase; letter-spacing: 0.12em; }
+.family-link-form input { flex: 1; font-size: var(--fs-input); }
+
+/* Само за КОДОВЕ. Голямите букви и разредката помагат да се преписват без грешка
+   (нула или буква О), но същото лежеше върху целия ред и хващаше и полето за ИМЕ
+   на клас: учителят пишеше "Моят клас 7а", виждаше "МОЯТ КЛАС 7А", а се записваше
+   както го е написал — полето лъжеше какво ще стане. */
+.code-input { text-transform: uppercase; letter-spacing: 0.12em; }
+/* Подсказката е изречение, не код: без нея тя крещи като заглавие на секция. */
+.code-input::placeholder { text-transform: none; letter-spacing: normal; }
 .family-link-form button { flex: 0 0 auto; }
 .family-code {
   width: 100%;
@@ -1684,10 +1701,15 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 .task-split:hover:not(:disabled) { color: var(--accent); }
 .task-split:disabled { cursor: default; opacity: 0.7; }
+/* Серията вече не стои вътре в центрирания етап на камерата, а сама в колоната.
+   Затова се подравнява отляво, като всичко останало на екрана — центрирана между
+   два подравнени блока изглеждаше като изпусната. */
 .focus-streak-pill {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
   width: fit-content;
-  margin: 0 auto 16px;
+  margin: 18px 0 2px;
   font-size: 13px;
 }
 .scan-answer {
@@ -2064,15 +2086,56 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* ---------- свързани телефони в настройките ---------- */
 
+.device-list { width: 100%; }
+
 .device-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--border);
 }
-.device-row:last-child { border-bottom: none; }
+.device-row:last-of-type { border-bottom: none; }
+
+/* Тих ред под избора — обяснява, без да спори с него за вниманието. */
+.settings-note {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
 
 .device-name { font-size: 14px; color: var(--text); }
 .device-meta { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+
+/* Пламъчето до серията от дни. Плътно, не очертано — на 14px очертанието се слива. */
+.streak-flame {
+  width: 1.05em;
+  height: 1.05em;
+  vertical-align: -0.15em;
+  margin-right: 0.35em;
+  flex: none;
+}
+
+/* Иконката в значката "фокусът върви" в страничното меню. */
+.badge-icon {
+  width: 1.05em;
+  height: 1.05em;
+  vertical-align: -0.16em;
+  flex: none;
+}
+
+/* Начертаните иконки на първия екран. Стъпка по стъпка човекът вижда една и съща
+   дебелина на линията като в менюто отляво — оттам идва усещането за един почерк. */
+.onboarding-icon svg {
+  width: 44px;
+  height: 44px;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Отварянето на менюто е единственият знак в лентата отгоре — рисува се като
+   иконките в самото меню, вместо да е текстов знак, който всеки шрифт чертае
+   с различна дебелина. */
+.menu-toggle svg { width: 22px; height: 22px; display: block; }

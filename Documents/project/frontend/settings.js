@@ -41,14 +41,21 @@ const AccountUI = (() => {
       const devices = window.Phone ? Phone.listPaired() : [];
       box.textContent = '';
       if (!devices.length) {
-        const empty = document.createElement('p');
-        empty.className = 'hint';
-        empty.textContent = t('settings.devicesEmpty');
-        box.appendChild(empty);
+        box.appendChild(_note(t('settings.devicesEmpty')));
         return;
       }
       devices.forEach(device => box.appendChild(_deviceRow(device)));
+      // Какво може свързаният телефон се казва веднъж, под списъка — там, където
+      // човекът тъкмо е видял имената. Като празен екран не носи нищо.
+      box.appendChild(_note(t('settings.devicesHint')));
     });
+  }
+
+  function _note(text) {
+    const el = document.createElement('p');
+    el.className = 'settings-note';
+    el.textContent = text;
+    return el;
   }
 
   function _deviceRow(device) {
