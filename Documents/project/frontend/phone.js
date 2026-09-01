@@ -22,6 +22,11 @@ const Phone = (() => {
   let expiryTimer = null;
   let queue = [];             // пристигнали снимки, които чакат скенера да се освободи
   let viewing = false;        // на раздела "Учител" ли сме
+  // Знае ли сървърът отсреща изобщо за свързани телефони. Приложението се
+  // раздава като инсталатор, а бекендът се качва отделно — между двете има
+  // часове, в които новият екран говори със стар сървър. Тогава копчето не
+  // бива да стои и да гърми: функцията просто я няма още.
+  let supported = true;
 
   function loggedIn() {
     return !!(window.Auth && Auth.isLoggedIn());
@@ -51,7 +56,13 @@ const Phone = (() => {
     }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(typeof data.detail === 'string' ? data.detail : t('phone.errGeneric'));
+      // Показваме текста от сървъра само когато той е наш и е писан за човек:
+      // 400 и 429 са нашите откази. Всичко друго идва от рамката и е на
+      // английски ("Not Found") — суров чужд низ насред български екран.
+      const ours = res.status === 400 || res.status === 429;
+      const err = new Error(ours && typeof data.detail === 'string' ? data.detail : t('phone.errGeneric'));
+      err.status = res.status;
+      throw err;
     }
     return data;
   }
@@ -62,7 +73,8 @@ const Phone = (() => {
     const panel = $('phonePanel');
     if (!panel) return;
 
-    const canUse = loggedIn();
+    const canUse = loggedIn() && supported;
+    panel.classList.toggle('hidden', !supported);
     $('phoneLoggedOut').classList.toggle('hidden', canUse);
     $('phoneConnected').classList.toggle('hidden', !canUse || !paired.length || !!pairing);
     $('phoneUnpaired').classList.toggle('hidden', !canUse || !!paired.length || !!pairing);
@@ -102,6 +114,7 @@ const Phone = (() => {
     try {
       pairing = await api('/devices/pair', { method: 'POST' });
     } catch (err) {
+      if (err && err.status === 404) { supported = false; render(); return; }
       showError(err.message);
       return;
     }
@@ -180,7 +193,9 @@ const Phone = (() => {
     }
     try {
       paired = await api('/devices');
-    } catch {
+      supported = true;
+    } catch (err) {
+      if (err && err.status === 404) supported = false;
       // Мълчим: списъкът е странична информация, а не работата на този раздел.
       // Заспал сървър не бива да слага червено съобщение върху скенера.
     }
@@ -249,7 +264,7 @@ const Phone = (() => {
   // Питаме само когато има смисъл: гледаме раздела "Учител" и или има свързан
   // телефон, или точно сега се свързва.
   function syncPolling() {
-    if (viewing && loggedIn() && (paired.length || pairing)) startPolling();
+    if (viewing && loggedIn() && supported && (paired.length || pairing)) startPolling();
     else stopPolling();
   }
 
