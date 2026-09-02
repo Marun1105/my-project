@@ -314,7 +314,7 @@ def _normalize_existing_phones() -> int:
             if not canonical or canonical == phone:
                 continue
             clash = conn.execute(
-                text("SELECT id FROM users WHERE phone = :p AND is_phone_verified = 1 "
+                text("SELECT id FROM users WHERE phone = :p AND is_phone_verified = TRUE "
                      "AND id <> :id"),
                 {"p": canonical, "id": row_id},
             ).first()
@@ -345,7 +345,14 @@ def _create_verified_phone_unique_index() -> bool:
 
     Частичният индекс пази точно това и връща смисъла на except IntegrityError в
     auth.py, който след сваляне на стария индекс беше останал мъртъв код.
-    Поддържа се и от SQLite, и от Postgres.
+
+    Сравнението е "= TRUE", а не "= 1", и това НЕ е разкрасяване. SQLite пази
+    истината като число и приема двете; Postgres няма оператор boolean = integer
+    и отказва заявката. Понеже тестовете вървят върху SQLite, разликата не се
+    виждаше тук — тя събаряше вдигането чак на Render, при това с грешка, която
+    _tolerantly не разпознава като "вече направено" и препуска нагоре. Сървърът
+    не тръгваше, Render оставаше на предишното качване, а новите екрани мълчаха
+    срещу стар сървър. Пази го test_no_boolean_column_is_compared_to_a_number_in_raw_sql.
     """
     if not _table_exists("users"):
         return False
@@ -354,7 +361,7 @@ def _create_verified_phone_unique_index() -> bool:
         return False
     with engine.begin() as conn:
         dupes = conn.execute(text(
-            "SELECT phone FROM users WHERE phone IS NOT NULL AND is_phone_verified = 1 "
+            "SELECT phone FROM users WHERE phone IS NOT NULL AND is_phone_verified = TRUE "
             "GROUP BY phone HAVING COUNT(*) > 1"
         )).fetchall()
         if dupes:
@@ -369,7 +376,7 @@ def _create_verified_phone_unique_index() -> bool:
             return False
         conn.execute(text(
             f"CREATE UNIQUE INDEX IF NOT EXISTS {name} ON users (phone) "
-            "WHERE is_phone_verified = 1"
+            "WHERE is_phone_verified = TRUE"
         ))
     return True
 

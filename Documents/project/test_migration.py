@@ -413,3 +413,40 @@ def test_the_schema_lock_gives_up_instead_of_waiting_forever(monkeypatch):
     assert calls["tries"] >= 1
     assert calls["slept"] <= migrations.LOCK_WAIT_SECONDS + 1, "чакало е по-дълго от срока"
     assert _FakeConn.closed, "връзката без ключалка трябва да се затвори"
+
+
+def test_no_boolean_column_is_compared_to_a_number_in_raw_sql():
+    """Postgres няма оператор boolean = integer — SQLite има, и точно това крие грешката.
+
+    Тестовете тук вървят върху SQLite, където истината се пази като 1 и
+    "is_phone_verified = 1" минава без забележка. На Render същият ред хвърля
+    UndefinedFunction, SQLAlchemy го увива в ProgrammingError, а _tolerantly не
+    го разпознава като "вече направено" и го препуска нагоре. Резултатът е
+    сървър, който не тръгва — и Render мълчаливо остава на предишното качване.
+    Затова проверката е върху текста на SQL-а: тя вижда разминаването тук, а не
+    след качване.
+    """
+    import re
+
+    import models  # noqa: F401 - внасянето пълни Base.metadata с таблиците
+    from db import Base
+
+    boolean_columns = {
+        column.name
+        for table in Base.metadata.tables.values()
+        for column in table.columns
+        if column.type.__class__.__name__ == "Boolean"
+    }
+    assert boolean_columns, "няма нито една булева колона — проверката би минала празна"
+
+    source = open(migrations.__file__, encoding="utf-8").read()
+    offenders = []
+    for name in sorted(boolean_columns):
+        for match in re.finditer(rf"\b{re.escape(name)}\s*(?:=|<>|!=)\s*[01]\b", source):
+            line = source.count("\n", 0, match.start()) + 1
+            offenders.append(f"migrations.py:{line}: {match.group(0)}")
+
+    assert not offenders, (
+        "булева колона се сравнява с число в суров SQL — на Postgres това не тръгва.\n"
+        "Ползвай = TRUE / = FALSE (работи и на двете бази):\n  " + "\n  ".join(offenders)
+    )
