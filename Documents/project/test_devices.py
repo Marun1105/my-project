@@ -432,3 +432,27 @@ def test_the_phone_page_pulls_nothing_from_the_outside():
     assert "connect-src 'self'" in csp
     # Един файл, нула външни заявки — иначе заспалият Render става втора точка на отказ.
     assert "http://" not in res.text and "https://" not in res.text
+
+
+def test_a_linked_phone_has_an_address_it_can_come_back_to():
+    """Свързаният телефон трябва да има къде да се върне.
+
+    Единственият адрес, който телефонът някога е имал, беше /p/<тайна>, а
+    тайната се изразходва при свързването. Затвореният раздел значеше път назад
+    през "забрави телефона" и нов QR код — заради затворен раздел. Затова
+    страницата се раздава и на постоянен адрес: токенът живее в localStorage на
+    същия произход, тоест /phone сам разпознава телефона.
+    """
+    res = client.get("/phone")
+    assert res.status_code == 200
+    assert "climby.device.token" in res.text, "не е същата страница"
+    # Тук нарочно няма проверка на вход: страницата е една и съща за всички, а
+    # кой е телефонът се решава от токена, който самата тя носи.
+    assert res.headers["content-security-policy"].startswith("default-src 'none'")
+
+
+def test_the_invitation_address_still_works_too():
+    """Постоянният адрес не бива да е заменил поканата — първото свързване минава през нея."""
+    res = client.get("/p/some-secret-that-does-not-exist")
+    assert res.status_code == 200
+    assert client.get("/phone").text == res.text, "двата адреса раздават различни страници"

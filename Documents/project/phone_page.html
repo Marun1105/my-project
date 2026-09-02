@@ -207,6 +207,13 @@
     border-radius: 10px; border: 1px solid var(--line);
   }
   .vf-hint { font-size: 14px; margin: 10px 0 0; }
+  /* Показва се веднъж, веднага след свързването — там, където човекът още
+     гледа екрана и още не е затворил раздела. После не се появява повече. */
+  .keep-hint {
+    font-size: 13px; line-height: 1.45;
+    margin: 16px 0 0; padding: 10px 12px;
+    border: 1px dashed var(--line); border-radius: 10px;
+  }
   .hidden { display: none !important; }
   .spin { animation: pulse 1.1s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
@@ -253,6 +260,7 @@
       <input id="shot" type="file" accept="image/*" capture="environment">
     </div>
     <p class="status" id="status" role="status" aria-live="polite"></p>
+    <p class="keep-hint hidden" id="keepHint" data-i18n="keepHint">Добави тази страница в началния екран — така снимаш пак, без QR код.</p>
     <img id="thumb" class="thumb hidden" alt="">
     <p class="count" id="count"></p>
   </section>
@@ -302,6 +310,7 @@
       torchOn: 'Включи светлината',
       torchOff: 'Изключи светлината',
       lastShot: 'Последната изпратена снимка',
+      keepHint: 'Добави тази страница в началния екран — така снимаш пак, без QR код.',
       fallbackHint: 'Няма достъп до камерата тук — ползвай камерата на телефона.',
     },
     en: {
@@ -336,6 +345,7 @@
       torchOn: 'Turn the light on',
       torchOff: 'Turn the light off',
       lastShot: 'The last photo you sent',
+      keepHint: 'Add this page to your home screen — then you can shoot again without a QR code.',
       fallbackHint: "No camera access here — use your phone's camera instead.",
     },
   };
@@ -492,7 +502,14 @@
       return res.json().then(function (d) {
         token = d.token;
         try { localStorage.setItem(TOKEN_KEY, token); } catch (e) { /* и без запис върви */ }
+        // Адресът в лентата става постоянният. Дотук единственият адрес на
+        // телефона беше /p/<тайна>, а тайната току-що се изразходва: каквото
+        // човекът запази оттук нататък — отметка, начален екран, история —
+        // трябва да е нещо, което утре още работи.
+        try { history.replaceState(null, '', '/phone'); } catch (e) { /* и без това върви */ }
+        secret = '';
         fillWithName($('readyBody'), 'readyBody', d.user_display_name);
+        $('keepHint').classList.remove('hidden');
         show('ready');
       });
     }).catch(function () {

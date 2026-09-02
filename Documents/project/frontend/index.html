@@ -394,12 +394,15 @@
       <strong id="phoneDeviceName"></strong>
     </p>
     <p class="hint" data-i18n="phone.connectedHint">Снимай страница на телефона — тя се появява тук сама.</p>
-    <button id="phoneRepairBtn" class="btn-link" type="button" data-i18n="phone.another">Свържи друг телефон</button>
+    <button id="phoneRepairBtn" class="btn-link" type="button" data-i18n="phone.another">Покажи QR кода пак</button>
+    <p class="hint phone-another-hint" data-i18n="phone.anotherHint">Ако си затворил страницата на телефона — или свързваш друг.</p>
   </div>
 
   <div id="phoneQr" class="phone-qr hidden">
     <p class="phone-qr-title" data-i18n="phone.scanThis">Сканирай това с телефона си</p>
-    <div id="phoneQrBox" class="phone-qr-box" role="img" data-i18n-aria="phone.qrAria" aria-label="QR код за свързване на телефон"></div>
+    <div class="phone-qr-frame">
+      <div id="phoneQrBox" class="phone-qr-box" role="img" data-i18n-aria="phone.qrAria" aria-label="QR код за свързване на телефон"></div>
+    </div>
     <p class="phone-code-label" data-i18n="phone.codeLabel">Телефонът трябва да покаже същия код:</p>
     <div id="phoneConfirmCode" class="phone-code"></div>
     <p class="hint" id="phoneExpiry" role="status" aria-live="polite"></p>

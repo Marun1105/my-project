@@ -2053,6 +2053,36 @@ button:disabled { opacity: 0.4; cursor: default; }
 .phone-qr-box img,
 .phone-qr-box canvas { display: block; }
 
+/* Четири скоби около кода — същите, които стоят и във визьора на телефона.
+   Двата екрана са едно действие, разделено между две устройства, и когато
+   носят един и същи знак, вторият екран не изглежда като чуждо приложение.
+   Правят се с осем градиента вместо с четири елемента: рамка е, не съдържание,
+   и няма работа в разметката. */
+.phone-qr-frame {
+  --bracket: var(--text-dim);
+  --arm: 20px;
+  --thick: 2px;
+  display: inline-block;
+  padding: 14px;
+  background:
+    linear-gradient(var(--bracket), var(--bracket)) 0 0 / var(--arm) var(--thick),
+    linear-gradient(var(--bracket), var(--bracket)) 0 0 / var(--thick) var(--arm),
+    linear-gradient(var(--bracket), var(--bracket)) 100% 0 / var(--arm) var(--thick),
+    linear-gradient(var(--bracket), var(--bracket)) 100% 0 / var(--thick) var(--arm),
+    linear-gradient(var(--bracket), var(--bracket)) 0 100% / var(--arm) var(--thick),
+    linear-gradient(var(--bracket), var(--bracket)) 0 100% / var(--thick) var(--arm),
+    linear-gradient(var(--bracket), var(--bracket)) 100% 100% / var(--arm) var(--thick),
+    linear-gradient(var(--bracket), var(--bracket)) 100% 100% / var(--thick) var(--arm);
+  background-repeat: no-repeat;
+}
+
+/* Подсказката под копчето обяснява кога изобщо се сяга към него — иначе
+   „покажи кода пак" звучи като нещо, което вече си направил веднъж и готово. */
+.phone-another-hint {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
 .phone-qr-fallback {
   margin: 0;
   max-width: 220px;
