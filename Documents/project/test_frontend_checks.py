@@ -314,3 +314,37 @@ def test_phone_page_never_leaves_a_promise_rejection_unhandled(phone_page):
             assert "Promise.resolve" in line or ".catch" in line or "return" in line, (
                 "applyConstraints без .catch: " + line.strip()
             )
+
+
+# Имена на екрани, които вече не съществуват. Ключовете в i18n.js още се казват
+# checklist.* и history.* — това са вътрешни имена и е нормално. Но текстът, който
+# ЧОВЕКЪТ чете, не бива да сочи към екран, който го няма в менюто.
+RETIRED_SCREEN_WORDS = ["чеклист", "Семейство", "Чеклист"]
+
+
+def _translation_values(i18n_src):
+    """Само стойностите, не ключовете."""
+    out = []
+    for line in i18n_src.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("'") or "':" not in stripped:
+            continue
+        value = stripped.split("':", 1)[1].strip().rstrip(",").strip()
+        if len(value) >= 2 and value[0] in "'\"":
+            out.append((stripped.split("'")[1], value[1:-1]))
+    return out
+
+
+def test_no_text_points_at_a_screen_that_was_renamed(i18n):
+    """Преименуването на менюто остави текстове, сочещи към старите имена.
+
+    Екранът за вход казваше "пазим чеклиста и историята ти", а такива екрани вече
+    няма — казват се Маршрут и Изкачени. Едно от съобщенията пък пращаше към
+    „Семейство", което не е съществувало и преди това.
+    """
+    offenders = []
+    for key, value in _translation_values(i18n):
+        for word in RETIRED_SCREEN_WORDS:
+            if word in value:
+                offenders.append(f"{key}: …{word}…")
+    assert not offenders, "текст сочи към преименуван екран: " + "; ".join(offenders[:6])
