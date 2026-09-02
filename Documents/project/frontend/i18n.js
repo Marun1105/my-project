@@ -6,19 +6,19 @@ const I18n = (() => {
   const STR = {
     bg: {
       'brand.tagline': 'Изкачи се по своя път към успеха',
-      'nav.tutor': 'Учител',
-      'nav.checklist': 'Чеклист',
-      'nav.history': 'История',
-      'nav.focus': 'Фокус',
+      'nav.tutor': 'ClimbAI',
+      'nav.checklist': 'Маршрут',
+      'nav.history': 'Изкачени',
+      'nav.focus': 'Възход',
 
       // Заглавието на всеки екран носи същата дума като менюто, а изречението под
       // него казва за какво служи екранът — на телефон менюто е извън екрана.
-      'page.tutorSubtitle': 'Снимай задачата от учебника и ще я разгледаме заедно, стъпка по стъпка.',
-      'page.checklistSubtitle': 'Всичко, което имаш за вкъщи, на едно място — най-спешното стои най-отгоре.',
-      'page.historySubtitle': 'Всичко, което вече си свършил. Приятно е да се погледне назад.',
-      'page.focusSubtitle': 'Тих брояч на времето, докато учиш. Нищо не напуска твоето устройство.',
-      'page.familySubtitle': 'Родител и ученик, свързани с код. Споделят се само числата — задачите остават лични.',
-      'page.classesSubtitle': 'Класът ти и кодът, с който се влиза в него. Учителят вижда само числата.',
+      'page.tutorSubtitle': 'Снимай задачата и я разглеждаме заедно — стъпка по стъпка, докато ти стане ясна.',
+      'page.checklistSubtitle': 'Пътят за днес: всичко за вкъщи на едно място, най-спешното най-отгоре.',
+      'page.historySubtitle': 'Всичко, което вече си изкачил. Приятно е да се погледне надолу.',
+      'page.focusSubtitle': 'Тих брояч на времето, докато учиш. Нищо не напуска това устройство.',
+      'page.familySubtitle': 'Който те държи на въжето. Вижда числата, не и какво пише в задачите.',
+      'page.classesSubtitle': 'Мястото, където се събира целият клас. Учителят вижда числата, не и въпросите.',
 
       'net.waking': 'Сървърът се събужда — това отнема половин минута. Изчакай малко…',
 
@@ -30,7 +30,7 @@ const I18n = (() => {
       'auth.roleTeacher': 'Учител',
       'auth.roleTeacherHint': 'Направи клас и следи целия клас наведнъж.',
 
-      'nav.classes': 'Клас',
+      'nav.classes': 'Базата',
       'classes.why': 'Защо трябва да влезеш:',
       'classes.whyBody': 'класовете стоят в акаунта — на учителя или на ученика.',
       'classes.login': 'Влез',
@@ -142,7 +142,7 @@ const I18n = (() => {
       'checklist.errLoad': 'Не успях да заредя задачите.',
       'checklist.planBtn': 'Помощ за плана',
       'checklist.deleteAria': 'Изтрий задачата',
-      'nav.family': 'Родител',
+      'nav.family': 'Свръзка',
       'family.why': 'Защо трябва да влезеш:',
       'family.whyBody': 'родителският изглед свързва акаунта ти с този на детето ти.',
       'family.login': 'Влез',
@@ -338,17 +338,17 @@ const I18n = (() => {
     },
     en: {
       'brand.tagline': 'Climb your way to success',
-      'nav.tutor': 'Teacher',
-      'nav.checklist': 'Checklist',
-      'nav.history': 'History',
-      'nav.focus': 'Focus',
+      'nav.tutor': 'ClimbAI',
+      'nav.checklist': 'The Route',
+      'nav.history': 'Summited',
+      'nav.focus': 'Ascent',
 
-      'page.tutorSubtitle': 'Photograph a problem from your textbook and we will go through it together, step by step.',
-      'page.checklistSubtitle': 'Everything you have to do at home, in one place — the most urgent sits on top.',
-      'page.historySubtitle': 'Everything you have already finished. It is nice to look back.',
-      'page.focusSubtitle': 'A quiet count of the time while you study. Nothing leaves your device.',
-      'page.familySubtitle': 'Parent and student, linked by a code. Only the numbers are shared — the tasks stay private.',
-      'page.classesSubtitle': 'Your class and the code that gets you into it. The teacher sees only the numbers.',
+      'page.tutorSubtitle': 'Photograph a problem and we work through it together — step by step, until it clicks.',
+      'page.checklistSubtitle': "Today's route: everything due, in one place, the most urgent on top.",
+      'page.historySubtitle': 'Everything you have already climbed. It is nice to look back down.',
+      'page.focusSubtitle': 'A quiet count of the time while you study. Nothing leaves this device.',
+      'page.familySubtitle': 'Whoever holds your rope. They see the numbers, never what the tasks say.',
+      'page.classesSubtitle': 'Where the whole class gathers. Your teacher sees numbers, never your questions.',
 
       'net.waking': 'The server is waking up — this takes about half a minute. Hang on…',
 
@@ -360,7 +360,7 @@ const I18n = (() => {
       'auth.roleTeacher': 'Teacher',
       'auth.roleTeacherHint': 'Create a class and follow the whole class at once.',
 
-      'nav.classes': 'Class',
+      'nav.classes': 'Base Camp',
       'classes.why': 'Why you need to log in:',
       'classes.whyBody': "classes live in your account — the teacher's or the student's.",
       'classes.login': 'Log in',
@@ -472,7 +472,7 @@ const I18n = (() => {
       'checklist.errLoad': "Couldn't load your tasks.",
       'checklist.planBtn': 'Plan help',
       'checklist.deleteAria': 'Delete task',
-      'nav.family': 'Parent',
+      'nav.family': 'Rope Team',
       'family.why': 'Why you need to log in:',
       'family.whyBody': "the parent view links your account with your child's.",
       'family.login': 'Log in',

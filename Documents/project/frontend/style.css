@@ -286,7 +286,10 @@ body {
 .nav-group { display: flex; flex-direction: column; }
 .nav-parent { justify-content: flex-start; }
 /* Надписът заема остатъка, така че стрелката и броячът падат вдясно от само себе си. */
-.nav-link > span:not(.nav-badge) { flex: 1; min-width: 0; }
+/* Надписът заема остатъка. Знакът на ClimbAI също е <span>, затова се изключва
+   изрично — инак се разтяга като надпис и избутва думата надясно, встрани от
+   останалите редове. */
+.nav-link > span:not(.nav-badge):not(.nav-ai-mark) { flex: 1; min-width: 0; }
 .nav-chevron { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-faint); transition: transform 0.2s ease; }
 .nav-group.expanded .nav-chevron { transform: rotate(180deg); }
 
@@ -2169,3 +2172,53 @@ button:disabled { opacity: 0.4; cursor: default; }
    иконките в самото меню, вместо да е текстов знак, който всеки шрифт чертае
    с различна дебелина. */
 .menu-toggle svg { width: 22px; height: 22px; display: block; }
+
+/* ---------- ClimbAI в менюто ---------- */
+/* Един ред от менюто носи цвят, останалите не. Това е цялата идея: лилавото
+   значи "тук отговаря AI", затова се харчи на едно място и никъде другаде.
+   Ако тръгне по всички редове, спира да значи каквото и да е. */
+
+.nav-ai-mark {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.nav-ai-mark svg,
+.nav-ai-mark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* Сиянието идва от самия знак, а не от кутия зад него — така работи и когато
+     знакът е сменен с картинка с прозрачен фон. */
+  filter: drop-shadow(0 0 5px var(--ai-glow));
+}
+
+/* Надписът взима същия градиент. Цветът отдолу е истински, а не украса:
+   ако браузърът не разбира background-clip, текстът пак се чете. */
+.nav-ai > span:not(.nav-badge):not(.nav-ai-mark) {
+  color: #d9a2ff;
+  background: var(--ai-gradient);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: climby-ai-wave 9s linear infinite;
+}
+
+.nav-ai:hover,
+.nav-ai.active {
+  background: var(--ai-gradient-soft);
+}
+.nav-ai.active {
+  box-shadow: inset 0 0 0 1px rgba(168, 85, 247, 0.28);
+}
+.nav-ai .nav-chevron { color: rgba(217, 162, 255, 0.65); }
+
+/* Вълната е бавна нарочно: това е ред от меню, който стои на екрана през цялото
+   време, а не бутон, който викаш. Достатъчно е да се усети, че е живо. */
+@media (prefers-reduced-motion: reduce) {
+  .nav-ai > span:not(.nav-badge):not(.nav-ai-mark) { animation: none; }
+}
