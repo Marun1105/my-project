@@ -38,6 +38,7 @@ const SHELL = [
   './theme.js',
   './settings.js',
   './nav.js',
+  './help.js',
   './scanner.js',
   './phone.js',
   './vendor/qrcode.min.js',

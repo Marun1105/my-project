@@ -79,6 +79,10 @@ def _code_block(code: str) -> str:
         </td></tr>"""
 
 
+# Кодът НИКОГА не влиза в темата. Темата се показва в известието на заключен
+# екран, а кодът за нова парола сам по себе си стига за превземане на профил:
+# някой, вдигнал чужд телефон, го прочита, без изобщо да го отключва. Спестените
+# две секунди не струват толкова.
 def send_email(to: str, subject: str, html: str, text: str = "") -> None:
     if not RESEND_API_KEY:
         # Без ключ (локална разработка) — само отпечатваме кода в конзолата.
@@ -112,7 +116,7 @@ def send_verification_email(to: str, code: str) -> None:
         f"Потвърди имейла си\n\nТвоят код за Climby: {code}\n\n"
         "Кодът важи 15 минути. Ако не си се регистрирал/а ти, изтрий това писмо."
     )
-    send_email(to, f"{code} — твоят код за Climby", html, text)
+    send_email(to, "Твоят код за Climby", html, text)
 
 
 def send_account_exists_email(to: str) -> None:
@@ -152,4 +156,4 @@ def send_reset_email(to: str, code: str) -> None:
         f"Нова парола за Climby\n\nКод: {code}\n\n"
         "Кодът важи 15 минути. Ако не си поискал/а това, паролата ти остава непроменена."
     )
-    send_email(to, f"{code} — нова парола за Climby", html, text)
+    send_email(to, "Възстановяване на парола — Climby", html, text)

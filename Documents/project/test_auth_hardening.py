@@ -610,3 +610,31 @@ def test_register_takes_similar_time_for_taken_and_free_addresses():
     taken = _median_ms(attempt("timing-taken@example.com"), n=3)
     free = _median_ms(lambda: _register(f"free-{time.time_ns()}@example.com"), n=3)
     assert 0.4 < free / taken < 2.5, f"taken {taken:.1f} ms vs free {free:.1f} ms"
+
+
+def test_a_code_never_appears_in_an_email_subject():
+    """Темата се чете от заключен екран, без телефонът да се отключва.
+
+    Кодът за нова парола сам по себе си стига за превземане на профил, така че в
+    темата няма работа. Веднъж вече го сложих там заради удобство — този тест е,
+    за да не се случи пак.
+    """
+    import email_service
+
+    sent = []
+    original = email_service.send_email
+    email_service.send_email = lambda to, subject, html, text="": sent.append((subject, html, text))
+    try:
+        email_service.send_verification_email("kid@example.com", "A7K3Q")
+        email_service.send_reset_email("kid@example.com", "M4P2R")
+        email_service.send_account_exists_email("kid@example.com")
+    finally:
+        email_service.send_email = original
+
+    assert sent, "нищо не се изпрати — тестът не проверява нищо"
+    for subject, html, text in sent:
+        assert "A7K3Q" not in subject and "M4P2R" not in subject, f"код в темата: {subject!r}"
+
+    # и все пак кодът трябва да е В писмото, инак то е безполезно
+    assert "A7K3Q" in sent[0][1] and "A7K3Q" in sent[0][2]
+    assert "M4P2R" in sent[1][1] and "M4P2R" in sent[1][2]
