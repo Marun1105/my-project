@@ -51,6 +51,10 @@
   --ai-gradient: linear-gradient(100deg, #a855f7 0%, #c44bfb 30%, #e26bfe 60%, #f8c1ff 82%, #a855f7 100%);
   --ai-gradient-soft: linear-gradient(100deg, rgba(168, 85, 247, 0.18), rgba(226, 107, 254, 0.16), rgba(248, 193, 255, 0.14));
   --ai-glow: rgba(168, 85, 247, 0.38);
+  /* Отделен градиент за ТЕКСТ. Този за фон има светъл край (#f8c1ff), който
+     върху тъмно е красив, а върху светло изчезва: 1.46:1 срещу почти бял
+     сайдбар. Текстът има нужда от собствени тонове, а не от тези на фона. */
+  --ai-text-gradient: linear-gradient(100deg, #c084fc 0%, #e879f9 45%, #f0abfc 70%, #c084fc 100%);
   --on-ai: #0d0d10;
 
   /* меко осветяване на фона — вече неутрално, за да не връща зелен оттенък */
@@ -132,6 +136,8 @@
   --ai-gradient: linear-gradient(100deg, #a855f7 0%, #c44bfb 30%, #e26bfe 60%, #f8c1ff 82%, #a855f7 100%);
   --ai-gradient-soft: linear-gradient(100deg, rgba(168, 85, 247, 0.16), rgba(226, 107, 254, 0.14), rgba(248, 193, 255, 0.12));
   --ai-glow: rgba(168, 85, 247, 0.3);
+  /* На светло текстът тръгва от тъмните лилави: 4.5:1 и нагоре. */
+  --ai-text-gradient: linear-gradient(100deg, #6d28d9 0%, #9333ea 45%, #7c3aed 75%, #6d28d9 100%);
   --on-ai: #0d0d10;
 
   --ambient-a: rgba(0, 0, 0, 0.04);
@@ -2202,8 +2208,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* Надписът взима същия градиент. Цветът отдолу е истински, а не украса:
    ако браузърът не разбира background-clip, текстът пак се чете. */
 .nav-ai > span:not(.nav-badge):not(.nav-ai-mark) {
-  color: #d9a2ff;
-  background: var(--ai-gradient);
+  color: #c084fc;
+  background: var(--ai-text-gradient);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -2280,8 +2286,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 .entry-choice-ai:hover { border-color: rgba(168, 85, 247, 0.6); }
 .entry-choice-ai .entry-choice-icon { color: #c78bff; }
 .entry-choice-ai .entry-choice-title {
-  color: #d9a2ff;
-  background: var(--ai-gradient);
+  color: #c084fc;
+  background: var(--ai-text-gradient);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
