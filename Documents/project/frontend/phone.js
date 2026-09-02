@@ -306,7 +306,7 @@ const Phone = (() => {
 
   document.addEventListener('DOMContentLoaded', init);
 
-  return { forget, refreshDevices, listPaired: () => paired.slice() };
+  return { forget, refreshDevices, beginPairing: startPairing, listPaired: () => paired.slice() };
 })();
 
 window.Phone = Phone;

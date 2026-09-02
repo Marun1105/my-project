@@ -30,6 +30,18 @@ const I18n = (() => {
       'auth.roleTeacher': 'Учител',
       'auth.roleTeacherHint': 'Направи клас и следи целия клас наведнъж.',
 
+      // Първият екран на ClimbAI: три равностойни пътя до снимка, не един път
+      // и два резервни. Затова и трите са описани с това, което ще стане.
+      'entry.cameraTitle': 'Камерата тук',
+      'entry.cameraHint': 'Насочи я към страницата.',
+      'entry.phoneTitle': 'Телефонът ти',
+      'entry.phoneHint': 'По-добрата камера. Снимката идва тук сама.',
+      'entry.fileTitle': 'Снимка отпреди',
+      'entry.fileHint': 'Такава, която вече е на този компютър.',
+      'entry.howtoCaption': 'Показваш кода на телефона си веднъж. После всяка снимка идва тук сама.',
+      'entry.howtoAria': 'Телефонът снима страница и снимката се появява на компютъра.',
+      'entry.back': 'Назад към избора',
+      'entry.cameraNone': 'Този компютър няма камера.',
       'nav.classes': 'Базата',
       'classes.why': 'Защо трябва да влезеш:',
       'classes.whyBody': 'класовете стоят в акаунта — на учителя или на ученика.',
@@ -360,6 +372,18 @@ const I18n = (() => {
       'auth.roleTeacher': 'Teacher',
       'auth.roleTeacherHint': 'Create a class and follow the whole class at once.',
 
+      // ClimbAI's first screen: three equal ways to a photo, not one way and two
+      // fallbacks. So all three are described by what will happen.
+      'entry.cameraTitle': 'The camera here',
+      'entry.cameraHint': 'Point it at the page.',
+      'entry.phoneTitle': 'Your phone',
+      'entry.phoneHint': 'The better camera. The photo arrives here by itself.',
+      'entry.fileTitle': 'A photo you have',
+      'entry.fileHint': 'One that is already on this computer.',
+      'entry.howtoCaption': 'Show your phone the code once. After that every photo lands here on its own.',
+      'entry.howtoAria': 'A phone photographs a page and the photo appears on the computer.',
+      'entry.back': 'Back to the choices',
+      'entry.cameraNone': 'This computer has no camera.',
       'nav.classes': 'Base Camp',
       'classes.why': 'Why you need to log in:',
       'classes.whyBody': "classes live in your account — the teacher's or the student's.",

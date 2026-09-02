@@ -355,39 +355,43 @@
   <p class="loading-text" data-i18n="scanner.loadingCamera">Зарежда камерата…</p>
 </div>
 
-<!-- показва се вместо камерата на компютри без такава: качването е равностоен път, не грешка -->
-<div id="noCamera" class="no-camera hidden">
-  <!-- Начертана, а не емоджи: емоджито идва оцветено от операционната система,
-       а тук всичко е нарочно черно-бяло; освен това изглежда различно на всеки компютър. -->
-  <div class="no-camera-icon" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="5" width="18" height="14" rx="2.5"/>
-      <circle cx="8.5" cy="10" r="1.6"/>
-      <path d="m4 17 4.2-4.2a2 2 0 0 1 2.8 0L14 15.8"/>
-      <path d="m13.2 15 2.3-2.3a2 2 0 0 1 2.8 0L20 14.4"/>
-    </svg>
+<!-- Първото, което се вижда в ClimbAI. Досега камерата тръгваше сама още при
+     отварянето на раздела: лампичката светва, преди детето да е поискало нещо.
+     Сега екранът първо пита, а камерата се пали чак когато я избереш. -->
+<!-- Нарочно НЕ носи класа .stage: той е кутията на визьора, с аспект 3:4 за
+     портретна снимка. Върху екран с избор това е просто голяма празна дупка. -->
+<div id="entryStage" class="entry-stage">
+  <div class="entry-choices">
+    <button id="entryCameraBtn" class="entry-choice" type="button">
+      <span class="entry-choice-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9a2 2 0 0 1 2-2h2l1.4-2h7.2L17 7h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.4"/>
+        </svg>
+      </span>
+      <span class="entry-choice-title" data-i18n="entry.cameraTitle">Камерата тук</span>
+      <span class="entry-choice-hint" data-i18n="entry.cameraHint">Насочи я към страницата.</span>
+    </button>
+
+    <button id="entryPhoneBtn" class="entry-choice entry-choice-ai" type="button">
+      <span class="entry-choice-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10.8 5.4h2.4"/><path d="M11 18.6h2"/>
+        </svg>
+      </span>
+      <span class="entry-choice-title" data-i18n="entry.phoneTitle">Телефонът ти</span>
+      <span class="entry-choice-hint" data-i18n="entry.phoneHint">По-добрата камера. Снимката идва тук сама.</span>
+    </button>
+
+    <button id="entryFileBtn" class="entry-choice" type="button">
+      <span class="entry-choice-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="10" r="1.6"/><path d="m4 17 4.2-4.2a2 2 0 0 1 2.8 0L14 15.8"/><path d="m13.2 15 2.3-2.3a2 2 0 0 1 2.8 0L20 14.4"/>
+        </svg>
+      </span>
+      <span class="entry-choice-title" data-i18n="entry.fileTitle">Снимка отпреди</span>
+      <span class="entry-choice-hint" data-i18n="entry.fileHint">Такава, която вече е на този компютър.</span>
+    </button>
   </div>
-  <h2 class="no-camera-title" data-i18n="scanner.noCameraTitle">Качи снимка на задачата</h2>
-  <p class="no-camera-body" data-i18n="scanner.noCameraBody">На този компютър няма камера (или браузърът не дава достъп). Избери снимка от файл — работи по същия начин.</p>
-  <div class="controls">
-    <button id="noCameraUploadBtn" class="btn-primary" type="button" data-i18n="scanner.uploadPrimary">Избери снимка</button>
-  </div>
-</div>
-
-<div id="cameraStage" class="stage hidden">
-  <video id="video" autoplay playsinline muted></video>
-  <!-- Живата рамка около страницата се рисува тук, върху видеото. -->
-  <canvas id="edgeOverlay" class="edge-overlay" aria-hidden="true"></canvas>
-</div>
-
-<div id="controls" class="controls hidden">
-  <button id="shootBtn" class="btn-primary" type="button" data-i18n="scanner.shootBtn">Снимай</button>
-</div>
-
-<div class="controls" id="uploadRow" style="margin-top: 10px;">
-  <button id="uploadBtn" class="btn-ghost" type="button" data-i18n="scanner.uploadBtn">Качи снимка от файл</button>
-  <input id="uploadInput" type="file" accept="image/*" class="hidden">
-</div>
 
 <!-- Снимка от телефона: лаптопът рядко има камера, годна за страница от учебник,
      а телефонът в джоба винаги има. Свързва се веднъж и остава свързан. -->
@@ -422,6 +426,76 @@
 
   <p id="phoneQueue" class="hint phone-queue hidden" role="status" aria-live="polite"></p>
   <p id="phoneError" class="auth-error hidden" role="alert"></p>
+</div>
+
+  <!-- Как стига снимката от телефона дотук. Рисува се, вместо да се обяснява с
+       три изречения: пътят е кратък и се разбира по-бързо с очи. -->
+  <figure class="howto" role="img" data-i18n-aria="entry.howtoAria" aria-label="Телефонът снима, снимката идва на компютъра">
+    <svg class="howto-scene" viewBox="0 0 320 132">
+      <!-- лаптоп -->
+      <g class="howto-laptop">
+        <rect x="12" y="18" width="126" height="80" rx="7"/>
+        <path d="M4 104h142l-6-6H10z" class="howto-solid"/>
+      </g>
+      <!-- QR на екрана -->
+      <g class="howto-qr">
+        <rect x="58" y="40" width="34" height="34" rx="3"/>
+        <rect x="63" y="45" width="9" height="9" rx="1.5" class="howto-solid"/>
+        <rect x="78" y="45" width="9" height="9" rx="1.5" class="howto-solid"/>
+        <rect x="63" y="60" width="9" height="9" rx="1.5" class="howto-solid"/>
+        <rect x="79" y="61" width="4" height="4" class="howto-solid"/>
+        <rect x="85" y="66" width="4" height="4" class="howto-solid"/>
+      </g>
+      <!-- телефон -->
+      <g class="howto-phone">
+        <rect x="252" y="26" width="52" height="86" rx="9"/>
+        <path d="M270 33h16"/>
+      </g>
+      <!-- пръстенът, с който телефонът "прочита" кода -->
+      <circle class="howto-ping" cx="278" cy="69" r="16"/>
+      <!-- страницата, която пътува от телефона към екрана -->
+      <g class="howto-page">
+        <rect x="-17" y="-22" width="34" height="44" rx="3" class="howto-page-card"/>
+        <path d="M-9 -12h18M-9 -5h18M-9 2h12" class="howto-page-lines"/>
+      </g>
+    </svg>
+  </figure>
+  <p class="howto-caption" data-i18n="entry.howtoCaption">Показваш кода на телефона си веднъж. После всяка снимка идва тук сама.</p>
+</div>
+
+<!-- показва се вместо камерата на компютри без такава: качването е равностоен път, не грешка -->
+<div id="noCamera" class="no-camera hidden">
+  <!-- Начертана, а не емоджи: емоджито идва оцветено от операционната система,
+       а тук всичко е нарочно черно-бяло; освен това изглежда различно на всеки компютър. -->
+  <div class="no-camera-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2.5"/>
+      <circle cx="8.5" cy="10" r="1.6"/>
+      <path d="m4 17 4.2-4.2a2 2 0 0 1 2.8 0L14 15.8"/>
+      <path d="m13.2 15 2.3-2.3a2 2 0 0 1 2.8 0L20 14.4"/>
+    </svg>
+  </div>
+  <h2 class="no-camera-title" data-i18n="scanner.noCameraTitle">Качи снимка на задачата</h2>
+  <p class="no-camera-body" data-i18n="scanner.noCameraBody">На този компютър няма камера (или браузърът не дава достъп). Избери снимка от файл — работи по същия начин.</p>
+  <div class="controls">
+    <button id="noCameraUploadBtn" class="btn-primary" type="button" data-i18n="scanner.uploadPrimary">Избери снимка</button>
+  </div>
+</div>
+
+<div id="cameraStage" class="stage hidden">
+  <video id="video" autoplay playsinline muted></video>
+  <!-- Живата рамка около страницата се рисува тук, върху видеото. -->
+  <canvas id="edgeOverlay" class="edge-overlay" aria-hidden="true"></canvas>
+</div>
+
+<div id="controls" class="controls hidden">
+  <button id="cameraBackBtn" class="btn-ghost" type="button" data-i18n="entry.back">Назад към избора</button>
+  <button id="shootBtn" class="btn-primary" type="button" data-i18n="scanner.shootBtn">Снимай</button>
+</div>
+
+<div class="controls" id="uploadRow" style="margin-top: 10px;">
+  <button id="uploadBtn" class="btn-ghost" type="button" data-i18n="scanner.uploadBtn">Качи снимка от файл</button>
+  <input id="uploadInput" type="file" accept="image/*" class="hidden">
 </div>
 
 <p class="hint" id="scannerHint" data-i18n="scanner.hint">Постави страницата така, че да се вижда цялата. Скенерът намира ръбовете и я изправя автоматично — ако не успее, ползва цялата снимка, без да спира работата ти.</p>

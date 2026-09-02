@@ -22,6 +22,10 @@ const Scanner = (() => {
   let dispRect = null;           // изчислен правоъгълник къде точно се показва снимката вътре в #adjustWrap (object-fit: contain)
   let warpedMat = null;          // cv.Mat на изправената страница (след потвърждаване на ъглите), преди филтър
   let rawCropCanvas = null;      // резервен вариант: обикновен canvas с изрязаната снимка, ако opencv.js още не се е заредило
+  // Откъде е дошла снимката, за да знае "Назад" къде да върне. Снимка от
+  // телефон или от файл няма нищо общо с камерата — да я палим на връщане би
+  // било същата засада, която току-що махнахме от входа.
+  let cameFrom = 'entryStage';
   let currentFilter = 'original';
   let pendingDataUrl = null;     // резултат от текущия филтър — това се добавя към pages[] при "Добави страница"
 
@@ -57,13 +61,28 @@ const Scanner = (() => {
   let starting = null;        // висящото искане, докато трае
   let wantCamera = false;     // дали визьорът още иска потока, когато той най-сетне пристигне
 
+  // Копчето за камерата казва само, че тук камера няма — вместо да отваря цял
+  // екран със същите три възможности, които вече се виждат отзад.
+  function markCameraUnavailable() {
+    const btn = document.getElementById('entryCameraBtn');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.classList.add('entry-choice-off');
+    const hint = btn.querySelector('.entry-choice-hint');
+    if (hint) {
+      hint.removeAttribute('data-i18n');
+      hint.textContent = window.t ? t('entry.cameraNone') : 'Тук няма камера.';
+    }
+  }
+
   function showStage(id) {
-    const wasBusy = stage !== 'cameraStage';
+    const wasBusy = stage !== 'cameraStage' && stage !== 'entryStage';
     stage = id;
-    ['cameraStage', 'adjustStage', 'filterStage'].forEach(s => {
+    ['entryStage', 'cameraStage', 'adjustStage', 'filterStage'].forEach(s => {
       const el = document.getElementById(s);
       if (el) el.classList.toggle('hidden', s !== id);
     });
+    const onEntry = id === 'entryStage';
     const onCamera = id === 'cameraStage';
     // Без камера панелът за качване заема мястото на визьора — но само на този
     // етап, иначе би останал видим зад редактирането на снимката.
@@ -76,11 +95,11 @@ const Scanner = (() => {
     // Свързването с телефон стои при другите начини да започнеш снимка и си
     // отива заедно с тях, щом кадрирането започне. За разлика от качването на
     // файл обаче се показва и когато камера няма — точно тогава е най-нужно.
-    const phonePanel = document.getElementById('phonePanel');
-    if (phonePanel) phonePanel.classList.toggle('hidden', !onCamera);
+    // Панелът за телефона вече живее ВЪТРЕ в екрана с избора, затова се скрива
+    // заедно с него и няма нужда да се пипа отделно оттук.
     // Скенерът се освободи. Ако междувременно е пристигнала снимка от телефона,
     // тя чака точно този миг — phone.js слуша и я подава.
-    if (onCamera && wasBusy) {
+    if ((onCamera || onEntry) && wasBusy) {
       window.dispatchEvent(new CustomEvent('climby:scanner-idle'));
     }
   }
@@ -121,12 +140,13 @@ const Scanner = (() => {
       showStage('cameraStage');
       startEdgeOverlay();
     } catch (err) {
-      // Няма камера (обичайно на настолен компютър) — качването на файл не е
-      // резервен вариант при грешка, а равностоен път, затова го показваме така.
+      // Няма камера, или достъпът е отказан. Връщаме се при избора и казваме го
+      // на самото копче — там, където човекът тъкмо натисна. Отделен екран
+      // "няма камера" би повторил същите три възможности още веднъж.
       hasCamera = false;
       $('splash').classList.add('hidden');
-      // Ако ученикът междувременно е стигнал до ъглите, не го връщаме насила при визьора.
-      if (stage === 'cameraStage') showStage('cameraStage');
+      markCameraUnavailable();
+      if (stage === 'cameraStage') showStage('entryStage');
     }
   }
 
@@ -146,8 +166,10 @@ const Scanner = (() => {
   // Връщане на визьора. Камерата може да е угасена, ако междувременно сме били
   // в друг раздел, затова се пали пак — start() сам се отказва, ако вече върви.
   function backToCamera() {
-    showStage('cameraStage');
-    start();
+    showStage(cameFrom);
+    // Камерата се пали само ако оттам сме тръгнали. Инак се връщаме при избора
+    // и лампичката остава угасена, докато човекът не я поиска.
+    if (cameFrom === 'cameraStage') start();
   }
 
 
@@ -357,6 +379,7 @@ const Scanner = (() => {
   }
 
   function capture() {
+    cameFrom = 'cameraStage';
     enterAdjustStage(captureRawCanvas());
   }
 
@@ -365,6 +388,7 @@ const Scanner = (() => {
   // Нарочно е една функция, а не две почти еднакви: правилата за изрязване и
   // филтрите трябва да важат и за трите пътя, а два екземпляра се разминават тихо.
   function loadIntoAdjust(dataUrl) {
+    cameFrom = 'entryStage';
     const img = new Image();
     img.onload = () => {
       const cap = $('capture');
@@ -388,7 +412,7 @@ const Scanner = (() => {
   // Свободен ли е скенерът точно сега. Снимка от телефона не бива да блъсне
   // настрани страница, която човекът в момента кадрира — тя изчаква реда си.
   function isIdle() {
-    return stage === 'cameraStage';
+    return stage === 'cameraStage' || stage === 'entryStage';
   }
 
   // ---------- стъпка 2: коригиране на ъглите ----------
@@ -747,14 +771,36 @@ const Scanner = (() => {
 
     // Камерата върви само докато разделът "Учител" се гледа. При връщане я палим
     // пак, но само ако сме на визьора — иначе бихме изхвърлили започнато изрязване.
+    // Трите пътя до снимка. Камерата се отваря чак тук, при натиснато копче —
+    // не при отваряне на раздела, както беше досега.
+    $('entryCameraBtn').addEventListener('click', () => {
+      showStage('cameraStage');
+      start();
+    });
+    $('entryFileBtn').addEventListener('click', () => $('uploadInput').click());
+    $('entryPhoneBtn').addEventListener('click', () => {
+      // Картата Е копчето за свързване — затова вика направо самото действие,
+      // вместо да натиска второ копче някъде по-долу на екрана.
+      if (window.Phone && Phone.beginPairing) Phone.beginPairing();
+      const panel = document.getElementById('phonePanel');
+      if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    $('cameraBackBtn').addEventListener('click', () => {
+      stop();
+      showStage('entryStage');
+    });
+
+    // Камерата върви само докато разделът се гледа. При връщане НЕ се пали сама:
+    // човекът се връща там, откъдето е тръгнал, и решава пак.
     window.addEventListener('climby:view-shown', e => {
       if (e.detail.view !== 'tutor') stop();
-      else if (stage === 'cameraStage') start();
     });
     // Затварянето на прозореца/раздела не винаги минава по горния път.
     window.addEventListener('pagehide', stop);
 
-    start();
+    // Заставката си е свършила работата: първо се вижда изборът, не визьорът.
+    $('splash').classList.add('hidden');
+    showStage('entryStage');
   }
 
   return { init, acceptPhoto: loadIntoAdjust, isIdle };
