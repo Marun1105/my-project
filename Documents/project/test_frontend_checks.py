@@ -284,3 +284,33 @@ def test_phone_page_still_loads_nothing_from_outside(phone_page):
     """Един файл, нула външни заявки — това е причината да се отваря на слаб Wi-Fi."""
     assert "https://" not in phone_page.split("<style>")[1], "външен адрес в страницата"
     assert "<script src" not in phone_page, "външен скрипт в страницата"
+
+
+def test_phone_page_does_not_use_the_dollar_helper_before_it_exists(phone_page):
+    """`$` е var, не функция-декларация — преди присвояването си е undefined.
+
+    Извикана по-рано, тя хвърля TypeError още при вдигането на страницата и
+    екранът остава завинаги на „Зареждане…". Нищо друго не хваща това: файлът
+    е синтактично редовен, тестовете на API-то минават, а грешката се вижда
+    само в конзолата на телефона — където никой не гледа.
+    """
+    marker = "var $ = function"
+    assert marker in phone_page, "помощникът $ е преименуван — проверката трябва да се обнови"
+    before = phone_page[:phone_page.index(marker)]
+    # интересува ни само скриптът, не и разметката отгоре
+    script_start = before.index("<script>")
+    early = [line.strip() for line in before[script_start:].splitlines() if "$('" in line]
+    assert not early, "\n".join(["$ се вика, преди да съществува:"] + early)
+
+
+def test_phone_page_never_leaves_a_promise_rejection_unhandled(phone_page):
+    """applyConstraints не хвърля, а връща отхвърлено обещание.
+
+    try/catch около него не хваща нищо, а всеки апарат без непрекъснат фокус
+    или без лампа оставя необработено отхвърляне при всяко пускане на камерата.
+    """
+    for line in phone_page.splitlines():
+        if "applyConstraints" in line:
+            assert "Promise.resolve" in line or ".catch" in line or "return" in line, (
+                "applyConstraints без .catch: " + line.strip()
+            )
