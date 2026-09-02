@@ -8,10 +8,16 @@
   увисне наполовина. Затова и шрифтът е системният, а не Inter: една чужда буква
   не струва колкото 40 KB чакане.
 
-  Снимката се прави от камерата НА ТЕЛЕФОНА (input capture), а не през
-  getUserMedia в страницата. Причината е проста: производителят на телефона
-  обработва кадъра далеч по-добре, а страница от учебник е точно този случай —
-  дребен текст, който трябва да остане четим.
+  Снимката се прави във визьор вътре в страницата (getUserMedia), а не през
+  камерата на телефона. Причината е рамката: докато кадърът се вижда тук, човекът
+  вижда и дали страницата е побрана цялата и права — а камерата на телефона връща
+  готова снимка, върху която вече няма какво да се поправи.
+
+  Плаща се с качество: getUserMedia дава кадър от видеопотока, без обработката,
+  която производителят прави на истинската снимка. Затова искаме възможно
+  най-голям кадър, а изрязването и изправянето остават на компютъра, който има
+  opencv. И затова камерата на телефона остава като резервен път — при отказан
+  достъп страницата не свършва в задънена улица, а показва стария бутон.
 
   Езикът идва като ?lang= в адреса, сложен от компютъра при рисуването на QR
   кода. Приложението е двуезично и телефонът е част от него — да проговори на
@@ -111,11 +117,82 @@
     background: var(--ink); margin-right: 8px; vertical-align: middle;
   }
   .count { font-size: 14px; color: var(--ink-soft); margin: 12px 0 0; }
+  /* ---------- визьор ---------- */
+  .viewfinder {
+    position: relative;
+    margin: 18px 0 4px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #0d0d10;   /* не чисто черно, както и другаде */
+    aspect-ratio: 3 / 4;   /* страница от учебник се държи изправена */
+    /* Под, за браузър без aspect-ratio: там височината става automatic и
+       кутията се сплесква до нула, тоест визьорът просто не се вижда. */
+    min-height: 260px;
+  }
+  .viewfinder video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Ъглите са само указание накъде да се цели — истинските ръбове ги намира
+     компютърът. Затова са четири скоби, а не затворен правоъгълник: затворената
+     рамка обещава изрязване точно по нея, каквото тук не се случва. */
+  .frame { position: absolute; inset: 7%; pointer-events: none; }
+  .frame i {
+    position: absolute; width: 28px; height: 28px;
+    border: 3px solid rgba(255,255,255,.95);
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,.55));
+  }
+  .frame i:nth-child(1) { top: 0; left: 0;  border-right: 0; border-bottom: 0; border-radius: 8px 0 0 0; }
+  .frame i:nth-child(2) { top: 0; right: 0; border-left: 0;  border-bottom: 0; border-radius: 0 8px 0 0; }
+  .frame i:nth-child(3) { bottom: 0; left: 0;  border-right: 0; border-top: 0; border-radius: 0 0 0 8px; }
+  .frame i:nth-child(4) { bottom: 0; right: 0; border-left: 0;  border-top: 0; border-radius: 0 0 8px 0; }
+
+  /* Лъчът се движи само с transform и opacity — двете неща, които браузърът
+     умее да върти без преизчисляване на разположението. На телефон това е
+     разликата между анимация, която не се усеща, и такава, която топли ръката. */
+  .sweeper { position: absolute; inset: 7%; overflow: hidden; pointer-events: none; }
+  .sweeper i {
+    position: absolute; left: 0; right: 0; top: 0; height: 100%;
+    background: linear-gradient(to bottom,
+      transparent 0, transparent calc(50% - 1px),
+      rgba(255,255,255,.9) 50%,
+      transparent calc(50% + 1px), transparent 100%);
+    animation: sweep 2.8s ease-in-out infinite;
+  }
+  @keyframes sweep {
+    0%   { transform: translateY(-50%); opacity: 0; }
+    15%  { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { transform: translateY(50%);  opacity: 0; }
+  }
+
+  .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+  .flash.on { animation: flash .28s ease-out; }
+  @keyframes flash { from { opacity: .85 } to { opacity: 0 } }
+
+  /* Кръгло копче, защото точно това означава „снимай" на всеки телефон — и
+     защото пръстът го намира, без да се чете. */
+  .shutter {
+    width: 74px; height: 74px; border-radius: 50%;
+    margin: 14px auto 0; padding: 0;
+    border: 3px solid var(--line);
+    background: var(--accent);
+    position: relative;
+    transition: transform .08s ease-out;
+  }
+  .shutter::after {
+    content: ''; position: absolute; inset: 7px; border-radius: 50%;
+    border: 2px solid var(--accent-ink); opacity: .5;
+  }
+  .shutter:active { transform: scale(.93); }
+  .shutter:disabled { opacity: .5; }
+  .vf-hint { font-size: 14px; margin: 10px 0 0; }
   .hidden { display: none !important; }
   .spin { animation: pulse 1.1s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
   @media (prefers-reduced-motion: reduce) {
     .spin { animation: none; }
+    .sweeper i { animation: none; opacity: .55; }
+    .shutter { transition: none; }
+    .flash.on { animation: none; }
   }
 </style>
 </head>
@@ -138,8 +215,20 @@
   <section id="ready" class="hidden">
     <h1><span class="dot" aria-hidden="true"></span><span data-i18n="readyTitle">Свързан</span></h1>
     <p id="readyBody"></p>
-    <label class="filebtn" for="shot" data-i18n="shootBtn">Снимай страница</label>
-    <input id="shot" type="file" accept="image/*" capture="environment">
+    <div id="viewfinder" class="viewfinder hidden">
+      <video id="view" playsinline muted autoplay></video>
+      <div class="frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="sweeper" aria-hidden="true"><i></i></div>
+      <div id="flash" class="flash" aria-hidden="true"></div>
+    </div>
+    <p class="vf-hint hidden" id="vfHint" data-i18n="vfHint">Побери страницата в рамката.</p>
+    <button id="shutter" class="shutter hidden" type="button" aria-label="Снимай страница"></button>
+
+    <div id="fallback" class="hidden">
+      <p class="vf-hint" id="fallbackHint" data-i18n="fallbackHint">Няма достъп до камерата в страницата — ползвай камерата на телефона.</p>
+      <label class="filebtn" for="shot" data-i18n="shootBtn">Снимай страница</label>
+      <input id="shot" type="file" accept="image/*" capture="environment">
+    </div>
     <p class="status" id="status" role="status" aria-live="polite"></p>
     <p class="count" id="count"></p>
   </section>
@@ -185,6 +274,8 @@
       errOfflineBody: 'Провери интернета и опитай пак.',
       errUnlinkedTitle: 'Телефонът е откачен',
       errUnlinkedBody: 'Свържи го отново от компютъра.',
+      vfHint: 'Побери страницата в рамката.',
+      fallbackHint: 'Няма достъп до камерата тук — ползвай камерата на телефона.',
     },
     en: {
       title: 'Climby — photo from your phone',
@@ -214,6 +305,8 @@
       errOfflineBody: 'Check your internet and try again.',
       errUnlinkedTitle: 'This phone was unlinked',
       errUnlinkedBody: 'Link it again from your computer.',
+      vfHint: 'Fit the whole page inside the frame.',
+      fallbackHint: "No camera access here — use your phone's camera instead.",
     },
   };
 
@@ -246,6 +339,9 @@
   Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (el) {
     el.textContent = t(el.getAttribute('data-i18n'));
   });
+  // Кръглото копче няма надпис — името му се чете само от екранен четец, затова
+  // не минава по горния път и се задава отделно, но пак от същите преводи.
+  $('shutter').setAttribute('aria-label', t('shootBtn'));
 
   // ---------- състояние ----------
   // Тайната от QR кода стои в адреса. Тя важи веднъж и десет минути — след
@@ -262,6 +358,10 @@
     ['loading', 'confirm', 'ready', 'failed'].forEach(function (s) {
       $(s).classList.toggle('hidden', s !== name);
     });
+    // Паленето и гасенето стоят ТУК, а не при всяко извикване: екранът се сменя
+    // от няколко места и едно забравено гасене оставя лампичката до камерата да
+    // свети, докато телефонът е в джоба.
+    if (name === 'ready') startCamera(); else stopCamera();
   }
 
   function fail(titleKey, bodyKey, bodyText) {
@@ -379,22 +479,37 @@
   var MAX_DIM = 1568;
   var QUALITY = 0.82;
 
+  // Едно място, където кадърът става base64 — и визьорът, и файлът минават през
+  // него. Две почти еднакви копия се разминават тихо: едното получава нов таван
+  // за размера, другото остава със стария, и разликата се вижда чак когато
+  // сървърът откаже по-голямата снимка.
+  function encodeCanvas(canvas) {
+    var w = canvas.width, h = canvas.height;
+    var scale = Math.min(1, MAX_DIM / Math.max(w, h));
+    var out = canvas;
+    if (scale < 1) {
+      out = document.createElement('canvas');
+      out.width = Math.round(w * scale);
+      out.height = Math.round(h * scale);
+      var ctx = out.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(canvas, 0, 0, out.width, out.height);
+    }
+    var dataUrl = out.toDataURL('image/jpeg', QUALITY);
+    return dataUrl.slice(dataUrl.indexOf(',') + 1);
+  }
+
   function downscale(file) {
     return new Promise(function (resolve, reject) {
       var url = URL.createObjectURL(file);
       var img = new Image();
       img.onload = function () {
         URL.revokeObjectURL(url);
-        var w = img.naturalWidth, h = img.naturalHeight;
-        var scale = Math.min(1, MAX_DIM / Math.max(w, h));
         var canvas = document.createElement('canvas');
-        canvas.width = Math.round(w * scale);
-        canvas.height = Math.round(h * scale);
-        var ctx = canvas.getContext('2d');
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        var dataUrl = canvas.toDataURL('image/jpeg', QUALITY);
-        resolve(dataUrl.slice(dataUrl.indexOf(',') + 1));
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        resolve(encodeCanvas(canvas));
       };
       img.onerror = function () {
         URL.revokeObjectURL(url);
@@ -404,18 +519,87 @@
     });
   }
 
-  $('shot').addEventListener('change', function (e) {
-    var file = e.target.files && e.target.files[0];
-    e.target.value = '';  // същата снимка да може да се прати пак
-    if (!file) return;
+  // ---------- визьор ----------
+  var stream = null;      // живият поток, за да може да се спре
+  var starting = null;    // висящото искане за достъп — вторият опит чака същия отговор
+  var wantCamera = false; // още ли го иска екранът, когато потокът най-сетне дойде
+  // Веднъж отказан достъп не се иска пак. Без това всяко връщане към раздела
+  // вадеше въпроса за камерата отново — а човекът, който вече е казал „не",
+  // получаваше същия въпрос при всяко заключване и отключване на телефона.
+  var cameraBlocked = false;
 
+  function stopTracks(s) { s.getTracks().forEach(function (tr) { tr.stop(); }); }
+
+  function useFallback() {
+    ['viewfinder', 'vfHint', 'shutter'].forEach(function (id) { $(id).classList.add('hidden'); });
+    $('fallback').classList.remove('hidden');
+  }
+
+  function startCamera() {
+    wantCamera = true;
+    if (stream || starting || cameraBlocked) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { cameraBlocked = true; return useFallback(); }
+
+    // Искаме възможно най-едрия кадър: визьорът вече ни струва обработката,
+    // която телефонът прави на истинската снимка, а дребният печатен текст е
+    // първото, което се губи. ideal, а не exact — телефон, който не може
+    // толкова, трябва да даде каквото има, вместо да откаже изобщо.
+    starting = navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 2560 },
+        height: { ideal: 1440 },
+      },
+      audio: false,
+    }).then(function (opened) {
+      // Разрешението се чака дълго. Дотогава човекът може да е излязъл от
+      // екрана — тогава потокът не е нужен на никого и се гаси веднага.
+      if (!wantCamera) { stopTracks(opened); return; }
+      stream = opened;
+      var v = $('view');
+      v.srcObject = opened;
+      var playing = v.play();
+      if (playing && playing.catch) playing.catch(function () { /* autoplay ще го подкара */ });
+      $('fallback').classList.add('hidden');
+      ['viewfinder', 'vfHint', 'shutter'].forEach(function (id) { $(id).classList.remove('hidden'); });
+    }).catch(function () {
+      // Отказан достъп, зает апарат, браузър без права — не е задънена улица.
+      cameraBlocked = true;
+      useFallback();
+    }).then(function () {
+      starting = null;
+    });
+  }
+
+  function stopCamera() {
+    wantCamera = false;
+    if (stream) { stopTracks(stream); stream = null; }
+    var v = $('view');
+    if (v) v.srcObject = null;
+  }
+
+  function grabFrame() {
+    var v = $('view');
+    if (!v || !v.videoWidth || !v.videoHeight) return null;
+    var canvas = document.createElement('canvas');
+    canvas.width = v.videoWidth;
+    canvas.height = v.videoHeight;
+    canvas.getContext('2d').drawImage(v, 0, 0);
+    return canvas;
+  }
+
+  // ---------- пращане ----------
+  var sending = false;
+
+  function sendPhoto(b64) {
+    if (sending) return;   // второ нетърпеливо натискане праща същата страница пак
+    sending = true;
     setStatus(t('sending'), true);
-    downscale(file).then(function (b64) {
-      return call('/devices/photos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Device ' + token },
-        body: JSON.stringify({ image: b64 }),
-      });
+    $('shutter').disabled = true;
+    return call('/devices/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Device ' + token },
+      body: JSON.stringify({ image: b64 }),
     }).then(function (res) {
       if (res.status === 401) {
         forgetToken();
@@ -431,6 +615,42 @@
       $('count').textContent = sent === 1 ? t('countOne') : t('countMany', { n: sent });
     }).catch(function () {
       setStatus(t('offline'), false);
+    }).then(function () {
+      sending = false;
+      $('shutter').disabled = false;
+    });
+  }
+
+  $('shutter').addEventListener('click', function () {
+    var canvas = grabFrame();
+    if (!canvas) { setStatus(t('failedOnce'), false); return; }
+    var flash = $('flash');
+    flash.classList.remove('on');
+    void flash.offsetWidth;   // рестартира анимацията при бърза втора снимка
+    flash.classList.add('on');
+    sendPhoto(encodeCanvas(canvas));
+  });
+
+  // Камерата не бива да работи, докато екранът е скрит: телефонът отива в джоба
+  // със заключен екран далеч по-често, отколкото страницата се затваря.
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) stopCamera();
+    else if (!$('ready').classList.contains('hidden')) startCamera();
+  });
+  window.addEventListener('pagehide', stopCamera);
+  // Връщане с копчето „назад" вдига страницата от кеша, без да мине през
+  // visibilitychange — без този ред визьорът остава черен и копчето не снима.
+  window.addEventListener('pageshow', function () {
+    if (!$('ready').classList.contains('hidden')) startCamera();
+  });
+
+  // Резервният път праща същото и по същия начин — само кадърът идва отвън.
+  $('shot').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';  // същата снимка да може да се прати пак
+    if (!file || sending) return;
+    downscale(file).then(sendPhoto).catch(function () {
+      setStatus(t('failedOnce'), false);
     });
   });
 

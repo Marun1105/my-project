@@ -217,3 +217,70 @@ def test_modules_read_through_window_are_actually_put_on_window():
     assert not missing, (
         "четат се през window, но никога не се слагат на window: " + ", ".join(missing)
     )
+
+
+# ---------------------------------------------------------------------------
+# phone_page.html — визьорът на телефона
+#
+# Страницата не се вижда от нито един друг тест: test_devices.py говори с API-то,
+# а тукашните проверки дотук гледат frontend/. Тя обаче е единственият екран,
+# който детето вижда на телефона си, и се сервира от сървъра — счупи ли се, няма
+# как да се забележи от компютъра.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def phone_page():
+    with open(os.path.join(os.path.dirname(__file__), "phone_page.html"), encoding="utf-8") as f:
+        return f.read()
+
+
+def test_phone_page_keeps_a_way_to_shoot_without_the_in_page_camera(phone_page):
+    """Отказан достъп до камерата не бива да е задънена улица.
+
+    Визьорът иска разрешение, а разрешение се отказва — от самия човек, от
+    настройка на браузъра, от служебен телефон. Ако тогава остане само визьор,
+    екранът показва празно място и нито един начин да се снима.
+    """
+    assert 'id="shot"' in phone_page, "резервното поле за файл е махнато"
+    assert 'capture="environment"' in phone_page, "резервният път вече не вика камерата на телефона"
+    assert "useFallback" in phone_page, "няма преминаване към резервния път"
+
+
+def test_phone_page_stops_the_camera_when_it_is_not_looking(phone_page):
+    """Камерата да не работи в джоба.
+
+    Телефонът се заключва и прибира далеч по-често, отколкото страницата се
+    затваря. Останел ли потокът жив, лампичката до камерата свети, а батерията
+    се топи, докато никой не гледа.
+    """
+    for hook in ("visibilitychange", "pagehide", "stopCamera"):
+        assert hook in phone_page, f"липсва {hook} — камерата остава пусната"
+
+
+def test_phone_page_asks_for_a_big_frame(phone_page):
+    """Визьорът вече струва качество — да не струва и размер.
+
+    Кадърът от видеопоток е без обработката, която телефонът прави на истинската
+    снимка. Дребният печатен текст е първото, което се губи, затова искаме
+    възможно най-едрия кадър — и то с ideal, за да даде телефонът каквото има,
+    вместо да откаже изобщо.
+    """
+    assert "width: { ideal: 2560 }" in phone_page
+    assert "exact:" not in phone_page, "exact отказва камерата вместо да ѝ поиска по-малко"
+
+
+def test_phone_page_has_one_place_that_encodes_a_frame(phone_page):
+    """Визьорът и файлът да минават през едно кодиране.
+
+    Два почти еднакви екземпляра се разминават тихо: единият получава нов таван
+    за размера, другият остава със стария, и разликата се вижда чак когато
+    сървърът откаже по-голямата снимка.
+    """
+    assert phone_page.count("function encodeCanvas") == 1
+    assert phone_page.count("toDataURL") == 1, "кодира се на повече от едно място"
+
+
+def test_phone_page_still_loads_nothing_from_outside(phone_page):
+    """Един файл, нула външни заявки — това е причината да се отваря на слаб Wi-Fi."""
+    assert "https://" not in phone_page.split("<style>")[1], "външен адрес в страницата"
+    assert "<script src" not in phone_page, "външен скрипт в страницата"
