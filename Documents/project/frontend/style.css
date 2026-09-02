@@ -2171,7 +2171,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* Отварянето на менюто е единственият знак в лентата отгоре — рисува се като
    иконките в самото меню, вместо да е текстов знак, който всеки шрифт чертае
    с различна дебелина. */
-.menu-toggle svg { width: 22px; height: 22px; display: block; }
+/* flex: none е задължително, а не украса: копчето е flex контейнер, а SVG без
+   собствена ширина се свива до чертичка вътре в него. Иконката излизаше 6px
+   широка вместо 22 и приличаше на празно квадратче. */
+.menu-toggle svg { width: 22px; height: 22px; display: block; flex: none; }
 
 /* ---------- ClimbAI в менюто ---------- */
 /* Един ред от менюто носи цвят, останалите не. Това е цялата идея: лилавото
@@ -2410,3 +2413,17 @@ button:disabled { opacity: 0.4; cursor: default; }
    правим място, вместо текстът да минава под него. */
 .page-header h1,
 .page-header .page-subtitle { padding-right: 40px; }
+
+/* На телефон редът "клас / учител / излез" се смачква: името се пречупва на две,
+   а копчето стои залепено до него. Три неща на 390 пиксела не се редят на един
+   ред — затова се подреждат едно под друго, а копчето отива вдясно само за себе си. */
+@media (max-width: 560px) {
+  .class-student {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    row-gap: 6px;
+  }
+  .class-student-name { flex: 1 1 100%; }
+  .class-student-stats { flex: 1 1 auto; text-align: left; }
+  .class-leave { margin-left: auto; }
+}

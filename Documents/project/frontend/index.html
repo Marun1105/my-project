@@ -347,6 +347,7 @@
 <header class="page-header">
   <h1 data-i18n="nav.tutor">Учител</h1>
   <p class="page-subtitle" data-i18n="page.tutorSubtitle">Снимай задачата от учебника и ще я разгледаме заедно, стъпка по стъпка.</p>
+  <button class="help-toggle" type="button" data-help-view="tutor" aria-expanded="false" data-i18n-aria="help.aria" aria-label="Как работи този екран"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 17h.01"/></svg></button>
 </header>
 
 
@@ -360,6 +361,10 @@
      Сега екранът първо пита, а камерата се пали чак когато я избереш. -->
 <!-- Нарочно НЕ носи класа .stage: той е кутията на визьора, с аспект 3:4 за
      портретна снимка. Върху екран с избор това е просто голяма празна дупка. -->
+<div class="explainer help-note hidden">
+  <strong data-i18n="tutor.how">Как работи ClimbAI:</strong> <span data-i18n="tutor.howBody">снимаш задачата и получаваш пътя до отговора, а не само отговора — за да можеш следващата да я решиш сам. Снимката се обработва веднъж и не се пази никъде; в Изкачени остава само какво си питал и какво е отговорено.</span>
+</div>
+
 <div id="entryStage" class="entry-stage">
   <div class="entry-choices">
     <button id="entryCameraBtn" class="entry-choice" type="button">
