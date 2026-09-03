@@ -111,6 +111,13 @@ const Phone = (() => {
 
   async function startPairing() {
     clearError();
+    // Гост, който натиска картата за телефон, никога не е имал сесия — да му се
+    // каже "сесията изтече" е едновременно невярно и безполезно. Свързването
+    // изисква профил, затова го водим право там, вместо да го отблъснем с грешка.
+    if (!loggedIn()) {
+      if (window.Auth && Auth.openEntryGate) Auth.openEntryGate();
+      return;
+    }
     try {
       pairing = await api('/devices/pair', { method: 'POST' });
     } catch (err) {
