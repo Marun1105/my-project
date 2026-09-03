@@ -2450,8 +2450,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* В менюто носи градиента вместо плътен цвят. */
 .nav-ai-mark.climbai-mark {
-  width: 20px;
-  height: 20px;
+  /* Знакът е плетеница от тънки линии, не плътна форма: под 20 пиксела тя се
+     слива в петно. Затова тук е по-едър от иконките наоколо. */
+  width: 22px;
+  height: 22px;
   background: var(--ai-text-gradient);
   background-size: 200% 100%;
   filter: drop-shadow(0 0 5px var(--ai-glow));
