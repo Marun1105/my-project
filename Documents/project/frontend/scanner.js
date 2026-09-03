@@ -70,7 +70,9 @@ const Scanner = (() => {
     btn.classList.add('entry-choice-off');
     const hint = btn.querySelector('.entry-choice-hint');
     if (hint) {
-      hint.removeAttribute('data-i18n');
+      // Ключът се СМЕНЯ, а не се маха: махнеш ли го, надписът застива на езика,
+      // на който е бил в този миг, и смяната на езика после го подминава.
+      hint.setAttribute('data-i18n', 'entry.cameraNone');
       hint.textContent = window.t ? t('entry.cameraNone') : 'Тук няма камера.';
     }
   }
