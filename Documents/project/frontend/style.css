@@ -2433,3 +2433,37 @@ button:disabled { opacity: 0.4; cursor: default; }
   .class-student-stats { flex: 1 1 auto; text-align: left; }
   .class-leave { margin-left: auto; }
 }
+
+/* ---------- знакът на ClimbAI ---------- */
+/* Крушката е изрязана от собственото лого на Climby — вътре във влакното ѝ стои
+   планина. Затова е тя, а не звезда: знакът вече е нарисуван от човек и значи
+   "идея", което е точно каквото прави ClimbAI.
+   Слага се като маска, а не като картинка, за да може да поема цвят: лилаво в
+   менюто, черно върху лилавите копчета, бяло на тъмно. Картинка не може това. */
+.climbai-mark {
+  display: inline-block;
+  background: currentColor;
+  -webkit-mask: url('climbai-mark.png') center / contain no-repeat;
+  mask: url('climbai-mark.png') center / contain no-repeat;
+  flex: none;
+}
+
+/* В менюто носи градиента вместо плътен цвят. */
+.nav-ai-mark.climbai-mark {
+  width: 20px;
+  height: 20px;
+  background: var(--ai-text-gradient);
+  background-size: 200% 100%;
+  filter: drop-shadow(0 0 5px var(--ai-glow));
+}
+
+/* Върху AI копчетата и значката: черно, като надписа до него. */
+.spark.climbai-mark,
+.ai-badge .climbai-mark {
+  width: 17px;
+  height: 17px;
+  background: currentColor;
+  vertical-align: -0.2em;
+}
+.spark-icon.climbai-mark { width: 1.05em; height: 1.05em; vertical-align: -0.17em; margin-right: 0.4em; }
+.spark-spin.climbai-mark { width: 1.15em; height: 1.15em; vertical-align: -0.2em; }

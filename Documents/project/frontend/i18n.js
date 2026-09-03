@@ -779,9 +779,7 @@ window.t = I18n.t;
 // компютър, носи собствени цветове в приложение, което е нарочно черно-бяло, и
 // не може да поеме цвета на текста около себе си.
 window.sparkSvg = function (cls) {
-  return '<svg class="' + (cls || 'spark-icon') + '" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
-    + '<path d="M12 1.5c0 5.8 4.7 10.5 10.5 10.5C16.7 12 12 16.7 12 22.5 12 16.7 7.3 12 1.5 12 7.3 12 12 7.3 12 1.5z"/>'
-    + '</svg>';
+  return '<span class="climbai-mark ' + (cls || 'spark-icon') + '" aria-hidden="true"></span>';
 };
 
 // малка "AI отговор" значка, показвана над отговорите на AI учителя/планера
@@ -792,9 +790,7 @@ window.sparkSvg = function (cls) {
 // размер, взима цвета отвън и не мъкне файл със себе си.
 window.aiBadgeHtml = function () {
   return '<div class="ai-badge" role="img" aria-label="' + I18n.t('ai.badge') + '">'
-    + '<span class="ai-badge-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
-    + '<path d="M12 1.5c0 5.8 4.7 10.5 10.5 10.5C16.7 12 12 16.7 12 22.5 12 16.7 7.3 12 1.5 12 7.3 12 12 7.3 12 1.5z"/>'
-    + '</svg></span>'
+    + '<span class="ai-badge-icon"><span class="climbai-mark" aria-hidden="true"></span></span>'
     + '<span class="ai-badge-text">ClimbAI</span>'
     + '</div>';
 };
