@@ -16,3 +16,15 @@ NTUSER.DAT{*
 ntuser.ini
 desktop.ini
 AppData/
+
+# Claude Code state. .credentials.json is a live login token and the
+# .claude.json.backup.* files carry the same config; neither belongs in
+# a commit. The venv and plugin cache are just thousands of files of noise.
+.claude/.credentials.json
+.claude/.claude.json.backup.*
+.claude/backups/
+.claude/plugins/cache/
+.claude/security/agent-sdk-venv/
+.claude/shell-snapshots/
+.claude/statsig/
+.claude/todos/
