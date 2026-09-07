@@ -450,3 +450,52 @@ def test_no_boolean_column_is_compared_to_a_number_in_raw_sql():
         "булева колона се сравнява с число в суров SQL — на Postgres това не тръгва.\n"
         "Ползвай = TRUE / = FALSE (работи и на двете бази):\n  " + "\n  ".join(offenders)
     )
+
+
+# --- Връзката към базата ------------------------------------------------------
+#
+# Тези три проверки пазят от неща, които не се виждат локално (SQLite прощава
+# всичко) и се появяват чак когато базата е в облак и заспива.
+
+def test_postgres_connection_survives_a_sleeping_database():
+    """Безсървърните бази затварят връзките след няколко минути покой.
+
+    Без pool_pre_ping SQLAlchemy подава мъртвата връзка на следващата заявка и
+    първият човек за деня получава 500, а вторият — нормален отговор. Грешка,
+    която изчезва при опит за възпроизвеждане, е най-скъпата.
+    """
+    import db
+
+    kwargs = db._engine_kwargs("postgresql://u:p@host/climby")
+    assert kwargs.get("pool_pre_ping") is True
+    assert kwargs.get("pool_recycle", 0) > 0
+
+
+def test_postgres_connection_gives_up_instead_of_hanging():
+    """Недостъпна база трябва да КАЖЕ, а не да увисне.
+
+    migrations.py се пуска при внасяне на модула. Без срок за свързване старт
+    срещу мъртва база не свършва никога: портът не се отваря, хостингът показва
+    само "no open ports detected", а истинската причина не се появява никъде.
+    Точно това се случи, когато базата изтече на 2026-09-03.
+    """
+    import db
+
+    connect_args = db._engine_kwargs("postgresql://u:p@host/climby")["connect_args"]
+    assert 0 < connect_args.get("connect_timeout", 0) <= 30
+
+
+@pytest.mark.parametrize("url,pooled", [
+    ("postgresql://u:p@ep-x-a1.eu-central-1.aws.neon.tech/climby", False),
+    ("postgresql://u:p@ep-x-a1-pooler.eu-central-1.aws.neon.tech/climby", True),
+    ("postgresql://u:p@aws-0-eu-central-1.pooler.supabase.com:6543/postgres", True),
+])
+def test_a_pooled_url_is_noticed(url, pooled, capsys):
+    """Ключалката за схемата не оцелява през PgBouncer — това трябва да се каже.
+
+    През басейн връзката се връща обратно след всяка транзакция, а ключалката
+    живее върху нея. Взима се и тихо се губи: никаква грешка, никаква следа.
+    """
+    assert migrations._warn_if_pooled(url) is pooled
+    said = capsys.readouterr().err
+    assert ("PgBouncer" in said) is pooled
