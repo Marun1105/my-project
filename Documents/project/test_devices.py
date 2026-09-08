@@ -431,7 +431,13 @@ def test_the_phone_page_pulls_nothing_from_the_outside():
     assert "default-src 'none'" in csp
     assert "connect-src 'self'" in csp
     # Един файл, нула външни заявки — иначе заспалият Render става втора точка на отказ.
-    assert "http://" not in res.text and "https://" not in res.text
+    #
+    # Изключение прави само xmlns на вписаната икона: това е ИМЕ на пространство,
+    # а не адрес. Никой браузър не го отваря — стои в SVG-то, защото без него
+    # картинката не се показва. Затова се маха преди проверката, вместо да се
+    # отпусне самата проверка.
+    body = res.text.replace("http://www.w3.org/2000/svg", "")
+    assert "http://" not in body and "https://" not in body
 
 
 def test_a_linked_phone_has_an_address_it_can_come_back_to():
@@ -456,3 +462,23 @@ def test_the_invitation_address_still_works_too():
     res = client.get("/p/some-secret-that-does-not-exist")
     assert res.status_code == 200
     assert client.get("/phone").text == res.text, "двата адреса раздават различни страници"
+
+
+def test_the_phone_page_asks_for_nothing_at_all():
+    """Страницата за телефона е нарочно без нито една външна заявка.
+
+    Иконата обаче не се иска от страницата, а от браузъра — сам, дори когато
+    никой не го е молил. Затова тя стои вписана вътре: без този ред всяко
+    отваряне на училищен Wi-Fi чака още една обиколка до заспал Render, за да
+    получи 404.
+    """
+    page = client.get("/phone").text
+    assert 'rel="icon"' in page, "иконата не е вписана — браузърът ще иска /favicon.ico"
+    assert "data:image/svg+xml" in page, "иконата трябва да е вътре, не външен файл"
+
+
+def test_the_server_answers_for_a_favicon_instead_of_a_404():
+    """404 в конзолата, което не значи нищо, изглежда точно като 404, което значи."""
+    res = client.get("/favicon.ico")
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("image/")

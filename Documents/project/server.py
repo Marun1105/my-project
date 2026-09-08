@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field, field_validator
 from anthropic import Anthropic, APIError
 from sqlalchemy.orm import Session
 from starlette.datastructures import Headers
-from starlette.responses import HTMLResponse, JSONResponse
+from starlette.responses import HTMLResponse, JSONResponse, Response
 
 import auth
 import classes
@@ -284,6 +284,27 @@ def phone_page_paired():
     и с изтекла покана.
     """
     return HTMLResponse(_PHONE_PAGE, headers=_PHONE_PAGE_HEADERS)
+
+
+# Всеки браузър иска /favicon.ico сам, без страницата да го е молила. Без този
+# отговор всяко отваряне на сървъра в браузър оставя 404 в конзолата — грешка,
+# която не значи нищо, но изглежда точно като грешка, която значи. Един и същи
+# връх, вписан и в phone_page.html.
+_FAVICON = (
+    b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
+    b"<rect width='32' height='32' rx='7' fill='#7c3aed'/>"
+    b"<path d='M6 24 L13 11 L18 19 L21 15 L26 24 Z' fill='#fff'/>"
+    b"</svg>"
+)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return Response(
+        _FAVICON,
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=604800"},
+    )
 
 
 @app.get("/")
