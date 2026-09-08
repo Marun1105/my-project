@@ -39,7 +39,7 @@ def create_task(
     db: Session = Depends(get_db),
 ):
     rate_limit.enforce(request, "task-create", max_calls=MAX_TASKS_PER_HOUR, window_seconds=3600,
-                       message="Твърде много задачи за кратко време — изчакай малко.")
+                       message="Твърде много задачи за кратко време — изчакай малко.", user=user)
     task = Task(user_id=user.id, text=body.text, subject=body.subject, deadline=body.deadline)
     db.add(task)
     db.commit()

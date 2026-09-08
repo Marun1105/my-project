@@ -55,7 +55,7 @@ def create_class(
 ):
     _require_teacher(user)
     rate_limit.enforce(request, "class-create", max_calls=20, window_seconds=3600,
-                       message="Твърде много класове за кратко време — изчакай малко.")
+                       message="Твърде много класове за кратко време — изчакай малко.", user=user)
     name = body.name.strip()
     if not name:
         raise HTTPException(400, "Класът трябва да има име.")
@@ -119,7 +119,7 @@ def join_class(
     db: Session = Depends(get_db),
 ):
     rate_limit.enforce(request, "class-join", max_calls=15, window_seconds=3600,
-                       message="Твърде много опити с код — изчакай малко и опитай пак.")
+                       message="Твърде много опити с код — изчакай малко и опитай пак.", user=user)
     code = body.code.strip().upper()
     classroom = db.query(Classroom).filter(Classroom.join_code == code).first()
     if not classroom:

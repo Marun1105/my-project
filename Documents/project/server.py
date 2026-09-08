@@ -16,6 +16,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from anthropic import Anthropic, APIError
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from starlette.datastructures import Headers
 from starlette.responses import HTMLResponse, JSONResponse, Response
@@ -307,6 +308,22 @@ def favicon():
     )
 
 
+# "/" казва само че процесът е жив. Точно това не стигаше: на 3 септември базата
+# изтече, приложението падаше при вдигане и никой не разбра четири дни. Тук се
+# пипа и базата — един "SELECT 1" — за да има какво да пита външен наблюдател.
+#
+# Подробностите за грешката остават в лога, не в отговора: адресът е публичен.
+@app.get("/healthz", include_in_schema=False)
+def healthz():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as err:  # noqa: BLE001 — каквото и да е, отвън е едно и също
+        print(f"[healthz] базата не отговаря: {err!r}")
+        return JSONResponse({"status": "degraded", "db": "down"}, status_code=503)
+    return {"status": "ok", "db": "ok"}
+
+
 @app.get("/")
 def health():
     # Проста проверка, че сървърът е жив — отваряш адреса и виждаш това.
@@ -323,7 +340,8 @@ def ask(
     lang = body.lang if body.lang in SYSTEM else "bg"
     # /ask е достъпен и за гости (без вход), затова лимитът е по IP, а не по акаунт —
     # пази от неограничени разходи за Anthropic API от един клиент/бот.
-    rate_limit.enforce(request, "ask", max_calls=12, window_seconds=3600, message=RATE_LIMIT_MESSAGE[lang])
+    rate_limit.enforce(request, "ask", max_calls=12, window_seconds=3600,
+                       message=RATE_LIMIT_MESSAGE[lang], user=user)
     # Типът се взима от самата снимка, а не се предполага: приложението праща JPEG,
     # но качен от компютър файл спокойно може да е PNG и тогава "image/jpeg" е лъжа.
     content = [

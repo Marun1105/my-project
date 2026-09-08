@@ -111,6 +111,8 @@ service worker-ът кешира всеки местен скрипт, и че �
 
 - [`docs/ai-v-ucheneto.md`](docs/ai-v-ucheneto.md) — какво казват изследванията за
   ползата и вредата от AI в ученето, и какво значи това за решенията тук.
+- [`docs/proba-s-istinski-telefon.md`](docs/proba-s-istinski-telefon.md) — двайсет
+  минути с истински учебник; единственото, което може да потвърди скенера.
 - [`docs/baza-danni.md`](docs/baza-danni.md) — защо базата е в Neon, какво се
   счупи с безплатната на Render, и стъпките за преместване.
 - [`climby-plan.md`](climby-plan.md) — спецификация и ред на построяване.

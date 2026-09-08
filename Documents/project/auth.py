@@ -429,7 +429,7 @@ def add_phone(
     db: Session = Depends(get_db),
 ):
     rate_limit.enforce(request, "add-phone", max_calls=5, window_seconds=3600,
-                        message="Твърде много опити — изчакай малко и опитай пак.")
+                        message="Твърде много опити — изчакай малко и опитай пак.", user=user)
     phone = normalize_phone(body.phone)
     if not phone:
         raise HTTPException(400, "Телефонният номер не изглежда валиден.")
@@ -451,7 +451,7 @@ def verify_phone(
     db: Session = Depends(get_db),
 ):
     rate_limit.enforce(request, "verify-phone", max_calls=10, window_seconds=3600,
-                        message="Твърде много опити — изчакай малко и опитай пак.")
+                        message="Твърде много опити — изчакай малко и опитай пак.", user=user)
     if not user.phone:
         raise HTTPException(400, "Първо добави телефонен номер.")
     if not _consume_code(db, user, CodePurpose.verify_phone, body.code, reveal_lock=True):

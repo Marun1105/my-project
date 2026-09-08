@@ -3,10 +3,12 @@ import json
 from typing import List, Optional
 
 from anthropic import Anthropic, APIError
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 import rate_limit
+from auth import get_current_user_optional
+from models import User
 
 router = APIRouter(prefix="/plan", tags=["plan"])
 client = Anthropic()  # чете ANTHROPIC_API_KEY от средата
@@ -88,13 +90,15 @@ class SplitRequest(BaseModel):
 
 
 @router.post("")
-def plan(body: PlanRequest, request: Request):
+def plan(body: PlanRequest, request: Request,
+         user: Optional[User] = Depends(get_current_user_optional)):
     lang = body.lang if body.lang in SYSTEM else "bg"
 
     if not body.tasks:
         return {"advice": NO_TASKS_MESSAGE[lang]}
 
-    rate_limit.enforce(request, "plan", max_calls=20, window_seconds=3600, message=RATE_LIMIT_MESSAGE[lang])
+    rate_limit.enforce(request, "plan", max_calls=20, window_seconds=3600,
+                       message=RATE_LIMIT_MESSAGE[lang], user=user)
 
     lines = []
     for t in body.tasks:
@@ -120,13 +124,15 @@ def plan(body: PlanRequest, request: Request):
 
 
 @router.post("/split")
-def split(body: SplitRequest, request: Request):
+def split(body: SplitRequest, request: Request,
+          user: Optional[User] = Depends(get_current_user_optional)):
     lang = body.lang if body.lang in SPLIT_SYSTEM else "bg"
     text = body.text.strip()
     if not text:
         raise HTTPException(400, SPLIT_ERROR_MESSAGE[lang])
 
-    rate_limit.enforce(request, "split", max_calls=20, window_seconds=3600, message=RATE_LIMIT_MESSAGE[lang])
+    rate_limit.enforce(request, "split", max_calls=20, window_seconds=3600,
+                       message=RATE_LIMIT_MESSAGE[lang], user=user)
 
     prompt = text if not body.subject else f"{text} (subject: {body.subject})"
     try:

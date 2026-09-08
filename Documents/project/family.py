@@ -63,7 +63,7 @@ def _aware(dt: datetime) -> datetime:
 @router.post("/invite", response_model=FamilyInviteOut)
 def create_invite(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     rate_limit.enforce(request, "family-invite", max_calls=10, window_seconds=3600,
-                        message="Твърде много кодове за кратко време — изчакай малко.")
+                        message="Твърде много кодове за кратко време — изчакай малко.", user=user)
     code = _generate_code(db)
     invite = FamilyInvite(
         student_user_id=user.id,
@@ -86,7 +86,7 @@ def link_student(
     # 6 знака от 32-буквена азбука е ~1 милиард комбинации, но без лимит все пак
     # може да се налучква масово — ограничаваме опитите за въвеждане на код
     rate_limit.enforce(request, "family-link", max_calls=10, window_seconds=3600,
-                        message="Твърде много опити с код — изчакай малко и опитай пак.")
+                        message="Твърде много опити с код — изчакай малко и опитай пак.", user=user)
     code = body.code.strip().upper()
     invite = db.query(FamilyInvite).filter(FamilyInvite.code == code).first()
     if not invite or invite.used:

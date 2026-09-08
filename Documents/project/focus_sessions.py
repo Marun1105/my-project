@@ -27,7 +27,7 @@ def create_session(
     # една истинска сесия трае поне минута, така че 60 записа на час е далеч над
     # нормалното ползване — лимитът само спира натрупване на боклук в базата
     rate_limit.enforce(request, "focus-save", max_calls=60, window_seconds=3600,
-                        message="Твърде много записани сесии за кратко време.")
+                        message="Твърде много записани сесии за кратко време.", user=user)
     session = FocusSession(
         user_id=user.id,
         duration_seconds=max(0, body.duration_seconds),

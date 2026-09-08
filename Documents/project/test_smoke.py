@@ -428,3 +428,28 @@ def test_password_minimum_length():
         "display_name": "Short", "email": "short@example.com", "password": "abc",
     })
     assert res.status_code == 422
+
+
+def test_the_health_check_actually_touches_the_database():
+    """Проверка, която не пипа базата, казва "жив съм" и когато нищо не работи.
+
+    На 3 септември базата изтече. Приложението падаше при вдигане, а единственият
+    адрес за проверка отговаряше само за процеса — така четири дни никой не
+    разбра. Затова /healthz прави "SELECT 1" и си признава.
+    """
+    res = client.get("/healthz")
+    assert res.status_code == 200
+    assert res.json() == {"status": "ok", "db": "ok"}
+
+
+def test_a_dead_database_is_reported_as_such(monkeypatch):
+    """503, а не 200 — инак наблюдателят отвън мълчи точно когато трябва да звъни."""
+    def refuse():
+        raise RuntimeError("базата е спряна")
+
+    monkeypatch.setattr(server.engine, "connect", refuse)
+    res = client.get("/healthz")
+    assert res.status_code == 503
+    assert res.json()["db"] == "down"
+    # Причината остава в лога — адресът е публичен.
+    assert "спряна" not in res.text
