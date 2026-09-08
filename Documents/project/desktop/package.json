@@ -1,7 +1,7 @@
 {
   "name": "climby",
   "productName": "Climby",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Climby — изкачи се към успеха",
   "author": "Martin Hristov",
   "license": "UNLICENSED",
@@ -55,7 +55,7 @@
         "nsis",
         "portable"
       ],
-      "icon": "../frontend/icon-512.png"
+      "icon": "build/icon.ico"
     },
     "artifactName": "${productName}-${version}-portable.${ext}",
     "nsis": {
