@@ -1,27 +1,29 @@
-# email_service.py — праща имейли за потвърждение и възстановяване на парола (Resend)
+# email_service.py — verification and password-reset email (Resend)
 #
-# Писмата са нарочно на СВЕТЛА основа, макар приложението да е тъмно. Пощенските
-# програми не са браузър: Outlook реже половината CSS, а Gmail в тъмен режим сам
-# обръща цветовете и тъмните макети излизат на петна. Писмо, което не се чете, е
-# дете, което не може да влезе — затова тук печели предвидимостта, а не приликата.
+# These messages are deliberately on a LIGHT background even though the app is
+# dark. Mail clients are not browsers: Outlook drops half of any stylesheet, and
+# Gmail in dark mode inverts colours on its own, which turns dark layouts into
+# a patchwork. A message that cannot be read is a student who cannot get in, so
+# predictability wins here over matching the product.
 #
-# Разположението е с таблици по същата причина. Flexbox и grid просто ги няма в
-# половината пощенски програми.
+# The layout is table-based for the same reason. Flexbox and grid simply do not
+# exist in half of the mail clients in use.
 import os
 
 import resend
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 
-# Подателят се сменя от средата. За да стане noreply@climby.com, домейнът трябва
-# първо да е потвърден в Resend (DNS записи), инак Resend отказва да прати изобщо
-# и кодовете спират тихо. След потвърждаването:
+# The sender is set from the environment. Before it can become
+# noreply@climby.com, the domain has to be verified in Resend (DNS records);
+# without that Resend refuses to send at all and the codes stop silently.
+# Once verified:
 #     Render → Environment → RESEND_FROM = Climby <noreply@climby.com>
 FROM_EMAIL = os.environ.get("RESEND_FROM", "Climby <onboarding@resend.dev>")
 
-# Единственият цвят в приложението значи "тук работи AI". В писмо няма AI, затова
-# и цвят почти няма: само кодът е с лилаво, защото той е нещото, което се търси с
-# очи. Зеленото, което стоеше тук преди, не се среща никъде другаде в Climby.
+# The single accent colour in the product means "AI is working here". There is
+# no AI in an email, so there is almost no colour: only the code is violet,
+# because the code is the one thing the reader is hunting for.
 _INK = "#16161a"
 _SOFT = "#5c5c66"
 _LINE = "#e4e4e7"
@@ -29,13 +31,13 @@ _ACCENT = "#7c3aed"
 
 
 def _shell(title: str, intro: str, middle: str, footer: str) -> str:
-    """Общата рамка. `middle` е готов HTML — код, или нищо."""
+    """The shared frame. `middle` is ready-made HTML — a code block, or nothing."""
     return f"""\
 <!doctype html>
-<html lang="bg">
+<html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f4f4f6;">
-  <!-- Редът, който се вижда в списъка с писма, преди да се отвори. -->
+  <!-- The preview line shown in the inbox list, before the message is opened. -->
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">{intro}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
          style="background:#f4f4f6;padding:32px 16px;">
@@ -58,7 +60,7 @@ def _shell(title: str, intro: str, middle: str, footer: str) -> str:
         </td></tr>
       </table>
       <p style="margin:16px 0 0;font:400 12px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
-                color:#9a9aa4;">Climby — изкачи се по своя път към успеха</p>
+                color:#9a9aa4;">Climby — climb your way to success</p>
     </td></tr>
   </table>
 </body>
@@ -66,7 +68,7 @@ def _shell(title: str, intro: str, middle: str, footer: str) -> str:
 
 
 def _code_block(code: str) -> str:
-    """Кодът е единственото, което се търси с очи — затова стои сам, едър и с въздух."""
+    """The code is the only thing being hunted for, so it stands alone and large."""
     return f"""\
         <tr><td style="padding:22px 30px 6px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
@@ -79,81 +81,83 @@ def _code_block(code: str) -> str:
         </td></tr>"""
 
 
-# Кодът НИКОГА не влиза в темата. Темата се показва в известието на заключен
-# екран, а кодът за нова парола сам по себе си стига за превземане на профил:
-# някой, вдигнал чужд телефон, го прочита, без изобщо да го отключва. Спестените
-# две секунди не струват толкова.
+# The code NEVER goes in the subject line. Subjects appear in lock-screen
+# notifications, and a password-reset code is on its own enough to take over an
+# account: anyone who picks up the phone reads it without unlocking anything.
+# The two seconds saved are not worth that.
 def send_email(to: str, subject: str, html: str, text: str = "") -> None:
     if not RESEND_API_KEY:
-        # Без ключ (локална разработка) — само отпечатваме кода в конзолата.
-        print(f"[email:dev] до {to}: {subject}\n{text or html}")
+        # No key (local development) — just print the code to the console.
+        print(f"[email:dev] to {to}: {subject}\n{text or html}")
         return
 
-    # Акаунтът вече е записан, когато стигаме дотук. Ако Resend откаже (изтекъл
-    # ключ, спрян домейн, мрежа), пропадналата заявка не бива да изглежда като
-    # пропаднала регистрация — иначе човекът вижда грешка, акаунтът му все пак
-    # съществува и опитът пак му казва "вече има акаунт с този имейл".
+    # The account already exists by the time we get here. If Resend refuses
+    # (expired key, suspended domain, network), the failed request must not look
+    # like a failed registration — otherwise the user sees an error, their
+    # account exists anyway, and the retry tells them the email is taken.
     try:
         payload = {"from": FROM_EMAIL, "to": [to], "subject": subject, "html": html}
-        # Текстовият вариант не е украса: пощенските филтри гледат за него, а
-        # четците на екран го предпочитат пред таблици.
+        # The plain-text alternative is not decoration: spam filters look for it,
+        # and screen readers prefer it to a table layout.
         if text:
             payload["text"] = text
         resend.Emails.send(payload)
     except Exception as err:
-        print(f"[email] изпращането до {to} не мина: {err!r}")
+        print(f"[email] delivery to {to} failed: {err!r}")
 
 
 def send_verification_email(to: str, code: str) -> None:
     html = _shell(
-        "Потвърди имейла си",
-        "Още една стъпка и си вътре. Въведи този код в Climby:",
+        "Confirm your email address",
+        "One more step and you are in. Enter this code in Climby:",
         _code_block(code),
-        "Кодът важи 15 минути. Ако не си се регистрирал/а ти, просто изтрий това писмо — "
-        "нищо няма да се случи.",
+        "The code is valid for 15 minutes. If you did not create this account, "
+        "you can safely delete this message — nothing will happen.",
     )
     text = (
-        f"Потвърди имейла си\n\nТвоят код за Climby: {code}\n\n"
-        "Кодът важи 15 минути. Ако не си се регистрирал/а ти, изтрий това писмо."
+        f"Confirm your email address\n\nYour Climby code: {code}\n\n"
+        "The code is valid for 15 minutes. If you did not create this account, "
+        "delete this message."
     )
-    send_email(to, "Твоят код за Climby", html, text)
+    send_email(to, "Your Climby code", html, text)
 
 
 def send_account_exists_email(to: str) -> None:
-    """Пращаме го, когато някой се "регистрира" с адрес, който вече има акаунт.
+    """Sent when someone "registers" with an address that already has an account.
 
-    Екранът не казва дали адресът е зает — иначе всеки можеше да провери кое дете
-    има профил в Climby, просто като подаде адреса му. Но детето, което е забравило,
-    че вече се е регистрирало, не бива да остане без отговор: то получава писмо и
-    от него разбира какво да направи.
+    The screen never says whether an address is taken — otherwise anyone could
+    check which child has a Climby account simply by submitting their address.
+    But a child who has forgotten they already signed up should not be left
+    without an answer: they receive this and learn what to do.
     """
     html = _shell(
-        "Вече имаш профил",
-        "Някой — най-вероятно ти — опита да направи нов профил с този адрес.",
-        "",  # тук няма код: празният блок оставяше зейнала дупка в старото писмо
-        "Профилът ти си стои. Влез с паролата си, а ако си я забравил/а, натисни "
-        "„Забравена парола“ в Climby. Ако не си бил/а ти, спокойно изтрий писмото — "
-        "нищо не е променено.",
+        "You already have an account",
+        "Someone — most likely you — tried to create a new account with this address.",
+        "",  # no code here: an empty block left a gap in the older design
+        "Your account is untouched. Sign in with your password, or use "
+        "“Forgot password” in Climby if you no longer remember it. If this "
+        "was not you, you can safely delete this message — nothing has changed.",
     )
     text = (
-        "Вече имаш профил в Climby\n\n"
-        "Някой опита да направи нов профил с този адрес. Профилът ти си стои — "
-        "влез с паролата си, или използвай „Забравена парола“.\n\n"
-        "Ако не си бил/а ти, нищо не е променено."
+        "You already have a Climby account\n\n"
+        "Someone tried to create a new account with this address. Your account is "
+        "untouched — sign in with your password, or use “Forgot password”.\n\n"
+        "If this was not you, nothing has changed."
     )
-    send_email(to, "Вече имаш профил в Climby", html, text)
+    send_email(to, "You already have a Climby account", html, text)
 
 
 def send_reset_email(to: str, code: str) -> None:
     html = _shell(
-        "Нова парола",
-        "Случва се на всеки. Въведи този код в Climby и си избери нова:",
+        "Set a new password",
+        "It happens to everyone. Enter this code in Climby and choose a new one:",
         _code_block(code),
-        "Кодът важи 15 минути. Ако не си поискал/а нова парола, старата ти остава "
-        "непроменена — можеш да изтриеш писмото.",
+        "The code is valid for 15 minutes. If you did not ask for a new password, "
+        "your current one is unchanged and you can delete this message.",
     )
     text = (
-        f"Нова парола за Climby\n\nКод: {code}\n\n"
-        "Кодът важи 15 минути. Ако не си поискал/а това, паролата ти остава непроменена."
+        f"Set a new Climby password\n\nCode: {code}\n\n"
+        "The code is valid for 15 minutes. If you did not ask for this, your "
+        "password is unchanged."
     )
-    send_email(to, "Възстановяване на парола — Climby", html, text)
+    send_email(to, "Reset your Climby password", html, text)

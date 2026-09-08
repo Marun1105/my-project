@@ -100,47 +100,47 @@ function createWindow() {
 function buildMenu() {
   return Menu.buildFromTemplate([
     {
-      label: 'Файл',
-      submenu: [{ role: 'quit', label: 'Изход' }],
+      label: 'File',
+      submenu: [{ role: 'quit', label: 'Quit' }],
     },
     {
-      label: 'Редактиране',
+      label: 'Edit',
       submenu: [
-        { role: 'undo', label: 'Отмени' },
-        { role: 'redo', label: 'Повтори' },
+        { role: 'undo', label: 'Undo' },
+        { role: 'redo', label: 'Redo' },
         { type: 'separator' },
-        { role: 'cut', label: 'Изрежи' },
-        { role: 'copy', label: 'Копирай' },
-        { role: 'paste', label: 'Постави' },
-        { role: 'selectAll', label: 'Избери всичко' },
+        { role: 'cut', label: 'Cut' },
+        { role: 'copy', label: 'Copy' },
+        { role: 'paste', label: 'Paste' },
+        { role: 'selectAll', label: 'Select All' },
       ],
     },
     {
-      label: 'Изглед',
+      label: 'View',
       submenu: [
-        { role: 'reload', label: 'Презареди' },
-        { role: 'resetZoom', label: 'Нормален размер' },
-        { role: 'zoomIn', label: 'По-голямо' },
-        { role: 'zoomOut', label: 'По-малко' },
+        { role: 'reload', label: 'Reload' },
+        { role: 'resetZoom', label: 'Actual Size' },
+        { role: 'zoomIn', label: 'Zoom In' },
+        { role: 'zoomOut', label: 'Zoom Out' },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: 'Цял екран' },
-        { role: 'toggleDevTools', label: 'Инструменти за разработчик' },
+        { role: 'togglefullscreen', label: 'Full Screen' },
+        { role: 'toggleDevTools', label: 'Developer Tools' },
       ],
     },
     {
-      label: 'Помощ',
+      label: 'Help',
       submenu: [
-        { label: 'Провери за обновяване', click: () => checkForUpdatesManually() },
+        { label: 'Check for Updates', click: () => checkForUpdatesManually() },
         { type: 'separator' },
         {
-          label: 'За Climby',
+          label: 'About Climby',
           click: () =>
             dialog.showMessageBox({
               type: 'info',
-              buttons: ['Добре'],
+              buttons: ['OK'],
               title: 'Climby',
               message: `Climby ${app.getVersion()}`,
-              detail: 'Изкачи се към успеха.',
+              detail: 'Climb your way to success.',
             }),
         },
       ],

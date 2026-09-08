@@ -136,7 +136,7 @@ const Phone = (() => {
   // Телефонът е част от същото приложение и трябва да говори на същия език.
   // Кодът е в пътя, езикът — в заявката: не е тайна и няма какво да издаде.
   function _localised(url) {
-    const lang = window.I18n ? I18n.get() : 'bg';
+    const lang = window.I18n ? I18n.get() : 'en';
     return url + (url.includes('?') ? '&' : '?') + 'lang=' + encodeURIComponent(lang);
   }
 

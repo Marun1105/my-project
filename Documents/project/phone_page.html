@@ -24,7 +24,7 @@
   български на дете, което ползва английския, значи екранът да изглежда чужд
   точно в мига, в който трябва да вдъхва доверие.
 -->
-<html lang="bg">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -234,19 +234,19 @@
   <p class="brand">Climby</p>
 
   <section id="loading">
-    <p class="spin" data-i18n="loading">Зареждане…</p>
+    <p class="spin" data-i18n="loading">Loading…</p>
   </section>
 
   <section id="confirm" class="hidden">
-    <h1 data-i18n="confirmTitle">Да свържа ли този телефон?</h1>
+    <h1 data-i18n="confirmTitle">Link this phone?</h1>
     <p id="confirmBody"></p>
     <div class="code" id="confirmCode"></div>
-    <p class="code-hint" data-i18n="codeHint">Провери, че същият код се вижда и на компютъра.</p>
-    <button id="confirmBtn" type="button" data-i18n="confirmBtn">Да, свържи телефона</button>
+    <p class="code-hint" data-i18n="codeHint">Check that the same code is showing on your computer.</p>
+    <button id="confirmBtn" type="button" data-i18n="confirmBtn">Yes, link this phone</button>
   </section>
 
   <section id="ready" class="hidden">
-    <h1><span class="dot" aria-hidden="true"></span><span data-i18n="readyTitle">Свързан</span></h1>
+    <h1><span class="dot" aria-hidden="true"></span><span data-i18n="readyTitle">Connected</span></h1>
     <p id="readyBody"></p>
     <div id="viewfinder" class="viewfinder hidden">
       <video id="view" playsinline muted autoplay></video>
@@ -255,16 +255,16 @@
       <div id="flash" class="flash" aria-hidden="true"></div>
       <button id="torch" class="torch hidden" type="button" aria-pressed="false">&#9788;</button>
     </div>
-    <p class="vf-hint hidden" id="vfHint" data-i18n="vfHint">Побери страницата в рамката.</p>
-    <button id="shutter" class="shutter hidden" type="button" aria-label="Снимай страница"></button>
+    <p class="vf-hint hidden" id="vfHint" data-i18n="vfHint">Fit the whole page inside the frame.</p>
+    <button id="shutter" class="shutter hidden" type="button" aria-label="Photograph a page"></button>
 
     <div id="fallback" class="hidden">
-      <p class="vf-hint" id="fallbackHint" data-i18n="fallbackHint">Няма достъп до камерата в страницата — ползвай камерата на телефона.</p>
-      <label class="filebtn" for="shot" data-i18n="shootBtn">Снимай страница</label>
+      <p class="vf-hint" id="fallbackHint" data-i18n="fallbackHint">No camera access here — use your phone&#39;s camera instead.</p>
+      <label class="filebtn" for="shot" data-i18n="shootBtn">Photograph a page</label>
       <input id="shot" type="file" accept="image/*" capture="environment">
     </div>
     <p class="status" id="status" role="status" aria-live="polite"></p>
-    <p class="keep-hint hidden" id="keepHint" data-i18n="keepHint">Добави тази страница в началния екран — така снимаш пак, без QR код.</p>
+    <p class="keep-hint hidden" id="keepHint" data-i18n="keepHint">Add this page to your home screen — then you can shoot again without a QR code.</p>
     <img id="thumb" class="thumb hidden" alt="">
     <p class="count" id="count"></p>
   </section>
@@ -272,7 +272,7 @@
   <section id="failed" class="hidden">
     <h1 id="failTitle"></h1>
     <p id="failText"></p>
-    <button id="retryBtn" class="ghost" type="button" data-i18n="retryBtn">Опитай пак</button>
+    <button id="retryBtn" class="ghost" type="button" data-i18n="retryBtn">Try again</button>
   </section>
 </main>
 
@@ -355,10 +355,10 @@
   };
 
   var params = new URLSearchParams(location.search);
-  var lang = STR[params.get('lang')] ? params.get('lang') : 'bg';
+  var lang = STR[params.get('lang')] ? params.get('lang') : 'en';
 
   function t(key, vars) {
-    var s = STR[lang][key] || STR.bg[key] || key;
+    var s = STR[lang][key] || STR.en[key] || key;
     if (vars) {
       for (var k in vars) s = s.split('{' + k + '}').join(vars[k]);
     }

@@ -37,7 +37,7 @@ function say(options) {
 }
 
 function info(message, detail) {
-  say({ type: 'info', buttons: ['Добре'], title: 'Climby', message, detail });
+  say({ type: 'info', buttons: ['OK'], title: 'Climby', message, detail });
 }
 
 // Пазим сами дали точно сега тече проверка. По върнатата стойност не става:
@@ -51,7 +51,7 @@ function check() {
     .catch(err => {
       // checkForUpdates отхвърля промиса И вдига 'error'; хващаме го тук само за
       // да не остане необработен.
-      console.warn('[updater] проверката не мина:', err && err.message ? err.message : err);
+      console.warn('[updater] check failed:', err && err.message ? err.message : err);
       return null;
     })
     .finally(() => { checkInFlight = false; });
@@ -68,12 +68,12 @@ function initAutoUpdate(getWindowFn) {
   autoUpdater.autoInstallOnAppQuit = true;
 
   autoUpdater.on('error', err => {
-    console.warn('[updater] грешка:', err && err.message ? err.message : err);
+    console.warn('[updater] error:', err && err.message ? err.message : err);
     if (manualCheck) {
       manualCheck = false;
       info(
-        'Не успях да проверя за обновяване.',
-        'Провери дали има интернет и опитай пак по-късно. Climby работи и така.'
+        'We could not check for updates.',
+        'Check your internet connection and try again later. Climby works fine either way.'
       );
     }
   });
@@ -81,7 +81,7 @@ function initAutoUpdate(getWindowFn) {
   autoUpdater.on('update-not-available', () => {
     if (manualCheck) {
       manualCheck = false;
-      info('Climby е с последната версия.', `Инсталирана версия: ${app.getVersion()}`);
+      info('Climby is up to date.', `Installed version: ${app.getVersion()}`);
     }
   });
 
@@ -89,8 +89,8 @@ function initAutoUpdate(getWindowFn) {
     if (manualCheck) {
       manualCheck = false;
       info(
-        `Има нова версия: ${info_.version}.`,
-        'Свалям я на заден план. Ще ти кажа, когато е готова — дотогава спокойно продължавай да работиш.'
+        `A new version is available: ${info_.version}.`,
+        'It is downloading in the background. You will be told when it is ready — carry on working until then.'
       );
     }
   });
@@ -106,13 +106,13 @@ function initAutoUpdate(getWindowFn) {
     try {
       const { response } = await say({
         type: 'info',
-        buttons: ['Рестартирай сега', 'По-късно'],
+        buttons: ['Restart now', 'Later'],
         defaultId: 0,
         cancelId: 1,
         title: 'Climby',
-        message: `Готова е нова версия на Climby (${info_.version}).`,
+        message: `A new version of Climby is ready (${info_.version}).`,
         detail:
-          'Ако избереш „По-късно“, обновяването ще се сложи само, когато затвориш приложението.',
+          'If you choose Later, the update installs by itself the next time you close the app.',
       });
       if (response === 0) {
         // Извън обработчика на събитието — иначе NSIS понякога не тръгва.
@@ -121,7 +121,7 @@ function initAutoUpdate(getWindowFn) {
     } catch (err) {
       // Например прозорецът е затворен, докато въпросът стои на екрана.
       // Обновяването и без това ще се сложи при затваряне.
-      console.warn('[updater] въпросът не можа да се покаже:', err && err.message ? err.message : err);
+      console.warn('[updater] could not show the prompt:', err && err.message ? err.message : err);
     }
   });
 
@@ -140,13 +140,13 @@ function initAutoUpdate(getWindowFn) {
 // проверка тази винаги отговаря нещо, дори когато няма нищо ново.
 function checkForUpdatesManually() {
   if (!app.isPackaged) {
-    info('Проверката работи само в инсталираното приложение.', `Версия: ${app.getVersion()}`);
+    info('Update checks only work in the installed app.', `Version: ${app.getVersion()}`);
     return;
   }
   if (IS_PORTABLE) {
     info(
-      'Преносимият вариант не се обновява сам.',
-      'Изтегли новия „Climby Setup“ от страницата с версиите, за да получаваш обновяванията автоматично.'
+      'The portable build does not update itself.',
+      'Download the latest Climby Setup from the releases page to get updates automatically.'
     );
     return;
   }
@@ -156,7 +156,7 @@ function checkForUpdatesManually() {
   // оставаше вдигнат и часове по-късно изскачаше прозорец, който никой не е искал
   // в този момент.
   if (checkInFlight) {
-    info('Точно сега проверявам.', 'Ще ти кажа веднага щом разбера дали има нещо ново.');
+    info('Checking right now.', 'You will hear as soon as there is news.');
     return;
   }
   manualCheck = true;

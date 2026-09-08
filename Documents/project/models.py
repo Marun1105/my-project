@@ -154,7 +154,7 @@ class ScanHistory(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
     question = Column(String, nullable=False)
     answer = Column(String, nullable=False)
-    lang = Column(String, nullable=False, default="bg")
+    lang = Column(String, nullable=False, default="en")
     created_at = Column(DateTime(timezone=True), default=_now)
 
 
