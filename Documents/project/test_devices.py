@@ -156,7 +156,7 @@ def test_a_pairing_code_works_only_once():
     assert client.post(f"/devices/pair/{secret}/claim", json={}).status_code == 200
     again = client.post(f"/devices/pair/{secret}/claim", json={})
     assert again.status_code == 400
-    assert "изтекъл" in again.json()["detail"]
+    assert "expired" in again.json()["detail"]
 
 
 def test_an_expired_pairing_code_is_refused():
@@ -295,7 +295,9 @@ def test_a_fourth_phone_is_refused_with_an_explanation():
     started = client.post("/devices/pair", headers=headers).json()
     res = client.post(f"/devices/pair/{_secret_from(started['url'])}/claim", json={})
     assert res.status_code == 400
-    assert "Откачи" in res.json()["detail"]
+    detail = res.json()["detail"]
+    assert str(devices.MAX_DEVICES_PER_USER) in detail, "отказът не казва каква е границата"
+    assert "Settings" in detail, "отказът не казва къде се откача устройство"
     assert len(client.get("/devices", headers=headers).json()) == devices.MAX_DEVICES_PER_USER
 
 

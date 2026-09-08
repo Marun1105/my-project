@@ -206,7 +206,7 @@ def test_wrong_codes_lock_the_account_after_a_handful_of_tries(codes):
     blocked = statuses[-1]
     assert blocked.status_code == 400
     # съобщението пак насочва сгрешилото дете към изчакване, без да твърди нищо
-    assert "изчакай" in blocked.json()["detail"]
+    assert "wait" in blocked.json()["detail"].lower()
     # дори ВЕРНИЯТ код не минава, докато трае изчакването
     rate_limit._hits.clear()
     right = client.post("/auth/reset-password", json={

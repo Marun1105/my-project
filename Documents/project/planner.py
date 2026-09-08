@@ -80,19 +80,19 @@ class TaskIn(BaseModel):
 class PlanRequest(BaseModel):
     # /plan и /split са отворени и без вход, затова тук стои таванът на разхода.
     tasks: List[TaskIn] = Field(max_length=50)
-    lang: str = "bg"
+    lang: str = "en"
 
 
 class SplitRequest(BaseModel):
     text: str = Field(max_length=1000)
     subject: Optional[str] = Field(default=None, max_length=100)
-    lang: str = "bg"
+    lang: str = "en"
 
 
 @router.post("")
 def plan(body: PlanRequest, request: Request,
          user: Optional[User] = Depends(get_current_user_optional)):
-    lang = body.lang if body.lang in SYSTEM else "bg"
+    lang = body.lang if body.lang in SYSTEM else "en"
 
     if not body.tasks:
         return {"advice": NO_TASKS_MESSAGE[lang]}
@@ -126,7 +126,7 @@ def plan(body: PlanRequest, request: Request,
 @router.post("/split")
 def split(body: SplitRequest, request: Request,
           user: Optional[User] = Depends(get_current_user_optional)):
-    lang = body.lang if body.lang in SPLIT_SYSTEM else "bg"
+    lang = body.lang if body.lang in SPLIT_SYSTEM else "en"
     text = body.text.strip()
     if not text:
         raise HTTPException(400, SPLIT_ERROR_MESSAGE[lang])

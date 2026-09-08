@@ -710,7 +710,7 @@ const I18n = (() => {
 
   function t(key, vars) {
     const lang = get();
-    let s = (STR[lang] && STR[lang][key]) || STR.bg[key] || key;
+    let s = (STR[lang] && STR[lang][key]) || STR.en[key] || STR.bg[key] || key;
     if (vars) {
       for (const k in vars) s = s.split(`{${k}}`).join(vars[k]);
     }

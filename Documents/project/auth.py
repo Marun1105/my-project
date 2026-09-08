@@ -200,7 +200,7 @@ def _consume_code(db: Session, user: User, purpose: CodePurpose, code: str,
         if reveal_lock:
             raise HTTPException(
                 429,
-                f"Твърде много грешни кодове. Опитай пак след около {left} мин. "
+                f"Too many incorrect codes. Try again in about {left} min. "
                 "и поискай нов код — акаунтът ти си остава твой, само изчакай малко.",
             )
         # Кодът на състоянието и текстът вече са еднакви за заключен акаунт и за
@@ -251,13 +251,13 @@ def get_current_user(
 ) -> User:
     prefix = "Bearer "
     if not authorization.startswith(prefix):
-        raise HTTPException(401, "Липсва вход. Влез в профила си.")
+        raise HTTPException(401, "You are not signed in. Please sign in to continue.")
     claims = security.decode_token_claims(authorization[len(prefix):])
     if not claims or not claims.get("sub"):
-        raise HTTPException(401, "Сесията е изтекла. Влез отново.")
+        raise HTTPException(401, "Your session has expired. Please sign in again.")
     user = db.get(User, claims["sub"])
     if not user or not _token_version_matches(claims, user):
-        raise HTTPException(401, "Сесията е изтекла. Влез отново.")
+        raise HTTPException(401, "Your session has expired. Please sign in again.")
     return user
 
 
@@ -282,7 +282,7 @@ def get_current_user_optional(
 @router.post("/register")
 def register(body: RegisterRequest, request: Request, db: Session = Depends(get_db)):
     rate_limit.enforce(request, "register", max_calls=5, window_seconds=3600,
-                        message="Твърде много опити за регистрация — изчакай малко и опитай пак.")
+                        message="Too many sign-up attempts. Please wait a moment and try again.")
     email = normalize_email(body.email)
     phone = normalize_phone(body.phone)
 
@@ -301,7 +301,7 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
     # bcrypt е бавен нарочно и ако го пропуснехме, заетият адрес щеше да
     # отговаря забележимо по-бързо — същата справка, само че с хронометър.
     password_hash = security.hash_password(body.password)
-    NEUTRAL = {"status": "ok", "message": "Изпратихме ти код за потвърждение по имейл."}
+    NEUTRAL = {"status": "ok", "message": "We have sent a verification code to your email."}
 
     if db.query(User).filter(_email_matches(email)).first():
         email_service.send_account_exists_email(email)
@@ -309,12 +309,12 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
 
     # Потребителското име е по желание, но щом го има — е уникално.
     if body.username and db.query(User).filter(User.username == body.username).first():
-        raise HTTPException(400, "Това потребителско име е заето. Избери друго.")
+        raise HTTPException(400, "That username is taken. Please choose another.")
     # Само ПОТВЪРДЕН номер заема мястото си. Иначе достатъчно беше някой да се
     # регистрира с чужд номер, без да го потвърждава, за да остане собственикът
     # му отвън завинаги.
     if phone and _phone_taken(db, phone):
-        raise HTTPException(400, "Този телефон вече е потвърден от друг акаунт.")
+        raise HTTPException(400, "That phone number is already verified on another account.")
 
     user = User(
         display_name=body.display_name,
@@ -347,7 +347,7 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
         if not body.username or db.query(User).filter(_email_matches(email)).first():
             email_service.send_account_exists_email(email)
             return NEUTRAL
-        raise HTTPException(400, "Това потребителско име е заето. Избери друго.")
+        raise HTTPException(400, "That username is taken. Please choose another.")
     db.refresh(user)
 
     code = _issue_code(db, user, CodePurpose.verify_email)
@@ -358,15 +358,16 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
 @router.post("/verify-email", response_model=AuthResponse)
 def verify_email(body: VerifyEmailRequest, request: Request, db: Session = Depends(get_db)):
     rate_limit.enforce(request, "verify-email", max_calls=10, window_seconds=3600,
-                        message="Твърде много опити — изчакай малко и опитай пак.")
+                        message="Too many attempts. Please wait a moment and try again.")
     # Един и същ отговор за непознат адрес, за вече потвърден и за сгрешен код.
     # Досега трите случая се различаваха (404 / 400 / 400 с друг текст) и това
     # беше готов начин да се провери кой адрес има профил в Climby.
     # Съобщението остава полезно: покрива и трите неща, които наистина може да
     # са се объркали, вместо да оставя детето да гадае.
-    BAD_CODE = ("Грешен или изтекъл код. Провери имейла, който си написал, "
-                "поискай нов код или — ако вече си потвърдил профила си — просто влез. "
-                "Ако си опитвал няколко пъти подред, изчакай петнайсетина минути.")
+    BAD_CODE = ("That code is incorrect or has expired. Check the email address you "
+                "entered, request a new code, or simply sign in if your account is "
+                "already verified. After several attempts in a row, wait about "
+                "fifteen minutes.")
     user = db.query(User).filter(_email_matches(body.email)).first()
     if not user or user.is_email_verified:
         security.verify_code(body.code, security.DUMMY_PASSWORD_HASH)
@@ -382,7 +383,7 @@ def verify_email(body: VerifyEmailRequest, request: Request, db: Session = Depen
 @router.post("/resend-code")
 def resend_code(body: ResendCodeRequest, request: Request, db: Session = Depends(get_db)):
     rate_limit.enforce(request, "resend-code", max_calls=5, window_seconds=3600,
-                        message="Твърде много опити — изчакай малко и опитай пак.")
+                        message="Too many attempts. Please wait a moment and try again.")
     # Отговорът е един и същ, каквото и да намерим: 400 за регистриран адрес и
     # 404 за нерегистриран правеха от този ендпойнт списък на чуждите акаунти.
     # Текстът е условен ("ако има профил"), за да е ясно на детето, което е
@@ -391,8 +392,8 @@ def resend_code(body: ResendCodeRequest, request: Request, db: Session = Depends
     if user and not user.is_email_verified:
         code = _issue_code(db, user, CodePurpose.verify_email)
         email_service.send_verification_email(user.email, code)
-    return {"status": "ok", "message": "Ако има непотвърден профил с този имейл, "
-                                       "изпратихме нов код. Провери и папката със спам."}
+    return {"status": "ok", "message": "If an unverified account exists for this email, "
+                                       "we have sent a new code. Please check your spam folder too."}
 
 
 @router.post("/login", response_model=AuthResponse)
@@ -400,7 +401,7 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     # Позволяваме сгрешена парола много пъти — сгрешава се често — но не и
     # безброй: без лимит паролата на всеки акаунт е въпрос на време и скрипт.
     rate_limit.enforce(request, "login", max_calls=20, window_seconds=900,
-                        message="Твърде много опити за вход — изчакай малко и опитай пак.")
+                        message="Too many sign-in attempts. Please wait a moment and try again.")
     user = db.query(User).filter(_email_matches(body.email)).first()
     # Сравнението се прави ВИНАГИ, дори когато акаунт няма. Иначе непознатият
     # адрес се връщаше за няколко милисекунди, а познатият — за четвърт секунда,
@@ -408,11 +409,11 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     # написано съобщението.
     if not user:
         security.verify_password(body.password, security.DUMMY_PASSWORD_HASH)
-        raise HTTPException(401, "Грешен имейл или парола.")
+        raise HTTPException(401, "Incorrect email or password.")
     if not security.verify_password(body.password, user.password_hash):
-        raise HTTPException(401, "Грешен имейл или парола.")
+        raise HTTPException(401, "Incorrect email or password.")
     if not user.is_email_verified:
-        raise HTTPException(403, "Потвърди имейла си, преди да влезеш.")
+        raise HTTPException(403, "Please verify your email address before signing in.")
     return AuthResponse(token=security.create_access_token(user.id, user.token_version), user=UserOut.model_validate(user))
 
 
@@ -429,18 +430,18 @@ def add_phone(
     db: Session = Depends(get_db),
 ):
     rate_limit.enforce(request, "add-phone", max_calls=5, window_seconds=3600,
-                        message="Твърде много опити — изчакай малко и опитай пак.", user=user)
+                        message="Too many attempts. Please wait a moment and try again.", user=user)
     phone = normalize_phone(body.phone)
     if not phone:
-        raise HTTPException(400, "Телефонният номер не изглежда валиден.")
+        raise HTTPException(400, "That phone number does not look valid.")
     if _phone_taken(db, phone, except_user_id=user.id):
-        raise HTTPException(400, "Този телефон вече е потвърден от друг акаунт.")
+        raise HTTPException(400, "That phone number is already verified on another account.")
     user.phone = phone
     user.is_phone_verified = False
     db.commit()
     code = _issue_code(db, user, CodePurpose.verify_phone)
     sms_service.send_verification_sms(phone, code)
-    return {"status": "ok", "message": "Изпратихме ти код по SMS."}
+    return {"status": "ok", "message": "We have sent you a code by SMS."}
 
 
 @router.post("/verify-phone")
@@ -451,35 +452,35 @@ def verify_phone(
     db: Session = Depends(get_db),
 ):
     rate_limit.enforce(request, "verify-phone", max_calls=10, window_seconds=3600,
-                        message="Твърде много опити — изчакай малко и опитай пак.", user=user)
+                        message="Too many attempts. Please wait a moment and try again.", user=user)
     if not user.phone:
-        raise HTTPException(400, "Първо добави телефонен номер.")
+        raise HTTPException(400, "Add a phone number first.")
     if not _consume_code(db, user, CodePurpose.verify_phone, body.code, reveal_lock=True):
-        raise HTTPException(400, "Грешен или изтекъл код.")
+        raise HTTPException(400, "That code is incorrect or has expired.")
     # Проверката се прави ПАК тук, а не само при добавянето: между двете стъпки
     # някой друг може да е потвърдил същия номер, а потвърден номер е един.
     if _phone_taken(db, user.phone, except_user_id=user.id):
-        raise HTTPException(400, "Този телефон вече е потвърден от друг акаунт.")
+        raise HTTPException(400, "That phone number is already verified on another account.")
     user.is_phone_verified = True
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(400, "Този телефон вече е потвърден от друг акаунт.")
+        raise HTTPException(400, "That phone number is already verified on another account.")
     return {"status": "ok"}
 
 
 @router.post("/forgot-password")
 def forgot_password(body: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
     rate_limit.enforce(request, "forgot-password", max_calls=5, window_seconds=3600,
-                        message="Твърде много опити — изчакай малко и опитай пак.")
+                        message="Too many attempts. Please wait a moment and try again.")
     if body.channel == "email":
         user = db.query(User).filter(_email_matches(body.contact)).first()
     elif body.channel == "sms":
         user = db.query(User).filter(User.phone == normalize_phone(body.contact),
                                      User.is_phone_verified.is_(True)).first()
     else:
-        raise HTTPException(400, "Невалиден начин за връзка.")
+        raise HTTPException(400, "Unsupported contact method.")
 
     # Не издаваме дали акаунтът съществува — винаги отговаряме успешно.
     if user:
@@ -488,7 +489,7 @@ def forgot_password(body: ForgotPasswordRequest, request: Request, db: Session =
             email_service.send_reset_email(user.email, code)
         else:
             sms_service.send_reset_sms(user.phone, code)
-    return {"status": "ok", "message": "Ако акаунтът съществува, изпратихме код."}
+    return {"status": "ok", "message": "If that account exists, we have sent a code."}
 
 
 @router.post("/reset-password")
@@ -496,7 +497,7 @@ def reset_password(body: ResetPasswordRequest, request: Request, db: Session = D
     # Кодът е 6 цифри и живее 15 минути. Без лимит той се познава с изчакване и
     # скрипт, а познатият код сменя паролата — тоест взима акаунта.
     rate_limit.enforce(request, "reset-password", max_calls=10, window_seconds=3600,
-                        message="Твърде много опити — изчакай малко и опитай пак.")
+                        message="Too many attempts. Please wait a moment and try again.")
     if body.channel == "email":
         user = db.query(User).filter(_email_matches(body.contact)).first()
     elif body.channel == "sms":
@@ -505,10 +506,10 @@ def reset_password(body: ResetPasswordRequest, request: Request, db: Session = D
         user = db.query(User).filter(User.phone == normalize_phone(body.contact),
                                      User.is_phone_verified.is_(True)).first()
     else:
-        raise HTTPException(400, "Невалиден начин за връзка.")
+        raise HTTPException(400, "Unsupported contact method.")
 
-    BAD_CODE = ("Грешен или изтекъл код. Поискай нов, а ако си "
-                "опитвал няколко пъти подред — изчакай петнайсетина минути.")
+    BAD_CODE = ("That code is incorrect or has expired. Request a new one, and after "
+                "several attempts in a row, wait about fifteen minutes.")
     if not user:
         # Същото съображение като при входа: без този ред несъществуващият адрес
         # отговаря за милисекунди, а съществуващият — за четвърт секунда, и
@@ -524,4 +525,4 @@ def reset_password(body: ResetPasswordRequest, request: Request, db: Session = D
     # а не след тридесет дни.
     user.token_version = (user.token_version or 0) + 1
     db.commit()
-    return {"status": "ok", "message": "Паролата е сменена. Вече можеш да влезеш с новата парола."}
+    return {"status": "ok", "message": "Your password has been changed. You can now sign in with it."}

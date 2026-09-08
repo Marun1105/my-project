@@ -34,7 +34,7 @@ def list_scans(user: User = Depends(get_current_user), db: Session = Depends(get
 def delete_scan(scan_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     scan = db.query(ScanHistory).filter(ScanHistory.id == scan_id, ScanHistory.user_id == user.id).first()
     if not scan:
-        raise HTTPException(404, "Записът не е намерен.")
+        raise HTTPException(404, "Record not found.")
     db.delete(scan)
     db.commit()
     return {"status": "ok"}

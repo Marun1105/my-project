@@ -68,7 +68,7 @@ app.include_router(devices.router)
 # защото важи за всички ендпойнти, не само за /ask.
 MAX_BODY_BYTES = 8 * 1024 * 1024
 
-BODY_TOO_LARGE_MESSAGE = "Заявката е твърде голяма."
+BODY_TOO_LARGE_MESSAGE = "That request is too large."
 
 
 class _BodyTooLarge(Exception):
@@ -201,7 +201,7 @@ class Ask(BaseModel):
     images: List[str] = Field(max_length=8)
     question: str = Field(max_length=2000)
     # Кратък езиков код; без таван и това поле е място, откъдето влиза мегабайт текст.
-    lang: str = Field(default="bg", max_length=16)
+    lang: str = Field(default="en", max_length=16)
 
     @field_validator("images")
     @classmethod
@@ -337,7 +337,7 @@ def ask(
     user: Optional[User] = Depends(auth.get_current_user_optional),
     db: Session = Depends(get_db),
 ):
-    lang = body.lang if body.lang in SYSTEM else "bg"
+    lang = body.lang if body.lang in SYSTEM else "en"
     # /ask е достъпен и за гости (без вход), затова лимитът е по IP, а не по акаунт —
     # пази от неограничени разходи за Anthropic API от един клиент/бот.
     rate_limit.enforce(request, "ask", max_calls=12, window_seconds=3600,

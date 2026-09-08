@@ -52,7 +52,7 @@ def _generate_code(db: Session) -> str:
         code = "".join(secrets.choice(CODE_ALPHABET) for _ in range(CODE_LENGTH))
         if not db.query(FamilyInvite).filter(FamilyInvite.code == code).first():
             return code
-    raise HTTPException(500, "Не успях да създам код. Опитай пак.")
+    raise HTTPException(500, "We could not generate a code. Please try again.")
 
 
 def _aware(dt: datetime) -> datetime:
@@ -63,7 +63,7 @@ def _aware(dt: datetime) -> datetime:
 @router.post("/invite", response_model=FamilyInviteOut)
 def create_invite(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     rate_limit.enforce(request, "family-invite", max_calls=10, window_seconds=3600,
-                        message="Твърде много кодове за кратко време — изчакай малко.", user=user)
+                        message="Too many codes in a short time. Please wait a moment.", user=user)
     code = _generate_code(db)
     invite = FamilyInvite(
         student_user_id=user.id,
@@ -86,22 +86,22 @@ def link_student(
     # 6 знака от 32-буквена азбука е ~1 милиард комбинации, но без лимит все пак
     # може да се налучква масово — ограничаваме опитите за въвеждане на код
     rate_limit.enforce(request, "family-link", max_calls=10, window_seconds=3600,
-                        message="Твърде много опити с код — изчакай малко и опитай пак.", user=user)
+                        message="Too many code attempts. Please wait a moment and try again.", user=user)
     code = body.code.strip().upper()
     invite = db.query(FamilyInvite).filter(FamilyInvite.code == code).first()
     if not invite or invite.used:
-        raise HTTPException(400, "Невалиден или вече използван код.")
+        raise HTTPException(400, "That code is invalid or has already been used.")
     if _aware(invite.expires_at) < datetime.now(timezone.utc):
-        raise HTTPException(400, "Кодът е изтекъл. Помоли за нов.")
+        raise HTTPException(400, "That code has expired. Ask for a new one.")
     if invite.student_user_id == user.id:
-        raise HTTPException(400, "Не можеш да се свържеш със собствения си акаунт.")
+        raise HTTPException(400, "You cannot link to your own account.")
 
     existing = db.query(FamilyLink).filter(
         FamilyLink.parent_user_id == user.id,
         FamilyLink.student_user_id == invite.student_user_id,
     ).first()
     if existing:
-        raise HTTPException(400, "Вече си свързан с този ученик.")
+        raise HTTPException(400, "You are already linked to this student.")
 
     # Маркираме кода за използван с условен UPDATE: ако две заявки дойдат едновременно,
     # само едната ще засегне ред и само тя създава връзка (иначе "еднократният" код
@@ -113,7 +113,7 @@ def link_student(
     )
     if not claimed:
         db.rollback()
-        raise HTTPException(400, "Невалиден или вече използван код.")
+        raise HTTPException(400, "That code is invalid or has already been used.")
 
     db.add(FamilyLink(parent_user_id=user.id, student_user_id=invite.student_user_id))
     db.commit()
@@ -278,7 +278,7 @@ def unlink_student(student_id: str, user: User = Depends(get_current_user), db: 
         FamilyLink.student_user_id == student_id,
     ).first()
     if not link:
-        raise HTTPException(404, "Няма такава връзка.")
+        raise HTTPException(404, "Link not found.")
     db.delete(link)
     db.commit()
     return {"status": "ok"}
@@ -303,7 +303,7 @@ def revoke_parent(parent_id: str, user: User = Depends(get_current_user), db: Se
         FamilyLink.student_user_id == user.id,
     ).first()
     if not link:
-        raise HTTPException(404, "Няма такава връзка.")
+        raise HTTPException(404, "Link not found.")
     db.delete(link)
     db.commit()
     return {"status": "ok"}

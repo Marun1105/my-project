@@ -39,7 +39,7 @@ def create_task(
     db: Session = Depends(get_db),
 ):
     rate_limit.enforce(request, "task-create", max_calls=MAX_TASKS_PER_HOUR, window_seconds=3600,
-                       message="Твърде много задачи за кратко време — изчакай малко.", user=user)
+                       message="Too many tasks created in a short time. Please wait a moment.", user=user)
     task = Task(user_id=user.id, text=body.text, subject=body.subject, deadline=body.deadline)
     db.add(task)
     db.commit()
@@ -56,7 +56,7 @@ def update_task(
 ):
     task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
-        raise HTTPException(404, "Задачата не е намерена.")
+        raise HTTPException(404, "Task not found.")
 
     data = body.model_dump(exclude_unset=True)
     was_done = task.done
@@ -74,7 +74,7 @@ def update_task(
 def delete_task(task_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
-        raise HTTPException(404, "Задачата не е намерена.")
+        raise HTTPException(404, "Task not found.")
     db.delete(task)
     db.commit()
     return {"status": "ok"}

@@ -34,7 +34,7 @@ MAX_CLASSES_PER_TEACHER = 30
 
 def _require_teacher(user: User) -> User:
     if user.role != Role.teacher.value:
-        raise HTTPException(403, "Само учителски акаунт може да прави класове.")
+        raise HTTPException(403, "Only teacher accounts can create classes.")
     return user
 
 
@@ -43,7 +43,7 @@ def _generate_code(db: Session) -> str:
         code = "".join(secrets.choice(CODE_ALPHABET) for _ in range(CODE_LENGTH))
         if not db.query(Classroom).filter(Classroom.join_code == code).first():
             return code
-    raise HTTPException(500, "Не успях да създам код за класа. Опитай пак.")
+    raise HTTPException(500, "We could not generate a class code. Please try again.")
 
 
 @router.post("", response_model=ClassroomOut)
@@ -55,14 +55,14 @@ def create_class(
 ):
     _require_teacher(user)
     rate_limit.enforce(request, "class-create", max_calls=20, window_seconds=3600,
-                       message="Твърде много класове за кратко време — изчакай малко.", user=user)
+                       message="Too many classes created in a short time. Please wait a moment.", user=user)
     name = body.name.strip()
     if not name:
-        raise HTTPException(400, "Класът трябва да има име.")
+        raise HTTPException(400, "A class needs a name.")
 
     count = db.query(Classroom).filter(Classroom.teacher_user_id == user.id).count()
     if count >= MAX_CLASSES_PER_TEACHER:
-        raise HTTPException(400, "Достигна максималния брой класове.")
+        raise HTTPException(400, "You have reached the maximum number of classes.")
 
     classroom = Classroom(teacher_user_id=user.id, name=name, join_code=_generate_code(db))
     db.add(classroom)
@@ -119,20 +119,20 @@ def join_class(
     db: Session = Depends(get_db),
 ):
     rate_limit.enforce(request, "class-join", max_calls=15, window_seconds=3600,
-                       message="Твърде много опити с код — изчакай малко и опитай пак.", user=user)
+                       message="Too many code attempts. Please wait a moment and try again.", user=user)
     code = body.code.strip().upper()
     classroom = db.query(Classroom).filter(Classroom.join_code == code).first()
     if not classroom:
-        raise HTTPException(400, "Няма клас с този код. Провери го при учителя си.")
+        raise HTTPException(400, "No class matches that code. Please check it with your teacher.")
     if classroom.teacher_user_id == user.id:
-        raise HTTPException(400, "Не можеш да се присъединиш към собствения си клас.")
+        raise HTTPException(400, "You cannot join your own class.")
 
     existing = db.query(ClassroomMember).filter(
         ClassroomMember.classroom_id == classroom.id,
         ClassroomMember.student_user_id == user.id,
     ).first()
     if existing:
-        raise HTTPException(400, "Вече си в този клас.")
+        raise HTTPException(400, "You are already in this class.")
 
     db.add(ClassroomMember(classroom_id=classroom.id, student_user_id=user.id))
     db.commit()
@@ -165,7 +165,7 @@ def leave_class(class_id: str, user: User = Depends(get_current_user), db: Sessi
         ClassroomMember.student_user_id == user.id,
     ).first()
     if not member:
-        raise HTTPException(404, "Не си в този клас.")
+        raise HTTPException(404, "You are not a member of this class.")
     db.delete(member)
     db.commit()
     return {"status": "ok"}
@@ -183,13 +183,13 @@ def remove_student(
         Classroom.id == class_id, Classroom.teacher_user_id == user.id
     ).first()
     if not classroom:
-        raise HTTPException(404, "Няма такъв клас.")
+        raise HTTPException(404, "Class not found.")
     member = db.query(ClassroomMember).filter(
         ClassroomMember.classroom_id == class_id,
         ClassroomMember.student_user_id == student_id,
     ).first()
     if not member:
-        raise HTTPException(404, "Ученикът не е в този клас.")
+        raise HTTPException(404, "That student is not in this class.")
     db.delete(member)
     db.commit()
     return {"status": "ok"}
@@ -202,7 +202,7 @@ def delete_class(class_id: str, user: User = Depends(get_current_user), db: Sess
         Classroom.id == class_id, Classroom.teacher_user_id == user.id
     ).first()
     if not classroom:
-        raise HTTPException(404, "Няма такъв клас.")
+        raise HTTPException(404, "Class not found.")
     db.query(ClassroomMember).filter(ClassroomMember.classroom_id == class_id).delete()
     db.delete(classroom)
     db.commit()

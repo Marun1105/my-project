@@ -58,8 +58,8 @@ MAX_PHOTOS_PER_HOUR = 60
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 5
 
-BAD_PAIR_CODE = "Кодът за свързване е изтекъл или вече е използван. Покажи нов на компютъра."
-NOT_PAIRED = "Телефонът вече не е свързан. Свържи го отново от компютъра."
+BAD_PAIR_CODE = "That pairing code has expired or was already used. Show a new one on your computer."
+NOT_PAIRED = "This phone is no longer linked. Link it again from your computer."
 
 
 def _now() -> datetime:
@@ -110,8 +110,8 @@ def _device_name_from_agent(user_agent: str) -> str:
     if "iphone" in ua:
         return "iPhone"
     if "android" in ua:
-        return "Телефон с Android"
-    return "Телефон"
+        return "Android phone"
+    return "Phone"
 
 
 def get_device(
@@ -127,7 +127,7 @@ def get_device(
     """
     prefix = "Device "
     if not authorization.startswith(prefix):
-        raise HTTPException(401, "Телефонът не е свързан.")
+        raise HTTPException(401, "This phone is not linked.")
     device = (
         db.query(PairedDevice)
         .filter(PairedDevice.token_hash == _fingerprint(authorization[len(prefix):]))
@@ -148,7 +148,7 @@ def start_pairing(
 ):
     """Компютърът иска нов QR код."""
     rate_limit.enforce(request, "device-pair", max_calls=10, window_seconds=3600,
-                       message="Твърде много опити за свързване — изчакай малко и опитай пак.", user=user)
+                       message="Too many pairing attempts. Please wait a moment and try again.", user=user)
     _sweep(db)
 
     # Стара покана от същия акаунт вече не трябва на никого: човекът гледа новия
@@ -208,7 +208,7 @@ def claim_pairing(
 ):
     """Човекът е потвърдил на телефона — тук поканата става връзка."""
     rate_limit.enforce(request, "device-claim", max_calls=20, window_seconds=3600,
-                       message="Твърде много опити — изчакай малко и опитай пак.")
+                       message="Too many attempts. Please wait a moment and try again.")
     pair = _live_request(db, secret)
     owner = db.get(User, pair.user_id)
     if not owner:
@@ -225,8 +225,8 @@ def claim_pairing(
         db.commit()
         raise HTTPException(
             400,
-            f"Вече имаш {MAX_DEVICES_PER_USER} свързани устройства. "
-            "Откачи едно от настройките на компютъра и опитай пак.",
+            f"You have already linked {MAX_DEVICES_PER_USER} devices. "
+            "Remove one in Settings on your computer and try again.",
         )
 
     name = (body.device_name or "").strip() or _device_name_from_agent(user_agent)
@@ -266,7 +266,7 @@ def upload_photo(
         device.photos_this_hour = 0
     if device.photos_this_hour >= MAX_PHOTOS_PER_HOUR:
         db.commit()  # запазваме преместения прозорец, дори когато отказваме
-        raise HTTPException(429, "Твърде много снимки за кратко време — изчакай малко.")
+        raise HTTPException(429, "Too many photos in a short time. Please wait a moment.")
 
     waiting = db.query(PhonePhoto).filter(PhonePhoto.user_id == device.user_id).count()
     if waiting >= MAX_UNDELIVERED_PHOTOS:
@@ -348,7 +348,7 @@ def forget_device(device_id: str, user: User = Depends(get_current_user), db: Se
         .first()
     )
     if not device:
-        raise HTTPException(404, "Такова устройство не е свързано.")
+        raise HTTPException(404, "That device is not linked.")
     db.query(PhonePhoto).filter(PhonePhoto.device_id == device.id).delete(synchronize_session=False)
     db.delete(device)
     db.commit()
