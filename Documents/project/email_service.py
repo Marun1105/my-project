@@ -85,6 +85,36 @@ def _code_block(code: str) -> str:
 # notifications, and a password-reset code is on its own enough to take over an
 # account: anyone who picks up the phone reads it without unlocking anything.
 # The two seconds saved are not worth that.
+# Whether messages are actually leaving. A silent failure is more dangerous than
+# a loud one: while this went uncounted, registration answered "check your email"
+# to people nothing had ever been sent to. /healthz reports it, so the outside
+# monitor can see it too.
+_delivery = {"sent": 0, "failed": 0, "last_error": None}
+
+
+def delivery_status() -> dict:
+    """How sending is going. Read by /healthz."""
+    state = "failing" if _delivery["failed"] else ("ok" if _delivery["sent"] else "idle")
+    return {"state": state, **_delivery}
+
+
+# Resend refuses to write to anyone else's address until the domain is verified:
+# from onboarding@resend.dev you may only mail the account owner, and every other
+# recipient is a 403. This is not a temporary error and will not clear on its
+# own, so it is recognised separately and says what to do about it.
+_SANDBOX_HINT = (
+    "Resend will not write to other people's addresses from {sender}. Until a "
+    "domain is verified in Resend, only you receive codes — for everyone else "
+    "registration looks successful and no message is ever sent. Verify a domain "
+    "and set RESEND_FROM in the Render environment."
+)
+
+
+def _looks_like_the_sandbox_wall(err: Exception) -> bool:
+    text = repr(err).lower()
+    return "403" in text or "testing emails" in text or "verify a domain" in text
+
+
 def send_email(to: str, subject: str, html: str, text: str = "") -> None:
     if not RESEND_API_KEY:
         # No key (local development) — just print the code to the console.
@@ -102,8 +132,14 @@ def send_email(to: str, subject: str, html: str, text: str = "") -> None:
         if text:
             payload["text"] = text
         resend.Emails.send(payload)
+        _delivery["sent"] += 1
     except Exception as err:
-        print(f"[email] delivery to {to} failed: {err!r}")
+        _delivery["failed"] += 1
+        _delivery["last_error"] = repr(err)[:300]
+        if _looks_like_the_sandbox_wall(err):
+            print("[email] " + _SANDBOX_HINT.format(sender=FROM_EMAIL), flush=True)
+        print(f"[email] delivery to {to} FAILED "
+              f"({_delivery['failed']} so far): {err!r}", flush=True)
 
 
 def send_verification_email(to: str, code: str) -> None:

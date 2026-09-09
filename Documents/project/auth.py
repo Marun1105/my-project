@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -280,7 +280,8 @@ def get_current_user_optional(
 
 
 @router.post("/register")
-def register(body: RegisterRequest, request: Request, db: Session = Depends(get_db)):
+def register(body: RegisterRequest, request: Request, background: BackgroundTasks,
+             db: Session = Depends(get_db)):
     rate_limit.enforce(request, "register", max_calls=5, window_seconds=3600,
                         message="Too many sign-up attempts. Please wait a moment and try again.")
     email = normalize_email(body.email)
@@ -304,7 +305,7 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
     NEUTRAL = {"status": "ok", "message": "We have sent a verification code to your email."}
 
     if db.query(User).filter(_email_matches(email)).first():
-        email_service.send_account_exists_email(email)
+        background.add_task(email_service.send_account_exists_email, email)
         return NEUTRAL
 
     # Потребителското име е по желание, но щом го има — е уникално.
@@ -345,13 +346,13 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
         # Обратният ред (първо запитване) изглежда по-точен, но стъпва на същата
         # проверка, която току-що не видя реда — а тя може да не го вижда и сега.
         if not body.username or db.query(User).filter(_email_matches(email)).first():
-            email_service.send_account_exists_email(email)
+            background.add_task(email_service.send_account_exists_email, email)
             return NEUTRAL
         raise HTTPException(400, "That username is taken. Please choose another.")
     db.refresh(user)
 
     code = _issue_code(db, user, CodePurpose.verify_email)
-    email_service.send_verification_email(user.email, code)
+    background.add_task(email_service.send_verification_email, user.email, code)
     return NEUTRAL
 
 
@@ -381,7 +382,8 @@ def verify_email(body: VerifyEmailRequest, request: Request, db: Session = Depen
 
 
 @router.post("/resend-code")
-def resend_code(body: ResendCodeRequest, request: Request, db: Session = Depends(get_db)):
+def resend_code(body: ResendCodeRequest, request: Request, background: BackgroundTasks,
+                db: Session = Depends(get_db)):
     rate_limit.enforce(request, "resend-code", max_calls=5, window_seconds=3600,
                         message="Too many attempts. Please wait a moment and try again.")
     # Отговорът е един и същ, каквото и да намерим: 400 за регистриран адрес и
@@ -391,7 +393,7 @@ def resend_code(body: ResendCodeRequest, request: Request, db: Session = Depends
     user = db.query(User).filter(_email_matches(body.email)).first()
     if user and not user.is_email_verified:
         code = _issue_code(db, user, CodePurpose.verify_email)
-        email_service.send_verification_email(user.email, code)
+        background.add_task(email_service.send_verification_email, user.email, code)
     return {"status": "ok", "message": "If an unverified account exists for this email, "
                                        "we have sent a new code. Please check your spam folder too."}
 
@@ -471,7 +473,8 @@ def verify_phone(
 
 
 @router.post("/forgot-password")
-def forgot_password(body: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
+def forgot_password(body: ForgotPasswordRequest, request: Request, background: BackgroundTasks,
+                    db: Session = Depends(get_db)):
     rate_limit.enforce(request, "forgot-password", max_calls=5, window_seconds=3600,
                         message="Too many attempts. Please wait a moment and try again.")
     if body.channel == "email":
@@ -486,7 +489,7 @@ def forgot_password(body: ForgotPasswordRequest, request: Request, db: Session =
     if user:
         code = _issue_code(db, user, CodePurpose.reset_password)
         if body.channel == "email":
-            email_service.send_reset_email(user.email, code)
+            background.add_task(email_service.send_reset_email, user.email, code)
         else:
             sms_service.send_reset_sms(user.phone, code)
     return {"status": "ok", "message": "If that account exists, we have sent a code."}

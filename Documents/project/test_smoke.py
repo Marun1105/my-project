@@ -16,6 +16,7 @@ os.environ["TRUSTED_PROXY_HOPS"] = "0"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+import email_service  # noqa: E402
 import planner  # noqa: E402
 import rate_limit  # noqa: E402
 import server  # noqa: E402
@@ -439,7 +440,9 @@ def test_the_health_check_actually_touches_the_database():
     """
     res = client.get("/healthz")
     assert res.status_code == 200
-    assert res.json() == {"status": "ok", "db": "ok"}
+    body = res.json()
+    assert body["status"] == "ok"
+    assert body["db"] == "ok"
 
 
 def test_a_dead_database_is_reported_as_such(monkeypatch):
@@ -453,3 +456,55 @@ def test_a_dead_database_is_reported_as_such(monkeypatch):
     assert res.json()["db"] == "down"
     # Причината остава в лога — адресът е публичен.
     assert "спряна" not in res.text
+
+
+# --- email delivery ----------------------------------------------------------
+#
+# Sending is allowed to fail without failing the request — but it must never
+# fail INVISIBLY. That combination is what let registration answer "check your
+# email" to people nothing had ever been sent to.
+
+def test_a_failing_mailer_does_not_fail_registration(monkeypatch):
+    """The account exists by then. An error here would be a lie about the account."""
+    def refuse(payload):
+        raise RuntimeError("Resend is down")
+
+    monkeypatch.setattr(email_service, "RESEND_API_KEY", "test-key")
+    monkeypatch.setattr(email_service.resend.Emails, "send", refuse)
+    res = client.post("/auth/register", json={
+        "display_name": "Mail Test", "email": "mailfail@example.com",
+        "password": "testpass123",
+    })
+    assert res.status_code == 200
+
+
+def test_a_failing_mailer_is_visible_from_outside(monkeypatch):
+    """/healthz has to show it, or a silent mail outage looks like a healthy app."""
+    monkeypatch.setattr(email_service, "_delivery",
+                        {"sent": 0, "failed": 3, "last_error": "boom"})
+    assert client.get("/healthz").json()["email"] == "failing"
+    # ...but email alone must not mark the service unhealthy: waking someone at
+    # night for it teaches them to ignore the alarm that matters.
+    assert client.get("/healthz").status_code == 200
+
+
+def test_the_resend_sandbox_wall_is_named_for_what_it_is(monkeypatch, capsys):
+    """The 403 that means "nobody but you can ever receive this".
+
+    From onboarding@resend.dev Resend only delivers to the account owner. It is
+    not a transient error and no retry clears it, so the log must say what to do
+    rather than print a bare exception.
+    """
+    def refuse(payload):
+        raise RuntimeError("403 You can only send testing emails to your own email address")
+
+    monkeypatch.setattr(email_service, "RESEND_API_KEY", "test-key")
+    monkeypatch.setattr(email_service.resend.Emails, "send", refuse)
+    monkeypatch.setattr(email_service, "_delivery", {"sent": 0, "failed": 0, "last_error": None})
+
+    email_service.send_verification_email("someone-else@example.com", "123456")
+
+    said = capsys.readouterr().out
+    assert "verified in Resend" in said
+    assert "RESEND_FROM" in said
+    assert email_service._delivery["failed"] == 1

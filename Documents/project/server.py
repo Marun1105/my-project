@@ -28,6 +28,7 @@ import family
 import focus_sessions
 import planner
 import migrations
+import email_service
 import rate_limit
 import scans
 import tasks
@@ -321,7 +322,10 @@ def healthz():
     except Exception as err:  # noqa: BLE001 — каквото и да е, отвън е едно и също
         print(f"[healthz] базата не отговаря: {err!r}")
         return JSONResponse({"status": "degraded", "db": "down"}, status_code=503)
-    return {"status": "ok", "db": "ok"}
+    # Email is reported but does NOT change the status code. A mail outage is
+    # real and worth seeing, yet the app still works without it — waking someone
+    # at night for it would teach them to ignore the alarm that matters.
+    return {"status": "ok", "db": "ok", "email": email_service.delivery_status()["state"]}
 
 
 @app.get("/")
