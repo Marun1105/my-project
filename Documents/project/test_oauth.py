@@ -159,3 +159,36 @@ def test_a_successful_callback_hands_the_app_a_token(monkeypatch):
     assert res.headers["location"].startswith("climby://auth?t=")
     assert "new=1" in res.headers["location"], "a brand-new account must be flagged"
     client.cookies.clear()
+
+
+def _signed_in_via_google(email="role@example.com", sub="sub-role"):
+    db = SessionLocal()
+    user, _ = oauth.sign_in_with_claims(db, "google", _claims(sub=sub, email=email))
+    token = security.create_access_token(user.id, user.token_version)
+    db.close()
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_a_new_google_account_can_say_who_it_is():
+    headers = _signed_in_via_google()
+    assert client.post("/auth/role", json={"role": "teacher"}, headers=headers).status_code == 200
+    assert client.get("/auth/me", headers=headers).json()["role"] == "teacher"
+
+
+def test_setting_a_password_gives_a_second_way_in():
+    """A school Google account can be taken away. Then this is the only door left."""
+    headers = _signed_in_via_google(email="pw@example.com", sub="sub-pw")
+    assert client.post("/auth/set-password", json={"password": "brandnew123"},
+                       headers=headers).status_code == 200
+    signed_in = client.post("/auth/login",
+                            json={"email": "pw@example.com", "password": "brandnew123"})
+    assert signed_in.status_code == 200
+
+
+def test_a_google_account_hears_nothing_different_from_a_stranger():
+    """Saying "this one uses Google" would tell a stranger the account exists."""
+    _signed_in_via_google(email="quiet@example.com", sub="sub-quiet")
+    google = client.post("/auth/login", json={"email": "quiet@example.com", "password": "wrong"})
+    nobody = client.post("/auth/login", json={"email": "nobody@example.com", "password": "wrong"})
+    assert google.status_code == nobody.status_code
+    assert google.json() == nobody.json()

@@ -24,6 +24,8 @@ from schemas import (
     UserOut,
     VerifyEmailRequest,
     VerifyPhoneRequest,
+    RoleRequest,
+    SetPasswordRequest,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -529,3 +531,40 @@ def reset_password(body: ResetPasswordRequest, request: Request, db: Session = D
     user.token_version = (user.token_version or 0) + 1
     db.commit()
     return {"status": "ok", "message": "Your password has been changed. You can now sign in with it."}
+
+
+@router.post("/role")
+def set_role(body: RoleRequest, request: Request,
+             user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Which of the three this person is.
+
+    Google tells us a name and an address, never a role, so an account created
+    that way has to be asked once. This grants nothing new: RegisterRequest
+    already lets any caller choose freely, so the Google path matches the
+    password path rather than widening it.
+    """
+    rate_limit.enforce(request, "set-role", max_calls=10, window_seconds=3600,
+                       message="Too many attempts. Please wait a moment and try again.",
+                       user=user)
+    user.role = body.role
+    db.commit()
+    return {"status": "ok"}
+
+
+@router.post("/set-password")
+def set_password(body: SetPasswordRequest, request: Request,
+                 user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """A second way in, for an account that has only ever had one.
+
+    A student who signs in with a school Google account loses it when they
+    change school. Without this, their homework goes with it.
+    """
+    rate_limit.enforce(request, "set-password", max_calls=5, window_seconds=3600,
+                       message="Too many attempts. Please wait a moment and try again.",
+                       user=user)
+    user.password_hash = security.hash_password(body.password)
+    # Existing sessions stay valid on purpose. Nothing was compromised — someone
+    # gained a second key. Bumping token_version here would sign them out of the
+    # device in their hand for doing the safe thing.
+    db.commit()
+    return {"status": "ok"}
