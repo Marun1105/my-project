@@ -29,6 +29,7 @@ import focus_sessions
 import planner
 import migrations
 import email_service
+import oauth
 import rate_limit
 import scans
 import tasks
@@ -59,6 +60,7 @@ app.include_router(focus_sessions.router)
 app.include_router(family.router)
 app.include_router(classes.router)
 app.include_router(devices.router)
+app.include_router(oauth.router)
 
 # Външната граница на всичко, което сървърът изобщо си позволява да прочете в паметта.
 # Pydantic проверява размерите ЧАК СЛЕД като FastAPI е задържал цялото тяло, а после

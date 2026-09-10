@@ -5,11 +5,20 @@
 # those outright, precisely so that an app cannot read its users' passwords.
 import os
 
+import secrets
+import urllib.parse
+
+import httpx
 import jwt
+from fastapi import APIRouter, Depends, Request
 from jwt import PyJWKClient
 from sqlalchemy.orm import Session
+from starlette.responses import HTMLResponse, RedirectResponse
 
+import rate_limit
+import security
 from auth import _email_matches, normalize_email
+from db import get_db
 from models import OAuthIdentity, User
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
@@ -111,3 +120,106 @@ def sign_in_with_claims(db: Session, provider: str, claims: dict) -> tuple:
     db.commit()
     db.refresh(user)
     return user, is_new
+
+
+router = APIRouter(tags=["oauth"])
+
+_STATE_COOKIE = "climby_oauth_state"
+_AUTHORIZE = "https://accounts.google.com/o/oauth2/v2/auth"
+_TOKEN = "https://oauth2.googleapis.com/token"
+
+# Where Google sends the browser back. It must match the console entry exactly —
+# even a trailing slash makes it a different URI and the sign-in fails.
+REDIRECT_URI = os.environ.get(
+    "GOOGLE_REDIRECT_URI",
+    "https://my-project-0gyk.onrender.com/auth/google/callback",
+)
+
+
+def _page(message: str, status: int = 200) -> HTMLResponse:
+    """The browser tab is a dead end by design — the app is where things happen.
+
+    Status matters: a cancelled sign-in is not an error, someone else's callback
+    is. Both are shown as a sentence rather than a stack trace, because the
+    reader is a child looking at a browser tab.
+    """
+    return HTMLResponse(
+        "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
+        "<title>Climby</title></head>"
+        "<body style=\"font:16px/1.5 system-ui;padding:40px;max-width:32em;margin:auto\">"
+        f"<p>{message}</p><p>You can close this tab.</p></body></html>",
+        status_code=status,
+    )
+
+
+@router.get("/auth/google/start")
+def google_start(request: Request):
+    # IP-keyed: there is no account yet, so there is nothing else to key on.
+    rate_limit.enforce(request, "oauth-start", max_calls=20, window_seconds=3600,
+                       message="Too many attempts. Please wait a moment and try again.")
+    state = secrets.token_urlsafe(24)
+    query = urllib.parse.urlencode({
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": REDIRECT_URI,
+        "response_type": "code",
+        # We want an identity, not an ongoing relationship: no offline access, no
+        # refresh token, nothing to store and nothing to leak later.
+        "scope": "openid email profile",
+        "state": state,
+        "prompt": "select_account",
+    })
+    response = RedirectResponse(f"{_AUTHORIZE}?{query}")
+    response.set_cookie(_STATE_COOKIE, state, httponly=True, secure=True,
+                        samesite="lax", max_age=600)
+    return response
+
+
+def _exchange_code_for_id_token(code: str) -> str:
+    """Swap the one-time code for an ID token. Replaced wholesale in tests."""
+    reply = httpx.post(_TOKEN, timeout=15, data={
+        "code": code,
+        "client_id": GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "redirect_uri": REDIRECT_URI,
+        "grant_type": "authorization_code",
+    })
+    if reply.status_code != 200:
+        print(f"[oauth] token exchange failed: {reply.status_code} {reply.text[:200]}", flush=True)
+        raise IdentityRejected("We could not reach Google. Please try again.")
+    return reply.json().get("id_token", "")
+
+
+@router.get("/auth/google/callback")
+def google_callback(request: Request, code: str = "", state: str = "",
+                    error: str = "", error_subtype: str = "",
+                    db: Session = Depends(get_db)):
+    rate_limit.enforce(request, "oauth-callback", max_calls=30, window_seconds=3600,
+                       message="Too many attempts. Please wait a moment and try again.")
+
+    if error:
+        # A school Workspace with third-party access switched off lands here, and
+        # it is the one failure nobody can fix from inside the app. Told apart
+        # from a plain cancel, it becomes a detour instead of a dead end.
+        if "admin_policy" in (error_subtype or "") or "admin_policy" in error:
+            return _page("Your school has blocked sign-in with Google. "
+                         "Please sign in with your email and password instead.")
+        return _page("Sign-in was cancelled. Nothing has changed.")
+
+    issued = request.cookies.get(_STATE_COOKIE)
+    if not issued or not state or not secrets.compare_digest(issued, state):
+        # Either a stale tab or somebody else's callback. Both mean: do nothing.
+        return _page("This sign-in link has expired. Please try again from Climby.", status=400)
+
+    try:
+        claims = verify_google_id_token(_exchange_code_for_id_token(code))
+        user, is_new = sign_in_with_claims(db, "google", claims)
+    except IdentityRejected as rejected:
+        return _page(rejected.message, status=400)
+
+    token = security.create_access_token(user.id, user.token_version)
+    target = f"climby://auth?t={urllib.parse.quote(token)}"
+    if is_new:
+        target += "&new=1"
+    response = RedirectResponse(target)
+    response.delete_cookie(_STATE_COOKIE)
+    return response

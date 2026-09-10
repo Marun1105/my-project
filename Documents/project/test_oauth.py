@@ -108,3 +108,54 @@ def test_the_address_is_matched_regardless_of_capitals():
     assert user.id == uid
     assert is_new is False
     db.close()
+
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+import server  # noqa: E402
+
+client = TestClient(server.app, follow_redirects=False)
+
+
+def test_starting_sends_you_to_google_and_remembers_why():
+    res = client.get("/auth/google/start")
+    assert res.status_code == 307
+    assert res.headers["location"].startswith("https://accounts.google.com/")
+    assert "climby_oauth_state" in res.cookies, "no state cookie: nothing to check on return"
+
+
+def test_a_reply_with_the_wrong_state_is_refused():
+    """Someone else's callback must not sign you in. This is the CSRF guard."""
+    client.cookies.set("climby_oauth_state", "the-state-we-issued")
+    res = client.get("/auth/google/callback", params={"code": "x", "state": "a-different-one"})
+    assert res.status_code == 400
+    client.cookies.clear()
+
+
+def test_a_school_that_blocks_us_is_told_apart_from_a_broken_app():
+    """access_denied + admin_policy_enforced is not "something went wrong".
+
+    A locked-down school Workspace returns exactly this, and a twelve-year-old
+    will retry a generic error forever. It has to name what happened.
+    """
+    res = client.get("/auth/google/callback",
+                     params={"error": "access_denied", "error_subtype": "admin_policy_enforced"})
+    assert res.status_code == 200
+    assert "school" in res.text.lower()
+
+
+def test_cancelling_at_google_is_not_an_error():
+    res = client.get("/auth/google/callback", params={"error": "access_denied"})
+    assert res.status_code == 200
+    assert "school" not in res.text.lower()
+
+
+def test_a_successful_callback_hands_the_app_a_token(monkeypatch):
+    monkeypatch.setattr(oauth, "verify_google_id_token", lambda raw: _claims(email="cb@example.com"))
+    monkeypatch.setattr(oauth, "_exchange_code_for_id_token", lambda code: "pretend-id-token")
+    client.cookies.set("climby_oauth_state", "s1")
+    res = client.get("/auth/google/callback", params={"code": "x", "state": "s1"})
+    assert res.status_code == 307
+    assert res.headers["location"].startswith("climby://auth?t=")
+    assert "new=1" in res.headers["location"], "a brand-new account must be flagged"
+    client.cookies.clear()
