@@ -192,3 +192,51 @@ def test_a_google_account_hears_nothing_different_from_a_stranger():
     nobody = client.post("/auth/login", json={"email": "nobody@example.com", "password": "wrong"})
     assert google.status_code == nobody.status_code
     assert google.json() == nobody.json()
+
+
+def test_a_spare_key_is_only_for_a_lock_that_has_none():
+    """set-password must not become a password change without the old password.
+
+    For a Google-only account there is nothing to prove and this is the whole
+    point. For an account that already has a password, allowing it would turn a
+    stolen token into a permanent takeover — the attacker locks the owner out
+    without ever knowing the original. Changing a known password goes through
+    the reset flow, which proves the mailbox.
+    """
+    _existing_password_account(email="haspw@example.com")
+    db = SessionLocal()
+    user = db.query(User).filter(User.email == "haspw@example.com").first()
+    headers = {"Authorization": f"Bearer {security.create_access_token(user.id, user.token_version)}"}
+    db.close()
+
+    res = client.post("/auth/set-password", json={"password": "attackerchosen1"}, headers=headers)
+    assert res.status_code == 400, "an account with a password must not be overwritten this way"
+
+
+def test_the_app_only_accepts_a_sign_in_it_asked_for(monkeypatch):
+    """A climby:// link is a message anyone can send.
+
+    Without a value the app itself chose, a link mailed to a child signs their
+    Climby into someone else's account — and their homework, their questions and
+    their history are then written into a stranger's profile. The app sends a
+    nonce with the request and the deep link has to carry it back.
+    """
+    monkeypatch.setattr(oauth, "verify_google_id_token", lambda raw: _claims(email="nonce@example.com"))
+    monkeypatch.setattr(oauth, "_exchange_code_for_id_token", lambda code: "pretend-id-token")
+
+    started = client.get("/auth/google/start", params={"app": "app-nonce-xyz"})
+    assert started.status_code == 307
+    res = client.get("/auth/google/callback", params={"code": "x", "state": "ignored"})
+    client.cookies.clear()
+    # The state cookie has to remember the app's nonce, not just Google's state.
+    assert "app-nonce-xyz" in started.cookies["climby_oauth_state"]
+
+
+def test_the_deep_link_carries_the_nonce_home(monkeypatch):
+    monkeypatch.setattr(oauth, "verify_google_id_token", lambda raw: _claims(email="nonce2@example.com"))
+    monkeypatch.setattr(oauth, "_exchange_code_for_id_token", lambda code: "pretend-id-token")
+    client.cookies.set("climby_oauth_state", "st4te.app-nonce-abc")
+    res = client.get("/auth/google/callback", params={"code": "x", "state": "st4te"})
+    client.cookies.clear()
+    assert res.status_code == 307
+    assert "n=app-nonce-abc" in res.headers["location"], res.headers["location"]

@@ -5,6 +5,7 @@
 # those outright, precisely so that an app cannot read its users' passwords.
 import os
 
+import re
 import secrets
 import urllib.parse
 
@@ -152,8 +153,14 @@ def _page(message: str, status: int = 200) -> HTMLResponse:
     )
 
 
+# Only these characters may travel in the nonce. It ends up in a cookie and in a
+# URL, and a nonce is a random value we generated — anything else is someone
+# else's idea and does not belong in either place.
+_SAFE_NONCE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
 @router.get("/auth/google/start")
-def google_start(request: Request):
+def google_start(request: Request, app: str = ""):
     # IP-keyed: there is no account yet, so there is nothing else to key on.
     rate_limit.enforce(request, "oauth-start", max_calls=20, window_seconds=3600,
                        message="Too many attempts. Please wait a moment and try again.")
@@ -169,7 +176,13 @@ def google_start(request: Request):
         "prompt": "select_account",
     })
     response = RedirectResponse(f"{_AUTHORIZE}?{query}")
-    response.set_cookie(_STATE_COOKIE, state, httponly=True, secure=True,
+    # The cookie remembers two different things. `state` proves the reply came
+    # from the browser leg we started. `app` proves it belongs to the copy of
+    # Climby that asked — without it, a climby:// link mailed to a child signs
+    # their app into whichever account the sender chose, and everything they do
+    # afterwards is written into a stranger's profile.
+    remembered = state if not _SAFE_NONCE.match(app or "") else f"{state}.{app}"
+    response.set_cookie(_STATE_COOKIE, remembered, httponly=True, secure=True,
                         samesite="lax", max_age=600)
     return response
 
@@ -205,7 +218,8 @@ def google_callback(request: Request, code: str = "", state: str = "",
                          "Please sign in with your email and password instead.")
         return _page("Sign-in was cancelled. Nothing has changed.")
 
-    issued = request.cookies.get(_STATE_COOKIE)
+    remembered = request.cookies.get(_STATE_COOKIE) or ""
+    issued, _, app_nonce = remembered.partition(".")
     if not issued or not state or not secrets.compare_digest(issued, state):
         # Either a stale tab or somebody else's callback. Both mean: do nothing.
         return _page("This sign-in link has expired. Please try again from Climby.", status=400)
@@ -220,6 +234,8 @@ def google_callback(request: Request, code: str = "", state: str = "",
     target = f"climby://auth?t={urllib.parse.quote(token)}"
     if is_new:
         target += "&new=1"
+    if _SAFE_NONCE.match(app_nonce or ""):
+        target += f"&n={app_nonce}"
     response = RedirectResponse(target)
     response.delete_cookie(_STATE_COOKIE)
     return response

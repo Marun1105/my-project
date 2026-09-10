@@ -177,9 +177,13 @@ if (!gotLock) {
     if (parsed.hostname !== 'auth') return;
     const token = parsed.searchParams.get('t');
     if (!token || !mainWindow) return;
+    // nonce-ът се подава нататък непроверен НАРОЧНО: тук няма как да се провери.
+    // Стойността я е измислила страницата и само тя знае коя е — обвивката просто
+    // я пренася. Проверката е в auth.js, където живее очакваната стойност.
     mainWindow.webContents.send('climby:auth-token', {
       token,
       isNew: parsed.searchParams.get('new') === '1',
+      nonce: parsed.searchParams.get('n') || '',
     });
   }
 

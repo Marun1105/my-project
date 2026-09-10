@@ -350,6 +350,13 @@ const Auth = (() => {
   }
 
   function init() {
+    if ($('googleSignIn')) $('googleSignIn').addEventListener('click', startGoogle);
+    document.querySelectorAll('.role-choice').forEach(btn => {
+      btn.addEventListener('click', () => chooseRole(btn.dataset.role));
+    });
+    if (window.CLIMBY_DESKTOP && window.CLIMBY_DESKTOP.onSignIn) {
+      window.CLIMBY_DESKTOP.onSignIn(receiveDesktopSignIn);
+    }
     updateEntryGateVisibility();
     window.addEventListener('climby:auth-changed', resetFormsOnLogout);
 
@@ -387,6 +394,70 @@ const Auth = (() => {
       updatePwStrength('registerPassword', 'registerPwStrength', 'registerPwBar', 'registerPwLabel'));
     $('resetPassword').addEventListener('input', () =>
       updatePwStrength('resetPassword', 'resetPwStrength', 'resetPwBar', 'resetPwLabel'));
+  }
+
+  // --- Google ---------------------------------------------------------------
+  //
+  // The browser leg has to happen in the REAL browser: Google refuses to run its
+  // consent screen inside an embedded webview, so an in-app window would only
+  // ever show an error.
+  const NONCE_KEY = 'climby-oauth-nonce';
+
+  function startGoogle() {
+    // A value only this copy of Climby knows. It travels to the server and comes
+    // back in the climby:// link, and a link that does not carry it is ignored
+    // below — otherwise a link someone mails you signs your app into their
+    // account, and everything you write afterwards lands in their profile.
+    const nonce = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    try { sessionStorage.setItem(NONCE_KEY, nonce); } catch { /* private mode: the check below fails closed */ }
+    window.open(BACKEND + '/auth/google/start?app=' + encodeURIComponent(nonce), '_blank');
+  }
+
+  // The desktop shell catches climby://auth and hands the payload here.
+  function receiveDesktopSignIn(payload) {
+    if (!payload || !payload.token) return;
+    let expected = null;
+    try { expected = sessionStorage.getItem(NONCE_KEY); } catch { /* nothing remembered */ }
+    if (!expected || payload.nonce !== expected) {
+      // We never asked for this sign-in. Say nothing and change nothing.
+      return;
+    }
+    try { sessionStorage.removeItem(NONCE_KEY); } catch { /* it was one-use anyway */ }
+
+    fetch(BACKEND + '/auth/me', { headers: { Authorization: 'Bearer ' + payload.token } })
+      .then(res => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then(user => {
+        _setSession(payload.token, user, true);
+        if (payload.isNew) showRoleChoice();
+        else hideEntryGate();
+      })
+      .catch(() => setError(window.t ? t('auth.googleFailed') : 'Google sign-in did not work.'));
+  }
+
+  function showRoleChoice() {
+    ['loginForm', 'registerForm', 'verifyForm'].forEach(id => {
+      if ($(id)) $(id).classList.add('hidden');
+    });
+    if ($('roleForm')) $('roleForm').classList.remove('hidden');
+  }
+
+  function chooseRole(role) {
+    // The answer is remembered locally whatever the server says: the person is
+    // already signed in, and a failed request here must not trap them on this
+    // screen. A wrong role is fixable in Settings; a dead end is not.
+    fetch(BACKEND + '/auth/role', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getToken() },
+      body: JSON.stringify({ role }),
+    }).finally(() => {
+      const user = getUser() || {};
+      user.role = role;
+      const store = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+      store.setItem(USER_KEY, JSON.stringify(user));
+      if ($('roleForm')) $('roleForm').classList.add('hidden');
+      hideEntryGate();
+      window.dispatchEvent(new CustomEvent('climby:auth-changed', { detail: { loggedIn: true, user } }));
+    });
   }
 
   return { getToken, getUser, getRole, isLoggedIn, logout, init, openEntryGate: showEntryGate };

@@ -562,6 +562,14 @@ def set_password(body: SetPasswordRequest, request: Request,
     rate_limit.enforce(request, "set-password", max_calls=5, window_seconds=3600,
                        message="Too many attempts. Please wait a moment and try again.",
                        user=user)
+    # ONLY for an account that has none. Allowing it to overwrite an existing
+    # password would turn a stolen token into a permanent takeover: the attacker
+    # sets a new password without ever knowing the old one, and the owner is
+    # locked out of their own account. Changing a known password goes through
+    # the reset flow, which proves the mailbox first.
+    if user.password_hash:
+        raise HTTPException(400, "This account already has a password. "
+                                 "Use “Forgot password” to change it.")
     user.password_hash = security.hash_password(body.password)
     # Existing sessions stay valid on purpose. Nothing was compromised — someone
     # gained a second key. Bumping token_version here would sign them out of the

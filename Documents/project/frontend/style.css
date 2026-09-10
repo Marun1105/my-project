@@ -2478,3 +2478,23 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 .spark-icon.climbai-mark { width: 1.05em; height: 1.05em; vertical-align: -0.17em; margin-right: 0.4em; }
 .spark-spin.climbai-mark { width: 1.15em; height: 1.15em; vertical-align: -0.2em; }
+
+/* The divider says "there is another way in", without suggesting one of them is
+   the real one. Both doors are equal here. */
+.auth-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 12px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.auth-or::before,
+.auth-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.btn-google { width: 100%; }
+.role-choice { width: 100%; margin-bottom: 10px; }

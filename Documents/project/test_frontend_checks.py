@@ -348,3 +348,26 @@ def test_no_text_points_at_a_screen_that_was_renamed(i18n):
             if word in value:
                 offenders.append(f"{key}: …{word}…")
     assert not offenders, "текст сочи към преименуван екран: " + "; ".join(offenders[:6])
+
+
+def test_every_google_string_exists_in_both_languages():
+    """A key in one language and missing from the other is a blank on screen."""
+    source = _read("i18n.js")
+    for key in ("auth.or", "auth.google", "auth.googleFailed", "auth.roleTitle",
+                "auth.roleStudent", "auth.roleParent", "auth.roleTeacher"):
+        assert source.count(f"'{key}'") >= 2, f"{key} is missing from a language"
+
+
+def test_the_google_button_exists_and_is_wired():
+    html = _read("index.html")
+    js = _read("auth.js")
+    assert 'id="googleSignIn"' in html
+    assert "googleSignIn" in js, "the button exists but nothing listens to it"
+
+
+def test_a_sign_in_the_app_did_not_ask_for_is_ignored():
+    """The nonce check is the only thing standing between a mailed climby:// link
+    and a child's homework landing in a stranger's account."""
+    js = _read("auth.js")
+    assert "climby-oauth-nonce" in js
+    assert "payload.nonce !== expected" in js, "the deep link is accepted unchecked"
