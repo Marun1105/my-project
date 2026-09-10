@@ -408,7 +408,12 @@ const Auth = (() => {
     // back in the climby:// link, and a link that does not carry it is ignored
     // below — otherwise a link someone mails you signs your app into their
     // account, and everything you write afterwards lands in their profile.
-    const nonce = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    // crypto.getRandomValues, not Math.random: this is a security token, and
+    // Math.random's next output can be derived from its previous ones. 128 bits,
+    // hex — which also keeps it inside the character set the server accepts.
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const nonce = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
     try { sessionStorage.setItem(NONCE_KEY, nonce); } catch { /* private mode: the check below fails closed */ }
     window.open(BACKEND + '/auth/google/start?app=' + encodeURIComponent(nonce), '_blank');
   }

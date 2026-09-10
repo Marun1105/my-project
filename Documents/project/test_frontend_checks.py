@@ -371,3 +371,18 @@ def test_a_sign_in_the_app_did_not_ask_for_is_ignored():
     js = _read("auth.js")
     assert "climby-oauth-nonce" in js
     assert "payload.nonce !== expected" in js, "the deep link is accepted unchecked"
+
+
+def test_the_sign_in_nonce_is_not_guessable():
+    """Math.random() is predictable, and this value is a security token.
+
+    It is the only thing stopping a mailed climby:// link from signing a child's
+    app into someone else's account, so it must come from the browser's real
+    random source and not from a generator whose next output can be derived from
+    its previous ones.
+    """
+    js = _read("auth.js")
+    nonce_block = js[js.index("function startGoogle"):js.index("function receiveDesktopSignIn")]
+    # A CALL, not the word: the comment there explains why it is not used.
+    assert "Math.random(" not in nonce_block, "the nonce is guessable"
+    assert "crypto.getRandomValues" in nonce_block
