@@ -155,10 +155,51 @@ if (!gotLock) {
 } else {
   let mainWindow = null;
 
-  app.on('second-instance', () => {
+  // Windows подава climby:// връзка на програмата, която е заявила схемата.
+  // Инсталаторът записва заявката; това тук покрива пускането при разработка,
+  // където инсталатор няма, и поправя записа, ако друга програма го е взела.
+  if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+      app.setAsDefaultProtocolClient('climby', process.execPath, [path.resolve(process.argv[1])]);
+    }
+  } else {
+    app.setAsDefaultProtocolClient('climby');
+  }
+
+  function forwardSignIn(rawUrl) {
+    let parsed;
+    try {
+      parsed = new URL(rawUrl);
+    } catch {
+      return; // неразбираем адрес не е вход
+    }
+    // climby://auth?t=... — hostname е "auth". Само този адрес значи нещо тук.
+    if (parsed.hostname !== 'auth') return;
+    const token = parsed.searchParams.get('t');
+    if (!token || !mainWindow) return;
+    mainWindow.webContents.send('climby:auth-token', {
+      token,
+      isNew: parsed.searchParams.get('new') === '1',
+    });
+  }
+
+  // climby:// връзка пуска ВТОРО копие на приложението, което ключалката за едно
+  // копие затваря веднага — но Windows първо подава адреса на това копие, а той
+  // пристига тук, в работещото. Без този ред връзката само вдига прозореца и
+  // губи токена мълчаливо.
+  app.on('second-instance', (event, argv) => {
     if (!mainWindow) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
+    const deepLink = (argv || []).find(arg => typeof arg === 'string' && arg.startsWith('climby://'));
+    if (deepLink) forwardSignIn(deepLink);
+  });
+
+  // macOS подава адреса като събитие, а не като аргумент. Евтино е да се поддържа
+  // и грешно е да се пропусне.
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    forwardSignIn(url);
   });
 
   app.whenReady().then(() => {
