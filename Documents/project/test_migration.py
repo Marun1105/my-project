@@ -499,3 +499,33 @@ def test_a_pooled_url_is_noticed(url, pooled, capsys):
     assert migrations._warn_if_pooled(url) is pooled
     said = capsys.readouterr().err
     assert ("PgBouncer" in said) is pooled
+
+
+def test_an_account_can_exist_without_a_password():
+    """A Google-only account has no password, so the column must allow NULL.
+
+    While it was NOT NULL the only way to create such an account was to invent
+    a fake hash — a value that looks like a password to every code path that
+    reads it, and can never be matched by any input.
+    """
+    from models import User
+
+    assert User.__table__.c.password_hash.nullable is True
+
+
+def test_an_oauth_identity_is_keyed_by_provider_and_subject():
+    """Two people may share an email over time; a provider subject is forever.
+
+    Keying on the email would fork one person into two accounts the day they
+    rename their mailbox.
+    """
+    from models import OAuthIdentity
+
+    cols = OAuthIdentity.__table__.c
+    assert {"id", "user_id", "provider", "subject", "created_at"} <= set(cols.keys())
+    uniques = [
+        tuple(sorted(c.name for c in con.columns))
+        for con in OAuthIdentity.__table__.constraints
+        if con.__class__.__name__ == "UniqueConstraint"
+    ]
+    assert ("provider", "subject") in uniques
