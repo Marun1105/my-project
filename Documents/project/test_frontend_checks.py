@@ -386,3 +386,16 @@ def test_the_sign_in_nonce_is_not_guessable():
     # A CALL, not the word: the comment there explains why it is not used.
     assert "Math.random(" not in nonce_block, "the nonce is guessable"
     assert "crypto.getRandomValues" in nonce_block
+
+
+def test_the_google_button_starts_hidden():
+    """It is revealed only after the server says the flow exists here.
+
+    Shipped before the credentials are set, a permanently visible button teaches
+    people that Climby is broken rather than that a feature is off.
+    """
+    html = _read("index.html")
+    js = _read("auth.js")
+    block = html[html.index('id="googleBlock"'):]
+    assert 'class="hidden"' in block[:80], "the block is not hidden to begin with"
+    assert "/auth/providers" in js, "nothing ever asks whether it is available"

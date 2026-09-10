@@ -351,6 +351,7 @@ const Auth = (() => {
 
   function init() {
     if ($('googleSignIn')) $('googleSignIn').addEventListener('click', startGoogle);
+    revealGoogleIfAvailable();
     document.querySelectorAll('.role-choice').forEach(btn => {
       btn.addEventListener('click', () => chooseRole(btn.dataset.role));
     });
@@ -402,6 +403,18 @@ const Auth = (() => {
   // consent screen inside an embedded webview, so an in-app window would only
   // ever show an error.
   const NONCE_KEY = 'climby-oauth-nonce';
+
+  // The button stays hidden until the server says the flow exists here. It is a
+  // cheap request and it fails closed: no answer, no button, and the password
+  // form — which always works — is untouched either way.
+  function revealGoogleIfAvailable() {
+    const block = $('googleBlock');
+    if (!block) return;
+    fetch(BACKEND + '/auth/providers')
+      .then(res => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then(info => { if (info && info.google) block.classList.remove('hidden'); })
+      .catch(() => { /* asleep or unreachable: leave it hidden */ });
+  }
 
   function startGoogle() {
     // A value only this copy of Climby knows. It travels to the server and comes

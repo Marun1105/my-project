@@ -117,6 +117,36 @@ import server  # noqa: E402
 client = TestClient(server.app, follow_redirects=False)
 
 
+@pytest.fixture(autouse=True)
+def _configured(monkeypatch):
+    """Most tests here describe a server that HAS credentials."""
+    monkeypatch.setattr(oauth, "GOOGLE_CLIENT_ID", "test-client-id")
+    monkeypatch.setattr(oauth, "GOOGLE_CLIENT_SECRET", "test-client-secret")
+    yield
+
+
+def test_a_server_without_credentials_says_so_instead_of_offering():
+    """The app asks before it shows the button."""
+    oauth.GOOGLE_CLIENT_ID = ""
+    try:
+        assert client.get("/auth/providers").json() == {"google": False}
+    finally:
+        oauth.GOOGLE_CLIENT_ID = "test-client-id"
+
+
+def test_a_configured_server_offers_google():
+    assert client.get("/auth/providers").json() == {"google": True}
+
+
+def test_pressing_the_button_on_an_unconfigured_server_blames_nobody(monkeypatch):
+    """Not a redirect into one of Google's own error pages, which reads as
+    "Climby is broken" rather than "this is switched off here"."""
+    monkeypatch.setattr(oauth, "GOOGLE_CLIENT_ID", "")
+    res = client.get("/auth/google/start")
+    assert res.status_code == 503
+    assert "not available" in res.text.lower()
+
+
 def test_starting_sends_you_to_google_and_remembers_why():
     res = client.get("/auth/google/start")
     assert res.status_code == 307

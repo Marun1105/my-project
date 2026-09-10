@@ -159,11 +159,32 @@ def _page(message: str, status: int = 200) -> HTMLResponse:
 _SAFE_NONCE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 
+def _configured() -> bool:
+    """Whether Google sign-in can work at all here.
+
+    Without credentials the flow cannot start, and a button that always fails is
+    worse than no button: the person concludes the app is broken rather than that
+    a feature is off.
+    """
+    return bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+
+
+@router.get("/auth/providers")
+def providers():
+    """Which ways in exist on this server. The app hides what is not here."""
+    return {"google": _configured()}
+
+
 @router.get("/auth/google/start")
 def google_start(request: Request, app: str = ""):
     # IP-keyed: there is no account yet, so there is nothing else to key on.
     rate_limit.enforce(request, "oauth-start", max_calls=20, window_seconds=3600,
                        message="Too many attempts. Please wait a moment and try again.")
+    if not _configured():
+        # Sending someone to Google with an empty client id produces one of
+        # Google's own error pages, which reads as "Climby is broken".
+        return _page("Google sign-in is not available here yet. "
+                     "Please sign in with your email and password.", status=503)
     state = secrets.token_urlsafe(24)
     query = urllib.parse.urlencode({
         "client_id": GOOGLE_CLIENT_ID,

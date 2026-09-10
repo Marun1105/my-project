@@ -88,10 +88,14 @@
       <button id="loginBtn" class="btn-primary" type="button" data-i18n="auth.loginBtn">Влез</button>
       <p class="auth-switch"><span data-i18n="auth.noAccount">Нямаш акаунт?</span> <a href="#" id="showRegister" data-i18n="auth.registerLink">Регистрирай се</a></p>
       <p class="auth-switch"><a href="#" id="showForgot" data-i18n="auth.forgotLink">Забравена парола?</a></p>
-      <div class="auth-or"><span data-i18n="auth.or">or</span></div>
-      <button id="googleSignIn" class="btn-secondary btn-google" type="button">
-        <span data-i18n="auth.google">Continue with Google</span>
-      </button>
+      <!-- Hidden until the server confirms it can actually do this. A button
+           that always fails teaches people the app is broken. -->
+      <div id="googleBlock" class="hidden">
+        <div class="auth-or"><span data-i18n="auth.or">or</span></div>
+        <button id="googleSignIn" class="btn-secondary btn-google" type="button">
+          <span data-i18n="auth.google">Continue with Google</span>
+        </button>
+      </div>
     </div>
 
     <div id="registerForm" class="auth-form hidden">
