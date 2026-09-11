@@ -980,13 +980,25 @@ body {
   align-items: center;
   padding: 32px 0 40px;
 }
-.splash img {
+.splash-logo {
   width: 208px;
   height: 208px;
   border-radius: 50%;
   background: var(--bg-sunken);
-  object-fit: cover;
   box-shadow: 0 8px 28px var(--shadow);
+  display: grid;
+  place-items: center;
+}
+/* The mountain is a silhouette. As a mask it takes the theme's ink, so it reads
+   white on the dark theme and near-black on the light one — an <img> of white
+   pixels could only ever do the first. */
+.splash-logo::before {
+  content: "";
+  width: 148px;
+  height: 148px;
+  background: var(--text);
+  -webkit-mask: url('logo.png?v=16') center / contain no-repeat;
+  mask: url('logo.png?v=16') center / contain no-repeat;
 }
 .splash .loading-text {
   margin-top: 18px;
@@ -2444,6 +2456,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 /* ---------- знакът на ClimbAI ---------- */
+/* ?v=N върху картинките в маските: браузърът кешира по адрес, отделно от
+   service worker-а, и сменена картинка под същото име излизаше като старата
+   — веднъж крушка вместо звезда, веднъж черен квадрат вместо планина. Числото
+   се вдига заедно с CACHE в sw.js, когато картинка се промени. */
 /* Крушката е изрязана от собственото лого на Climby — вътре във влакното ѝ стои
    планина. Затова е тя, а не звезда: знакът вече е нарисуван от човек и значи
    "идея", което е точно каквото прави ClimbAI.
@@ -2452,8 +2468,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 .climbai-mark {
   display: inline-block;
   background: currentColor;
-  -webkit-mask: url('climbai-mark.png') center / contain no-repeat;
-  mask: url('climbai-mark.png') center / contain no-repeat;
+  -webkit-mask: url('climbai-mark.png?v=16') center / contain no-repeat;
+  mask: url('climbai-mark.png?v=16') center / contain no-repeat;
   flex: none;
 }
 

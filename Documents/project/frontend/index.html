@@ -364,7 +364,9 @@
 
 
 <div id="splash" class="splash">
-  <img src="logo.png" alt="Climby лого">
+  <!-- A mask, not an <img>: the artwork is a silhouette, and a silhouette has to
+       take the theme's ink colour or it vanishes on the light theme. -->
+  <span class="splash-logo" role="img" aria-label="Climby"></span>
   <p class="loading-text" data-i18n="scanner.loadingCamera">Зарежда камерата…</p>
 </div>
 
