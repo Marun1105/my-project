@@ -2514,3 +2514,85 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 .btn-google { width: 100%; }
 .role-choice { width: 100%; margin-bottom: 10px; }
+
+
+/* ---------- the tour ---------- */
+/* One element with a hole. The box sits over the target and its shadow is large
+   enough to dim the whole viewport; a mask would do the same with more moving
+   parts. Everything below it is inert while the tour is open. */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+}
+/* No transitions on the geometry, on purpose. left/top/width/height and
+   clip-path animate on the main thread, and switching to Ascent starts the
+   face-detection model there — the 0.28s slide was measured still crawling
+   over a second later, leaving the ring on the previous target while the card
+   described the next. Instant placement is always where the text says. */
+.tour-dim {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 8, 12, 0.62);
+}
+.tour-hole {
+  position: fixed;
+  border-radius: 14px;
+  box-shadow: 0 0 0 2px var(--purple), 0 0 22px rgba(196, 75, 251, 0.45);
+  pointer-events: none;
+}
+.tour-card {
+  position: fixed;
+  width: min(340px, calc(100vw - 24px));
+  background: var(--bg-elevated, var(--bg));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 18px 14px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+}
+.tour-step {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.tour-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  line-height: 1.25;
+}
+.tour-body {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tour-spacer { flex: 1; }
+.tour-actions button {
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.tour-skip, .tour-back {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+}
+.tour-skip:hover, .tour-back:hover:not(:disabled) { color: var(--text); }
+.tour-back:disabled { opacity: .35; cursor: default; }
+.tour-replay { width: auto; padding: 8px 14px; }
+body.tour-open { overflow: hidden; }
+/* While the tour is open the drawer moves instantly. Its 0.2s slide is measured
+   by the tour to decide whether a stop is on screen, and a transition the page
+   throttles or starves reads as "still off-screen" — so the sidebar stops were
+   skipped on phones. The tour is the one place the slide is not worth waiting for. */
+body.tour-open .sidebar { transition: none; }

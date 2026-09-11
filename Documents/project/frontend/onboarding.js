@@ -53,9 +53,8 @@ const Onboarding = (() => {
         ['other', 'quiz.other'],
       ],
     },
-    { icon: 'book', title: 'onboarding.t1', body: 'onboarding.b1' },
-    { icon: 'check', title: 'onboarding.t2', body: 'onboarding.b2' },
-    { icon: 'target', title: 'onboarding.t3', body: 'onboarding.b3' },
+    // The three description cards that used to follow are gone: tour.js walks
+    // the real interface instead, starting the moment this closes.
   ];
 
   let index = 0;
@@ -107,6 +106,7 @@ const Onboarding = (() => {
   function finish() {
     localStorage.setItem(SEEN_KEY, '1');
     $('onboarding').classList.add('hidden');
+    window.dispatchEvent(new CustomEvent('climby:onboarding-done'));
   }
 
   function advance() {

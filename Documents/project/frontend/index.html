@@ -235,6 +235,10 @@
         <button type="button" class="theme-switch-option" data-theme-mode="dark" aria-pressed="false" data-i18n="theme.dark">Тъмна</button>
       </div>
     </div>
+    <div class="settings-row">
+      <span data-i18n="settings.tour">Show the tour again</span>
+      <button id="tourReplayBtn" class="btn-secondary tour-replay" type="button" data-i18n="settings.tourBtn">Start</button>
+    </div>
     <!-- Свързаните телефони живеят тук, защото откачането е нещо, което се прави
          веднъж и обикновено набързо — при изгубен телефон. -->
     <div class="settings-row settings-row-stack" id="settingsDevicesRow">
@@ -893,6 +897,7 @@
 <script src="family.js"></script>
 <script src="classes.js"></script>
 <script src="onboarding.js"></script>
+<script src="tour.js"></script>
 <script>
   // Бутонът „Качи снимка от файл“ отваря скрития файлов диалог. Стоеше като onclick="" в
   // самия бутон, но CSP не пуска код, написан в атрибут — затова връзката се прави тук.

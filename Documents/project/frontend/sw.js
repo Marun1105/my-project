@@ -56,6 +56,7 @@ const SHELL = [
   './focus.js',
   './family.js',
   './onboarding.js',
+  './tour.js',
   // marked и DOMPurify стоят при нас, а не на CDN — в кеша са, за да работи AI
   // отговорът и когато мрежата я няма.
   './vendor/marked.min.js',
