@@ -129,8 +129,12 @@ const Auth = (() => {
   let pendingResetEmail = null;
 
   function showForm(name) {
-    ['login', 'register', 'verify', 'forgot', 'reset'].forEach(f => {
-      $(`${f}Form`).classList.toggle('hidden', f !== name);
+    // 'role' belongs here even though nothing calls showForm('role'): without it
+    // the role screen is only ever closed by answering it, so dismissing the gate
+    // and coming back leaves three role buttons stacked under the login form.
+    ['login', 'register', 'verify', 'forgot', 'reset', 'role'].forEach(f => {
+      const el = $(`${f}Form`);
+      if (el) el.classList.toggle('hidden', f !== name);
     });
     $('authIntro').classList.toggle('hidden', name !== 'login' && name !== 'register');
     clearError();
@@ -350,6 +354,14 @@ const Auth = (() => {
   }
 
   function init() {
+    if ($('googleSignIn')) $('googleSignIn').addEventListener('click', startGoogle);
+    revealGoogleIfAvailable();
+    document.querySelectorAll('.role-choice').forEach(btn => {
+      btn.addEventListener('click', () => chooseRole(btn.dataset.role));
+    });
+    if (window.CLIMBY_DESKTOP && window.CLIMBY_DESKTOP.onSignIn) {
+      window.CLIMBY_DESKTOP.onSignIn(receiveDesktopSignIn);
+    }
     updateEntryGateVisibility();
     window.addEventListener('climby:auth-changed', resetFormsOnLogout);
 
@@ -387,6 +399,102 @@ const Auth = (() => {
       updatePwStrength('registerPassword', 'registerPwStrength', 'registerPwBar', 'registerPwLabel'));
     $('resetPassword').addEventListener('input', () =>
       updatePwStrength('resetPassword', 'resetPwStrength', 'resetPwBar', 'resetPwLabel'));
+  }
+
+  // --- Google ---------------------------------------------------------------
+  //
+  // The browser leg has to happen in the REAL browser: Google refuses to run its
+  // consent screen inside an embedded webview, so an in-app window would only
+  // ever show an error.
+  const NONCE_KEY = 'climby-oauth-nonce';
+
+  // The button stays hidden until the server says the flow exists here. It is a
+  // cheap request and it fails closed: no answer, no button, and the password
+  // form — which always works — is untouched either way.
+  function revealGoogleIfAvailable() {
+    const block = $('googleBlock');
+    if (!block) return;
+    // Only the desktop shell can catch climby://auth. In a browser the tab would
+    // reach the end of the flow and stop there, with the token undeliverable —
+    // a button that looks like it works and does not.
+    if (!(window.CLIMBY_DESKTOP && window.CLIMBY_DESKTOP.onSignIn)) return;
+    fetch(BACKEND + '/auth/providers')
+      .then(res => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then(info => { if (info && info.google) block.classList.remove('hidden'); })
+      .catch(() => { /* asleep or unreachable: leave it hidden */ });
+  }
+
+  function startGoogle() {
+    // A value only this copy of Climby knows. It travels to the server and comes
+    // back in the climby:// link, and a link that does not carry it is ignored
+    // below — otherwise a link someone mails you signs your app into their
+    // account, and everything you write afterwards lands in their profile.
+    // crypto.getRandomValues, not Math.random: this is a security token, and
+    // Math.random's next output can be derived from its previous ones. 128 bits,
+    // hex — which also keeps it inside the character set the server accepts.
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const nonce = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    try { sessionStorage.setItem(NONCE_KEY, nonce); } catch { /* private mode: the check below fails closed */ }
+    window.open(BACKEND + '/auth/google/start?app=' + encodeURIComponent(nonce), '_blank');
+  }
+
+  // The desktop shell catches climby://auth and hands the payload here.
+  function receiveDesktopSignIn(payload) {
+    if (!payload || !payload.token) return;
+    let expected = null;
+    try { expected = sessionStorage.getItem(NONCE_KEY); } catch { /* nothing remembered */ }
+    if (!expected || payload.nonce !== expected) {
+      // We never asked for this sign-in. Say nothing and change nothing.
+      return;
+    }
+    try { sessionStorage.removeItem(NONCE_KEY); } catch { /* it was one-use anyway */ }
+
+    fetch(BACKEND + '/auth/me', { headers: { Authorization: 'Bearer ' + payload.token } })
+      .then(res => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then(user => {
+        _setSession(payload.token, user, true);
+        if (payload.isNew) showRoleChoice();
+        else hideEntryGate();
+      })
+      .catch(() => setError(window.t ? t('auth.googleFailed') : 'Google sign-in did not work.'));
+  }
+
+  function showRoleChoice() {
+    ['loginForm', 'registerForm', 'verifyForm'].forEach(id => {
+      if ($(id)) $(id).classList.add('hidden');
+    });
+    if ($('roleForm')) $('roleForm').classList.remove('hidden');
+    // The gate has to be re-opened, not merely left alone. _setSession fires
+    // climby:auth-changed, whose listener sees a signed-in user and closes the
+    // gate — and #roleForm lives inside it. Without this line the question is
+    // asked into a hidden overlay and every Google account silently stays a
+    // student, which is the one thing this screen exists to prevent.
+    showEntryGate();
+  }
+
+  function chooseRole(role) {
+    // The answer is remembered locally whatever the server says: the person is
+    // already signed in, and a failed request here must not trap them on this
+    // screen. A wrong role is fixable in Settings; a dead end is not.
+    fetch(BACKEND + '/auth/role', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getToken() },
+      body: JSON.stringify({ role }),
+    }).finally(() => {
+      // If the session ended while this was in flight (an expired token
+      // elsewhere logs out silently), writing the cached user back would leave a
+      // user record with no token — getUser() answering while isLoggedIn() says
+      // no. Better to leave nothing behind; the server holds the real role.
+      if (!getToken()) return;
+      const user = getUser() || {};
+      user.role = role;
+      const store = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+      store.setItem(USER_KEY, JSON.stringify(user));
+      if ($('roleForm')) $('roleForm').classList.add('hidden');
+      hideEntryGate();
+      window.dispatchEvent(new CustomEvent('climby:auth-changed', { detail: { loggedIn: true, user } }));
+    });
   }
 
   return { getToken, getUser, getRole, isLoggedIn, logout, init, openEntryGate: showEntryGate };

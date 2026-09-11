@@ -50,6 +50,12 @@
         ]
       }
     ],
+    "protocols": [
+      {
+        "name": "Climby",
+        "schemes": ["climby"]
+      }
+    ],
     "win": {
       "target": [
         "nsis",

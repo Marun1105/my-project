@@ -60,7 +60,10 @@ class User(Base):
     # заявка. Сега номерът "заема" мястото си едва когато е потвърден, а тази
     # уникалност се пази в auth.py, където се вижда и is_phone_verified.
     phone = Column(String, nullable=True, index=True)
-    password_hash = Column(String, nullable=False)
+    # NULL means "this account has no password" — it was created through Google
+    # and signs in that way. The alternative was a sentinel hash, which reads as a
+    # real password to every code path that touches it and matches nothing.
+    password_hash = Column(String, nullable=True)
     role = Column(String, nullable=False, default=Role.student.value, server_default=Role.student.value)
     is_email_verified = Column(Boolean, default=False, nullable=False)
     is_phone_verified = Column(Boolean, default=False, nullable=False)
@@ -72,6 +75,22 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), default=_now)
 
     tasks = relationship("Task", back_populates="owner", cascade="all, delete-orphan")
+
+
+class OAuthIdentity(Base):
+    """One third-party identity (Google today, Microsoft later) tied to one account."""
+
+    __tablename__ = "oauth_identities"
+    __table_args__ = (UniqueConstraint("provider", "subject", name="uq_oauth_provider_subject"),)
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    provider = Column(String, nullable=False)
+    # The provider's own permanent id for this person. NOT the email: people
+    # rename mailboxes and schools reissue addresses, and matching on the address
+    # would quietly create a second account and strand the first.
+    subject = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
 
 
 class Task(Base):

@@ -348,3 +348,77 @@ def test_no_text_points_at_a_screen_that_was_renamed(i18n):
             if word in value:
                 offenders.append(f"{key}: …{word}…")
     assert not offenders, "текст сочи към преименуван екран: " + "; ".join(offenders[:6])
+
+
+def test_every_google_string_exists_in_both_languages():
+    """A key in one language and missing from the other is a blank on screen."""
+    source = _read("i18n.js")
+    for key in ("auth.or", "auth.google", "auth.googleFailed", "auth.roleTitle",
+                "auth.roleStudent", "auth.roleParent", "auth.roleTeacher"):
+        assert source.count(f"'{key}'") >= 2, f"{key} is missing from a language"
+
+
+def test_the_google_button_exists_and_is_wired():
+    html = _read("index.html")
+    js = _read("auth.js")
+    assert 'id="googleSignIn"' in html
+    assert "googleSignIn" in js, "the button exists but nothing listens to it"
+
+
+def test_a_sign_in_the_app_did_not_ask_for_is_ignored():
+    """The nonce check is the only thing standing between a mailed climby:// link
+    and a child's homework landing in a stranger's account."""
+    js = _read("auth.js")
+    assert "climby-oauth-nonce" in js
+    assert "payload.nonce !== expected" in js, "the deep link is accepted unchecked"
+
+
+def test_the_sign_in_nonce_is_not_guessable():
+    """Math.random() is predictable, and this value is a security token.
+
+    It is the only thing stopping a mailed climby:// link from signing a child's
+    app into someone else's account, so it must come from the browser's real
+    random source and not from a generator whose next output can be derived from
+    its previous ones.
+    """
+    js = _read("auth.js")
+    nonce_block = js[js.index("function startGoogle"):js.index("function receiveDesktopSignIn")]
+    # A CALL, not the word: the comment there explains why it is not used.
+    assert "Math.random(" not in nonce_block, "the nonce is guessable"
+    assert "crypto.getRandomValues" in nonce_block
+
+
+def test_the_google_button_starts_hidden():
+    """It is revealed only after the server says the flow exists here.
+
+    Shipped before the credentials are set, a permanently visible button teaches
+    people that Climby is broken rather than that a feature is off.
+    """
+    html = _read("index.html")
+    js = _read("auth.js")
+    block = html[html.index('id="googleBlock"'):]
+    assert 'class="hidden"' in block[:80], "the block is not hidden to begin with"
+    assert "/auth/providers" in js, "nothing ever asks whether it is available"
+
+
+def test_the_role_question_is_asked_where_it_can_be_seen():
+    """#roleForm lives inside #entryGate, and signing in closes that gate.
+
+    Showing the form without re-opening the gate asks the question into a hidden
+    overlay: every Google account would silently keep the student default, which
+    is precisely what this screen exists to prevent.
+    """
+    js = _read("auth.js")
+    block = js[js.index("function showRoleChoice"):js.index("function chooseRole")]
+    assert "showEntryGate()" in block, "the role screen is shown inside a closed gate"
+
+
+def test_the_google_button_is_only_offered_where_it_can_finish():
+    """Only the desktop shell can catch climby://auth.
+
+    In a browser the flow reaches the callback and stops: the token has nowhere
+    to go. A button that looks like it works and does not is worse than none.
+    """
+    js = _read("auth.js")
+    block = js[js.index("function revealGoogleIfAvailable"):js.index("function startGoogle")]
+    assert "CLIMBY_DESKTOP" in block, "the button would show in a browser too"

@@ -59,6 +59,14 @@ def _check_heard_from(v):
     return v
 
 
+class RoleRequest(BaseModel):
+    role: Literal["student", "parent", "teacher"]
+
+
+class SetPasswordRequest(BaseModel):
+    password: str = Field(min_length=8, max_length=128)
+
+
 class RegisterRequest(BaseModel):
     display_name: str = Field(max_length=80)
     username: Optional[str] = Field(default=None, max_length=20)
