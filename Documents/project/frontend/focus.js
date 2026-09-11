@@ -224,10 +224,12 @@ const Focus = (() => {
   const POINT_SMOOTH = 0.45;      // догонване на точките при рисуване
   const EAR_CLOSED = 0.19;        // под това окото се води затворено
   const BLINK_GRACE_MS = 500;     // затворени очи дотук още не са "не гледа"
-  const LOST_GRACE_MS = 1600;     // липсващо лице дотук още не е "излязъл"
+  const LOST_GRACE_MS = 3000;     // липсващо лице дотук още не е "излязъл" —
+                                  // поглед към учебника трае толкова
   const ENTER_FOCUS = 0.62;
   const LEAVE_FOCUS = 0.38;       // нарочно по-нисък от горния
-  const MIN_FACE_FRAC = 0.10;     // по-малко лице от това = твърде далеч
+  const MIN_FACE_FRAC = 0.035;    // по-малко лице от това = твърде далеч.
+                                  // 0.10 искаше ~50 см от лаптоп; това стига до ~1.3 м
 
   let rafId = null;
   let lastDetect = 0;
@@ -265,7 +267,9 @@ const Focus = (() => {
     const tip = pts.nose[pts.nose.length - 1] || pts.nose[0];
     const yaw = Math.abs(tip.x - eyesMid.x) / (box.width || 1);
     const pitch = Math.abs(tip.y - eyesMid.y) / (box.height || 1);
-    return Math.max(0, 1 - Math.max(0, yaw - 0.05) / 0.14) *
+    // Мъртва зона 12% и нула чак при 34%: половин обръщане на главата към
+    // тетрадката не е "не гледа". Старите 5%/19% гасяха сесията от един поглед.
+    return Math.max(0, 1 - Math.max(0, yaw - 0.12) / 0.22) *
            Math.max(0, 1 - Math.max(0, pitch - 0.30) / 0.42);
   }
 
@@ -276,7 +280,7 @@ const Focus = (() => {
 
   async function detectOnce(video) {
     const res = await faceapi
-      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.4 }))
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 }))
       .withFaceLandmarks(true);
     if (!res) return null;
     const lm = res.landmarks;
@@ -303,7 +307,14 @@ const Focus = (() => {
     landmarks = found;
     faceBox = found.box;
 
-    const ear = (eyeAspect(found.leftEye) + eyeAspect(found.rightEye)) / 2;
+    // Наведена към учебника глава свива очите в кадъра и моделът ги чете като
+    // затворени — а ученик, който чете, е точно това, което искаме да броим.
+    // Затова при наклон отвъд мъртвата зона на gazeScore не вярваме на очите
+    // изобщо: наклонът се оценява там, с плавен спад, а не тук, с гилотина.
+    const eyesMidY = (found.leftEye[0].y + found.rightEye[3].y) / 2;
+    const tipY = (found.nose[found.nose.length - 1] || found.nose[0]).y;
+    const lookingDown = Math.abs(tipY - eyesMidY) / (found.box.height || 1) > 0.30;
+    const ear = lookingDown ? 1 : (eyeAspect(found.leftEye) + eyeAspect(found.rightEye)) / 2;
     if (ear < EAR_CLOSED) {
       if (!eyesClosedSince) eyesClosedSince = now;
     } else {
