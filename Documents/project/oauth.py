@@ -11,7 +11,7 @@ import urllib.parse
 
 import httpx
 import jwt
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from jwt import PyJWKClient
 from sqlalchemy.orm import Session
 from starlette.responses import HTMLResponse, RedirectResponse
@@ -116,6 +116,20 @@ def sign_in_with_claims(db: Session, provider: str, claims: dict) -> tuple:
         )
         db.add(user)
         db.flush()
+    elif not user.is_email_verified:
+        # The row exists but nobody ever proved the mailbox: auth.register writes
+        # it before the code is sent, so ANYONE can sit on an address they do not
+        # own. Google has just proved it, and proven ownership beats an unproven
+        # claim — so the account passes to the person holding the mailbox and the
+        # password that was never verified stops working. They can set a new one
+        # from Settings, which is exactly what set-password is for.
+        user.is_email_verified = True
+        user.password_hash = None
+        user.token_version = (user.token_version or 0) + 1
+    else:
+        # An account that proved its own address keeps everything, including its
+        # password. Google is being added as a second way in, not replacing one.
+        pass
 
     db.add(OAuthIdentity(user_id=user.id, provider=provider, subject=subject))
     db.commit()
@@ -169,17 +183,47 @@ def _configured() -> bool:
     return bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 
 
+def _spent(response):
+    """Every way out of the callback burns the state cookie.
+
+    Deleting it only on success left a failed attempt replayable for the full ten
+    minutes of its life. A state that has been answered once is finished,
+    whatever the answer was.
+    """
+    response.delete_cookie(_STATE_COOKIE)
+    return response
+
+
 @router.get("/auth/providers")
 def providers():
     """Which ways in exist on this server. The app hides what is not here."""
     return {"google": _configured()}
 
 
+def _limit(request: Request, bucket: str, max_calls: int):
+    """Rate-limit a browser page, and answer in sentences if it trips.
+
+    These two endpoints are opened in a real browser tab, so a bare 429 JSON body
+    is what the person would read. Everything else in this file answers in words;
+    so does this.
+    """
+    try:
+        rate_limit.enforce(request, bucket, max_calls=max_calls, window_seconds=3600,
+                           message="Too many attempts. Please wait a moment and try again.")
+    except HTTPException as limited:
+        return _page(limited.detail, status=429)
+    return None
+
+
 @router.get("/auth/google/start")
 def google_start(request: Request, app: str = ""):
-    # IP-keyed: there is no account yet, so there is nothing else to key on.
-    rate_limit.enforce(request, "oauth-start", max_calls=20, window_seconds=3600,
-                       message="Too many attempts. Please wait a moment and try again.")
+    # Keyed by IP because there is no account yet — but a whole school leaves
+    # through one address, so the ceiling is set for a classroom pressing this at
+    # the start of a lesson, not for one person. Nothing here costs money: it
+    # builds a URL and redirects.
+    limited = _limit(request, "oauth-start", 300)
+    if limited:
+        return limited
     if not _configured():
         # Sending someone to Google with an empty client id produces one of
         # Google's own error pages, which reads as "Climby is broken".
@@ -210,13 +254,19 @@ def google_start(request: Request, app: str = ""):
 
 def _exchange_code_for_id_token(code: str) -> str:
     """Swap the one-time code for an ID token. Replaced wholesale in tests."""
-    reply = httpx.post(_TOKEN, timeout=15, data={
-        "code": code,
-        "client_id": GOOGLE_CLIENT_ID,
-        "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uri": REDIRECT_URI,
-        "grant_type": "authorization_code",
-    })
+    try:
+        reply = httpx.post(_TOKEN, timeout=15, data={
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": REDIRECT_URI,
+            "grant_type": "authorization_code",
+        })
+    except httpx.HTTPError as err:
+        # A refused connection or a timeout is not an internal error, and the
+        # person should not be shown one. Render sleeps; this happens.
+        print(f"[oauth] could not reach Google: {err!r}", flush=True)
+        raise IdentityRejected("We could not reach Google. Please try again.")
     if reply.status_code != 200:
         print(f"[oauth] token exchange failed: {reply.status_code} {reply.text[:200]}", flush=True)
         raise IdentityRejected("We could not reach Google. Please try again.")
@@ -227,29 +277,30 @@ def _exchange_code_for_id_token(code: str) -> str:
 def google_callback(request: Request, code: str = "", state: str = "",
                     error: str = "", error_subtype: str = "",
                     db: Session = Depends(get_db)):
-    rate_limit.enforce(request, "oauth-callback", max_calls=30, window_seconds=3600,
-                       message="Too many attempts. Please wait a moment and try again.")
+    limited = _limit(request, "oauth-callback", 300)
+    if limited:
+        return limited
 
     if error:
         # A school Workspace with third-party access switched off lands here, and
         # it is the one failure nobody can fix from inside the app. Told apart
         # from a plain cancel, it becomes a detour instead of a dead end.
         if "admin_policy" in (error_subtype or "") or "admin_policy" in error:
-            return _page("Your school has blocked sign-in with Google. "
-                         "Please sign in with your email and password instead.")
-        return _page("Sign-in was cancelled. Nothing has changed.")
+            return _spent(_page("Your school has blocked sign-in with Google. "
+                                "Please sign in with your email and password instead."))
+        return _spent(_page("Sign-in was cancelled. Nothing has changed."))
 
     remembered = request.cookies.get(_STATE_COOKIE) or ""
     issued, _, app_nonce = remembered.partition(".")
     if not issued or not state or not secrets.compare_digest(issued, state):
         # Either a stale tab or somebody else's callback. Both mean: do nothing.
-        return _page("This sign-in link has expired. Please try again from Climby.", status=400)
+        return _spent(_page("This sign-in link has expired. Please try again from Climby.", status=400))
 
     try:
         claims = verify_google_id_token(_exchange_code_for_id_token(code))
         user, is_new = sign_in_with_claims(db, "google", claims)
     except IdentityRejected as rejected:
-        return _page(rejected.message, status=400)
+        return _spent(_page(rejected.message, status=400))
 
     token = security.create_access_token(user.id, user.token_version)
     target = f"climby://auth?t={urllib.parse.quote(token)}"
@@ -257,6 +308,4 @@ def google_callback(request: Request, code: str = "", state: str = "",
         target += "&new=1"
     if _SAFE_NONCE.match(app_nonce or ""):
         target += f"&n={app_nonce}"
-    response = RedirectResponse(target)
-    response.delete_cookie(_STATE_COOKIE)
-    return response
+    return _spent(RedirectResponse(target))

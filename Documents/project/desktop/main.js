@@ -176,7 +176,11 @@ if (!gotLock) {
     // climby://auth?t=... — hostname е "auth". Само този адрес значи нещо тук.
     if (parsed.hostname !== 'auth') return;
     const token = parsed.searchParams.get('t');
-    if (!token || !mainWindow) return;
+    if (!token) return;
+    if (!mainWindow) {
+      pendingSignIn = rawUrl;   // изчаква прозореца
+      return;
+    }
     // nonce-ът се подава нататък непроверен НАРОЧНО: тук няма как да се провери.
     // Стойността я е измислила страницата и само тя знае коя е — обвивката просто
     // я пренася. Проверката е в auth.js, където живее очакваната стойност.
@@ -227,6 +231,15 @@ if (!gotLock) {
 
     Menu.setApplicationMenu(buildMenu());
     mainWindow = createWindow();
+
+    // Връзката, която е СТАРТИРАЛА приложението, стои в argv на този процес —
+    // second-instance не се обажда при първото пускане. Подаваме я чак когато
+    // страницата е готова да я чуе.
+    const startedWith = pendingSignIn || deepLinkFrom(process.argv);
+    if (startedWith) {
+      pendingSignIn = null;
+      mainWindow.webContents.once('did-finish-load', () => forwardSignIn(startedWith));
+    }
 
     // Проверката за нова версия тръгва след като прозорецът е вече на екрана.
     initAutoUpdate(() => mainWindow);

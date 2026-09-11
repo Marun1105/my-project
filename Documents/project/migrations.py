@@ -213,6 +213,17 @@ def _add_nullable_column(table: str, column: str, ddl_type: str) -> bool:
     return True
 
 
+def _dialect_name() -> str:
+    return engine.dialect.name
+
+
+def _password_hash_is_nullable() -> bool:
+    for column in inspect(engine).get_columns("users"):
+        if column["name"] == "password_hash":
+            return bool(column.get("nullable"))
+    return False
+
+
 def _drop_password_not_null() -> bool:
     """Let an account exist without a password (Google sign-in).
 
@@ -221,7 +232,13 @@ def _drop_password_not_null() -> bool:
     definition. A pre-existing local climby.db keeps the old NOT NULL, which is
     harmless because nobody signs in with Google locally.
     """
-    if engine.dialect.name != "postgresql":
+    if _dialect_name() != "postgresql":
+        return False
+    # Asking first is not politeness. Without it this reported success on every
+    # start, so run() never returned [] as it promises, and every worker restart
+    # issued a real ALTER TABLE — an ACCESS EXCLUSIVE lock on users, taken again
+    # and again for a change that was already made.
+    if _password_hash_is_nullable():
         return False
     with engine.connect() as conn:
         conn.execute(text("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL"))

@@ -529,3 +529,16 @@ def test_an_oauth_identity_is_keyed_by_provider_and_subject():
         if con.__class__.__name__ == "UniqueConstraint"
     ]
     assert ("provider", "subject") in uniques
+
+
+def test_the_nullable_migration_does_not_repeat_itself(monkeypatch):
+    """run() promises a second start returns [] — this step broke that promise.
+
+    It reported success unconditionally on Postgres, so every boot appended a
+    step and every boot issued a real ALTER TABLE, which takes an exclusive lock
+    on users. Invisible locally: on SQLite the function returns early. Exactly
+    the class of bug migrations.py already carries a warning about.
+    """
+    monkeypatch.setattr(migrations, "_dialect_name", lambda: "postgresql")
+    monkeypatch.setattr(migrations, "_password_hash_is_nullable", lambda: True)
+    assert migrations._drop_password_not_null() is False, "it would ALTER again"

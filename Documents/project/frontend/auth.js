@@ -129,8 +129,12 @@ const Auth = (() => {
   let pendingResetEmail = null;
 
   function showForm(name) {
-    ['login', 'register', 'verify', 'forgot', 'reset'].forEach(f => {
-      $(`${f}Form`).classList.toggle('hidden', f !== name);
+    // 'role' belongs here even though nothing calls showForm('role'): without it
+    // the role screen is only ever closed by answering it, so dismissing the gate
+    // and coming back leaves three role buttons stacked under the login form.
+    ['login', 'register', 'verify', 'forgot', 'reset', 'role'].forEach(f => {
+      const el = $(`${f}Form`);
+      if (el) el.classList.toggle('hidden', f !== name);
     });
     $('authIntro').classList.toggle('hidden', name !== 'login' && name !== 'register');
     clearError();
@@ -410,6 +414,10 @@ const Auth = (() => {
   function revealGoogleIfAvailable() {
     const block = $('googleBlock');
     if (!block) return;
+    // Only the desktop shell can catch climby://auth. In a browser the tab would
+    // reach the end of the flow and stop there, with the token undeliverable —
+    // a button that looks like it works and does not.
+    if (!(window.CLIMBY_DESKTOP && window.CLIMBY_DESKTOP.onSignIn)) return;
     fetch(BACKEND + '/auth/providers')
       .then(res => (res.ok ? res.json() : Promise.reject(res.status)))
       .then(info => { if (info && info.google) block.classList.remove('hidden'); })
@@ -457,6 +465,12 @@ const Auth = (() => {
       if ($(id)) $(id).classList.add('hidden');
     });
     if ($('roleForm')) $('roleForm').classList.remove('hidden');
+    // The gate has to be re-opened, not merely left alone. _setSession fires
+    // climby:auth-changed, whose listener sees a signed-in user and closes the
+    // gate — and #roleForm lives inside it. Without this line the question is
+    // asked into a hidden overlay and every Google account silently stays a
+    // student, which is the one thing this screen exists to prevent.
+    showEntryGate();
   }
 
   function chooseRole(role) {
@@ -468,6 +482,11 @@ const Auth = (() => {
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getToken() },
       body: JSON.stringify({ role }),
     }).finally(() => {
+      // If the session ended while this was in flight (an expired token
+      // elsewhere logs out silently), writing the cached user back would leave a
+      // user record with no token — getUser() answering while isLoggedIn() says
+      // no. Better to leave nothing behind; the server holds the real role.
+      if (!getToken()) return;
       const user = getUser() || {};
       user.role = role;
       const store = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;

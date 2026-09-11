@@ -399,3 +399,26 @@ def test_the_google_button_starts_hidden():
     block = html[html.index('id="googleBlock"'):]
     assert 'class="hidden"' in block[:80], "the block is not hidden to begin with"
     assert "/auth/providers" in js, "nothing ever asks whether it is available"
+
+
+def test_the_role_question_is_asked_where_it_can_be_seen():
+    """#roleForm lives inside #entryGate, and signing in closes that gate.
+
+    Showing the form without re-opening the gate asks the question into a hidden
+    overlay: every Google account would silently keep the student default, which
+    is precisely what this screen exists to prevent.
+    """
+    js = _read("auth.js")
+    block = js[js.index("function showRoleChoice"):js.index("function chooseRole")]
+    assert "showEntryGate()" in block, "the role screen is shown inside a closed gate"
+
+
+def test_the_google_button_is_only_offered_where_it_can_finish():
+    """Only the desktop shell can catch climby://auth.
+
+    In a browser the flow reaches the callback and stops: the token has nowhere
+    to go. A button that looks like it works and does not is worse than none.
+    """
+    js = _read("auth.js")
+    block = js[js.index("function revealGoogleIfAvailable"):js.index("function startGoogle")]
+    assert "CLIMBY_DESKTOP" in block, "the button would show in a browser too"

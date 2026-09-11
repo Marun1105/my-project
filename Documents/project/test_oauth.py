@@ -270,3 +270,51 @@ def test_the_deep_link_carries_the_nonce_home(monkeypatch):
     client.cookies.clear()
     assert res.status_code == 307
     assert "n=app-nonce-abc" in res.headers["location"], res.headers["location"]
+
+
+def test_an_unproven_account_cannot_capture_someone_who_proves_the_address():
+    """Registration creates the row BEFORE the mailbox is proven.
+
+    So anyone can register victim@school.org and sit on it. If Google sign-in
+    simply joined whatever row matched the address, the victim would be signed
+    into the squatter's account — the squatter's name, and every question the
+    victim asks afterwards readable by them. Google proved the mailbox; the
+    password holder never did, so the proven owner takes the row and the
+    unproven password stops working.
+    """
+    client.post("/auth/register", json={
+        "display_name": "Squatter", "email": "victim@school.org", "password": "squatter123",
+    })
+    db = SessionLocal()
+    squatted = db.query(User).filter(User.email == "victim@school.org").first()
+    assert squatted is not None and squatted.is_email_verified is False
+    db.close()
+
+    db = SessionLocal()
+    user, is_new = oauth.sign_in_with_claims(
+        db, "google", _claims(sub="sub-victim", email="victim@school.org"))
+    assert user.is_email_verified is True, "joining must prove the address, not inherit a lie"
+    assert user.password_hash is None, "the unproven password must stop working"
+    db.close()
+
+    # And the squatter's password no longer opens it.
+    refused = client.post("/auth/login",
+                          json={"email": "victim@school.org", "password": "squatter123"})
+    assert refused.status_code == 401
+
+
+def test_joining_a_proven_account_leaves_its_password_alone():
+    """The ordinary case: a real person who verified, then adds Google."""
+    db = SessionLocal()
+    user = User(display_name="Real", email="real@example.com",
+                password_hash="a-real-looking-hash", is_email_verified=True)
+    db.add(user)
+    db.commit()
+    db.close()
+
+    db = SessionLocal()
+    joined, is_new = oauth.sign_in_with_claims(
+        db, "google", _claims(sub="sub-real", email="real@example.com"))
+    assert is_new is False
+    assert joined.password_hash == "a-real-looking-hash", "a proven password must survive"
+    db.close()
