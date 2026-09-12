@@ -32,6 +32,9 @@ const Tutor = (() => {
         throwOnError: false,
       });
     }
+    // The speaker goes on after the maths is rendered, so what it reads is
+    // what is on screen — and it removes anything still speaking.
+    if (window.Speak) Speak.attach(el);
   }
 
   function showError(text) {

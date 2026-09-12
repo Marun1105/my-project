@@ -422,3 +422,22 @@ def test_the_google_button_is_only_offered_where_it_can_finish():
     js = _read("auth.js")
     block = js[js.index("function revealGoogleIfAvailable"):js.index("function startGoogle")]
     assert "CLIMBY_DESKTOP" in block, "the button would show in a browser too"
+
+
+def test_read_aloud_strings_exist_in_both_languages():
+    source = _read("i18n.js")
+    for key in ("tutor.readAloud", "tutor.stopReading"):
+        assert source.count(f"'{key}'") >= 2, f"{key} is missing from a language"
+
+
+def test_read_aloud_is_attached_after_maths_is_rendered():
+    """Attached after KaTeX, so what is read is what is on screen.
+
+    And never innerText: KaTeX renders every formula twice, a hidden MathML copy
+    and the visible one, so innerText would speak each equation twice.
+    """
+    tutor = _read("tutor.js")
+    speak = _read("speak.js")
+    assert tutor.index("renderMathInElement(el") < tutor.index("Speak.attach(el)")
+    # The property, not the word: the comment in speak.js names innerText to say why not.
+    assert ".katex-mathml" in speak and ".innerText" not in speak
