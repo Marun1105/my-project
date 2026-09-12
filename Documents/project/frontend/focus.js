@@ -199,6 +199,8 @@ const Focus = (() => {
     starting = false;
     $('focusVideo').srcObject = stream;
     sessionStart = Date.now();
+    document.body.classList.add('focus-live');
+    window.dispatchEvent(new CustomEvent('climby:focus-live'));
     focusedMs = 0;
     awayMs = 0;
     showStage('Running');
@@ -712,6 +714,8 @@ const Focus = (() => {
     }
     const totalMs = Date.now() - sessionStart;
     sessionStart = null;
+    document.body.classList.remove('focus-live');
+    window.dispatchEvent(new CustomEvent('climby:focus-live'));
     if (silent) {
       showStage('Idle');
     } else {

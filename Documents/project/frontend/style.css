@@ -997,8 +997,8 @@ body {
   width: 148px;
   height: 148px;
   background: var(--text);
-  -webkit-mask: url('logo.png?v=16') center / contain no-repeat;
-  mask: url('logo.png?v=16') center / contain no-repeat;
+  -webkit-mask: url('logo.png?v=17') center / contain no-repeat;
+  mask: url('logo.png?v=17') center / contain no-repeat;
 }
 .splash .loading-text {
   margin-top: 18px;
@@ -2468,8 +2468,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 .climbai-mark {
   display: inline-block;
   background: currentColor;
-  -webkit-mask: url('climbai-mark.png?v=16') center / contain no-repeat;
-  mask: url('climbai-mark.png?v=16') center / contain no-repeat;
+  -webkit-mask: url('climbai-mark.png?v=17') center / contain no-repeat;
+  mask: url('climbai-mark.png?v=17') center / contain no-repeat;
   flex: none;
 }
 
@@ -2668,3 +2668,79 @@ body.tour-open .sidebar { transition: none; }
 .follow-up textarea:focus { outline: none; border-color: var(--purple); }
 .follow-up .btn-ai { flex: none; }
 @media (prefers-reduced-motion: reduce) { .turn-user { animation: none; } }
+
+/* ---------- the star in its own colours ---------- */
+/* The silhouette takes a colour from CSS, which is right inside a violet button.
+   Where the star stands on its own — the sidebar, the corner — it is the
+   picture itself, with the purple, the lilac and the highlight it was drawn with. */
+.climbai-mark.climbai-mark--color,
+.nav-ai-mark.climbai-mark.climbai-mark--color {
+  -webkit-mask: none;
+  mask: none;
+  background: url('climbai-mark.png?v=17') center / contain no-repeat;
+  filter: none;
+}
+.nav-ai-mark.climbai-mark.climbai-mark--color { width: 22px; height: 22px; }
+
+/* ---------- ClimbAI in the corner ---------- */
+.ai-fab {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 150;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated, var(--bg));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 0 0 rgba(196, 75, 251, 0.0);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  transition: transform .18s ease, box-shadow .35s ease;
+}
+.ai-fab .climbai-mark { width: 30px; height: 30px; }
+.ai-fab:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3), 0 0 0 6px rgba(196, 75, 251, 0.18);
+}
+@media (max-width: 860px) { .ai-fab { right: 16px; bottom: 16px; width: 52px; height: 52px; } }
+
+/* ---------- colour flow ---------- */
+/* Colour moves rather than jumps. Theme changes cross-fade on the big surfaces
+   only — animating every element's colour makes scrolling stutter; the AI
+   surfaces run their wave faster under the pointer; the entry cards grow a
+   flowing violet edge on hover; the active ClimbAI item carries a slow sheen. */
+body, .sidebar, .card, .view, .entry-choice, .settings-panel {
+  transition: background-color .45s ease, color .45s ease, border-color .45s ease;
+}
+.btn-ai, .ai-badge { transition: box-shadow .3s ease, transform .18s ease; }
+.btn-ai:hover { animation-duration: 2.4s; transform: translateY(-1px); box-shadow: 0 10px 26px var(--ai-glow); }
+.entry-choice { position: relative; }
+.entry-choice::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--ai-gradient);
+  background-size: 200% 100%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity .35s ease;
+  pointer-events: none;
+}
+.entry-choice:hover::after { opacity: 1; animation: climby-ai-wave 4s linear infinite; }
+.nav-link.nav-ai.active {
+  background: linear-gradient(100deg, var(--ai-gradient-soft));
+  background-size: 200% 100%;
+  animation: climby-ai-wave 12s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  body, .sidebar, .card, .view, .entry-choice, .settings-panel, .btn-ai, .ai-badge, .ai-fab { transition: none; }
+  .btn-ai:hover, .entry-choice:hover::after, .nav-link.nav-ai.active { animation: none; }
+}
