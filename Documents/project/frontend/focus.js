@@ -224,10 +224,12 @@ const Focus = (() => {
   const POINT_SMOOTH = 0.45;      // догонване на точките при рисуване
   const EAR_CLOSED = 0.19;        // под това окото се води затворено
   const BLINK_GRACE_MS = 500;     // затворени очи дотук още не са "не гледа"
-  const LOST_GRACE_MS = 1600;     // липсващо лице дотук още не е "излязъл"
+  const LOST_GRACE_MS = 3000;     // липсващо лице дотук още не е "излязъл" —
+                                  // поглед към учебника трае толкова
   const ENTER_FOCUS = 0.62;
   const LEAVE_FOCUS = 0.38;       // нарочно по-нисък от горния
-  const MIN_FACE_FRAC = 0.10;     // по-малко лице от това = твърде далеч
+  const MIN_FACE_FRAC = 0.035;    // по-малко лице от това = твърде далеч.
+                                  // 0.10 искаше ~50 см от лаптоп; това стига до ~1.3 м
 
   let rafId = null;
   let lastDetect = 0;
@@ -265,7 +267,9 @@ const Focus = (() => {
     const tip = pts.nose[pts.nose.length - 1] || pts.nose[0];
     const yaw = Math.abs(tip.x - eyesMid.x) / (box.width || 1);
     const pitch = Math.abs(tip.y - eyesMid.y) / (box.height || 1);
-    return Math.max(0, 1 - Math.max(0, yaw - 0.05) / 0.14) *
+    // Мъртва зона 12% и нула чак при 34%: половин обръщане на главата към
+    // тетрадката не е "не гледа". Старите 5%/19% гасяха сесията от един поглед.
+    return Math.max(0, 1 - Math.max(0, yaw - 0.12) / 0.22) *
            Math.max(0, 1 - Math.max(0, pitch - 0.30) / 0.42);
   }
 
@@ -276,7 +280,7 @@ const Focus = (() => {
 
   async function detectOnce(video) {
     const res = await faceapi
-      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.4 }))
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 }))
       .withFaceLandmarks(true);
     if (!res) return null;
     const lm = res.landmarks;
@@ -285,6 +289,11 @@ const Focus = (() => {
       leftEye: lm.getLeftEye(),
       rightEye: lm.getRightEye(),
       nose: lm.getNose(),
+      // Останалите части са само за рисуване: контурът на лицето вместо кутия.
+      jaw: lm.getJawOutline(),
+      leftBrow: lm.getLeftEyeBrow(),
+      rightBrow: lm.getRightEyeBrow(),
+      mouth: lm.getMouth(),
     };
   }
 
@@ -303,7 +312,14 @@ const Focus = (() => {
     landmarks = found;
     faceBox = found.box;
 
-    const ear = (eyeAspect(found.leftEye) + eyeAspect(found.rightEye)) / 2;
+    // Наведена към учебника глава свива очите в кадъра и моделът ги чете като
+    // затворени — а ученик, който чете, е точно това, което искаме да броим.
+    // Затова при наклон отвъд мъртвата зона на gazeScore не вярваме на очите
+    // изобщо: наклонът се оценява там, с плавен спад, а не тук, с гилотина.
+    const eyesMidY = (found.leftEye[0].y + found.rightEye[3].y) / 2;
+    const tipY = (found.nose[found.nose.length - 1] || found.nose[0]).y;
+    const lookingDown = Math.abs(tipY - eyesMidY) / (found.box.height || 1) > 0.30;
+    const ear = lookingDown ? 1 : (eyeAspect(found.leftEye) + eyeAspect(found.rightEye)) / 2;
     if (ear < EAR_CLOSED) {
       if (!eyesClosedSince) eyesClosedSince = now;
     } else {
@@ -358,6 +374,9 @@ const Focus = (() => {
   // approach(), а видимостта се води от три плавни числа — presence (има ли лице),
   // mood (гледа ли) и strength (колко силно). Така смяната на състояние е преливане,
   // а не превключване, и ученикът може спокойно да я гледа с периферното си зрение.
+  // Групите точки, които се изглаждат и рисуват. Редът няма значение; името —
+  // да, защото по него се четат и от landmarks, и от drawPoints.
+  const FACE_PARTS = ["leftEye", "rightEye", "nose", "jaw", "leftBrow", "rightBrow", "mouth"];
   const FRAME_PAD_X = 0.10;       // рамката е малко по-широка от кутията на лицето
   const FRAME_PAD_Y = 0.16;       // и по-висока, за да поеме челото и брадичката
   const SWEEP_MS = 1150;          // колко трае помитането при ново хващане
@@ -438,6 +457,19 @@ const Focus = (() => {
   // Очите се затварят като гладка крива през точките: върховете стават контролни
   // точки, а среднините — опорни. Правите отсечки издаваха, че това са шест
   // измерени числа; кривата изглежда като око и пак се сплесква при мигане.
+  // Отворена гладка линия през точките: за челюстта, веждите и носа. Затворената
+  // (eyeCurvePath) би съединила двата края и би нарисувала торба вместо контур.
+  function openCurvePath(ctx, pts) {
+    const n = pts.length;
+    if (n < 2) return;
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < n - 1; i++) {
+      const cur = pts[i], nxt = pts[i + 1];
+      ctx.quadraticCurveTo(cur.x, cur.y, (cur.x + nxt.x) / 2, (cur.y + nxt.y) / 2);
+    }
+    ctx.lineTo(pts[n - 1].x, pts[n - 1].y);
+  }
+
   function eyeCurvePath(ctx, pts) {
     const n = pts.length;
     if (n < 3) return;
@@ -522,18 +554,36 @@ const Focus = (() => {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // 3. Самата рамка: по-плътна, когато лицето е насочено към тетрадката.
+    // 3. Контурът на самото лице, не кутия около него. Челюстта е "рамката":
+    //    по-плътна, когато лицето е насочено към тетрадката.
     ctx.globalAlpha = presence * (0.34 + 0.46 * mood);
     ctx.lineWidth = Math.max(1.1, unit * 0.0075);
-    bracketPath(ctx, fx, fy, fw, fh, m * 0.30, m * 0.12 * (1 + 0.12 * breath));
+    ctx.beginPath();
+    openCurvePath(ctx, drawPoints.jaw);
     ctx.stroke();
 
-    // Очите — те правят явно, че се следи лице, а не просто правоъгълник.
+    // Веждите — със същата тежест като челюстта; заедно затварят "лицето".
+    ctx.lineWidth = Math.max(1, unit * 0.006);
+    ctx.beginPath();
+    openCurvePath(ctx, drawPoints.leftBrow);
+    openCurvePath(ctx, drawPoints.rightBrow);
+    ctx.stroke();
+
+    // Очите, носът и устата — по-леко: части, не граници.
     ctx.globalAlpha = presence * (0.26 + 0.40 * mood);
     ctx.lineWidth = Math.max(0.9, unit * 0.0045);
     ctx.beginPath();
     eyeCurvePath(ctx, drawPoints.leftEye);
     eyeCurvePath(ctx, drawPoints.rightEye);
+    ctx.stroke();
+
+    ctx.globalAlpha = presence * (0.18 + 0.30 * mood);
+    ctx.beginPath();
+    // Носът идва като 9 точки: 4 по гърба, 5 по основата.
+    openCurvePath(ctx, drawPoints.nose.slice(0, 4));
+    openCurvePath(ctx, drawPoints.nose.slice(4));
+    // Устата — външният контур са първите 12 точки; вътрешният е шум при говор.
+    eyeCurvePath(ctx, drawPoints.mouth.slice(0, 12));
     ctx.stroke();
 
     // 4. Силата на фокуса: тънка дъга под брадичката, която расте от средата на
@@ -591,15 +641,15 @@ const Focus = (() => {
     if (landmarks && faceBox) {
       const k = 1 - Math.pow(1 - POINT_SMOOTH, dt / 16.7);
       if (!drawPoints || drawPoints.leftEye.length !== landmarks.leftEye.length) {
-        drawPoints = {
-          leftEye: landmarks.leftEye.map(p => ({ x: p.x, y: p.y })),
-          rightEye: landmarks.rightEye.map(p => ({ x: p.x, y: p.y })),
-        };
+        drawPoints = {};
+        for (const key of FACE_PARTS) {
+          drawPoints[key] = (landmarks[key] || []).map(p => ({ x: p.x, y: p.y }));
+        }
         drawBox = { x: faceBox.x, y: faceBox.y, width: faceBox.width, height: faceBox.height };
         acquiredAt = now;   // ново хващане — оттук тръгва еднократното помитане
       } else {
-        for (const key of ["leftEye", "rightEye"]) {
-          landmarks[key].forEach((p, i) => {
+        for (const key of FACE_PARTS) {
+          (landmarks[key] || []).forEach((p, i) => {
             const d = drawPoints[key][i];
             if (!d) return;
             d.x = lerp(d.x, p.x, k);
