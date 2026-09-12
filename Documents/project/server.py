@@ -10,7 +10,7 @@ load_dotenv()  # трябва да е преди другите импорти, 
 import base64
 import binascii
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -156,10 +156,29 @@ SYSTEM = {
 повече от една, те обикновено са части от един и същ проблем (напр. продължение на текста на следваща
 страница) — гледай ги заедно, освен ако не изглеждат явно несвързани.
 
-Правила:
-- Обяснявай на български, стъпка по стъпка, ясно и просто, на ниво, подходящо за ученика.
-- Не давай само отговора — покажи как се стига до него, за да се научи ученикът.
-- Ако ученикът е снимал свое решение, провери го и посочи точно къде е сгрешил — насърчаващо, не строго.
+Това е разговор, не еднократен отговор: ученикът може да ти отговори и ти да продължиш.
+
+Как учиш (по изследванията върху добрите учители — виж docs/ai-v-ucheneto.md):
+- Учи, не казвай. Пълното решение се задържа по подразбиране. Стълба от подсказки: (1) насочи
+  към идеята, която е нужна; (2) задай един насочващ въпрос; (3) покажи първата стъпка; (4) цялото
+  решение — само ако ученикът изрично го поиска, или след два неуспешни опита. Ученик, който
+  получава готови отговори, се справя по-добре сега и по-зле на контролното после.
+- Един въпрос наведнъж, после чакай. Не задавай три въпроса в един отговор.
+- Първият ти отговор трябва да е полезен и без продължение: обясни идеята и първата стъпка, после
+  спри с насочващ въпрос или с „опитай следващата стъпка".
+- Когато проверяваш решение на ученика: намери къде се е счупило МИСЛЕНЕТО, не само кой знак е
+  сгрешен. Кажи първо какво е вярно, после точно едно нещо за поправяне.
+- Съобразявай подкрепата с нивото: на по-малък ученик или при първи опит — разработен пример,
+  стъпка по стъпка; на по-силен — по-малко, за да мисли сам. Твърде много помощ вреди на силния,
+  твърде малко — на слабия.
+- Карай ученика да обясни: „защо направи това?", „какво значи този резултат?". Обяснението назад
+  закрепва повече от четенето напред.
+- Кратко. Всеки отговор има естествен край и една следваща стъпка. Език за възрастта на ученика.
+- Насърчаващо, без лекции и без похвали на празно. Никога не правиш домашното вместо него: ако
+  поиска направо отговора, дай пътя и остави последната стъпка на него.
+
+Форма:
+- Обяснявай на български, ясно и просто, на ниво, подходящо за ученика.
 - Ако предметът не е подходящ за обяснение чрез снимка на страница (напр. физическо възпитание,
   практическо музикално изпълнение), кажи го учтиво, вместо да отгатваш отговор.
 - Можеш да използваш Markdown и LaTeX между $...$ или $$...$$ — отговорът се показва в браузър.""",
@@ -169,11 +188,29 @@ etc.), or photos of a solution the student wrote themselves. When there's more t
 usually parts of the same problem (e.g. text continuing onto the next page) — read them together unless
 they clearly look unrelated.
 
-Rules:
-- Explain in English, step by step, clearly and simply, at a level appropriate for the student.
-- Don't just give the answer — show how to get there, so the student actually learns.
-- If the student photographed their own solution, check it and point out exactly where they went
-  wrong — encouragingly, not strictly.
+This is a conversation, not a one-shot answer: the student can reply and you continue.
+
+How you teach (from the research on good tutors — see docs/ai-v-ucheneto.md):
+- Teach, don't tell. The full solution is withheld by default. A ladder of hints: (1) point at the
+  idea that is needed; (2) ask one guiding question; (3) show the first step; (4) the whole
+  solution — only if the student explicitly asks, or after two failed attempts. Students handed
+  answers do better now and worse on the test later.
+- One question at a time, then wait. Never three questions in one reply.
+- Your first reply must be useful even with no follow-up: explain the idea and the first step,
+  then stop with a guiding question or "try the next step".
+- When checking the student's work: find where the THINKING broke, not just which sign is wrong.
+  Say what is right first, then exactly one thing to fix.
+- Match support to the level: a younger student or a first attempt gets a worked example, step by
+  step; a stronger one gets less, so they think. Too much help hurts the strong, too little hurts
+  the weak.
+- Make the student explain: "why did you do that?", "what does this result mean?". Explaining
+  back sticks better than reading forward.
+- Short. Every reply has a natural end and one next step. Language for the student's age.
+- Encouraging, without lectures and without empty praise. Never do the homework for them: if they
+  ask for the answer outright, give the path and leave the last step to them.
+
+Form:
+- Explain in English, clearly and simply, at a level appropriate for the student.
 - If the subject isn't suited to explanation via a page photo (e.g. physical education, a practical
   music performance), say so politely instead of guessing an answer.
 - You can use Markdown and LaTeX between $...$ or $$...$$ — the answer is rendered in a browser.""",
@@ -197,6 +234,11 @@ MAX_ASK_IMAGES_CHARS = 6_000_000
 _image_media_type = image_media_type
 
 
+class Turn(BaseModel):
+    role: Literal["user", "assistant"]
+    text: str = Field(max_length=4000)
+
+
 class Ask(BaseModel):
     # Без таван един клиент в рамките на лимита може да прати десетки снимки в
     # пълен размер наведнъж — сметката при Anthropic е за негова сметка, но се
@@ -205,6 +247,11 @@ class Ask(BaseModel):
     question: str = Field(max_length=2000)
     # Кратък езиков код; без таван и това поле е място, откъдето влиза мегабайт текст.
     lang: str = Field(default="en", max_length=16)
+    # Предишните реплики на същия разговор, по ред, като текст. Снимките са в
+    # images и се закачат към ПЪРВАТА реплика на ученика — те са контекстът на
+    # целия разговор, а не на всеки въпрос поотделно. Таванът пази сметката:
+    # всяка реплика отива при Anthropic отново с цялата история.
+    history: List[Turn] = Field(default_factory=list, max_length=12)
 
     @field_validator("images")
     @classmethod
@@ -336,6 +383,37 @@ def health():
     return {"status": "ok"}
 
 
+def _build_messages(images: list, history: list, question: str) -> list:
+    """The conversation as Anthropic wants it: strictly alternating, images once.
+
+    The photographs are the context of the whole conversation, not of each
+    question, so they are attached to the FIRST student turn only. Two turns in
+    a row from the same side are merged, and a history that opens with the
+    assistant loses that turn — the API rejects both shapes, and the client is
+    not trusted to get them right.
+    """
+    image_blocks = [
+        {"type": "image", "source": {
+            "type": "base64", "media_type": _image_media_type(img) or "image/jpeg", "data": img}}
+        for img in images
+    ]
+    messages = []
+    for turn in history:
+        if messages and messages[-1]["role"] == turn.role:
+            messages[-1]["content"].append({"type": "text", "text": turn.text})
+        else:
+            messages.append({"role": turn.role, "content": [{"type": "text", "text": turn.text}]})
+    if messages and messages[-1]["role"] == "user":
+        messages[-1]["content"].append({"type": "text", "text": question})
+    else:
+        messages.append({"role": "user", "content": [{"type": "text", "text": question}]})
+    while messages and messages[0]["role"] != "user":
+        messages.pop(0)
+    first_user = next(m for m in messages if m["role"] == "user")
+    first_user["content"] = image_blocks + first_user["content"]
+    return messages
+
+
 @app.post("/ask")
 def ask(
     body: Ask,
@@ -346,22 +424,19 @@ def ask(
     lang = body.lang if body.lang in SYSTEM else "en"
     # /ask е достъпен и за гости (без вход), затова лимитът е по IP, а не по акаунт —
     # пази от неограничени разходи за Anthropic API от един клиент/бот.
-    rate_limit.enforce(request, "ask", max_calls=12, window_seconds=3600,
+    # Разговорът значи повече реплики. С акаунт: 30 на час — един истински урок.
+    # Гост остава на 12 по адрес: без акаунт няма по кого да броим.
+    rate_limit.enforce(request, "ask", max_calls=30 if user else 12, window_seconds=3600,
                        message=RATE_LIMIT_MESSAGE[lang], user=user)
     # Типът се взима от самата снимка, а не се предполага: приложението праща JPEG,
     # но качен от компютър файл спокойно може да е PNG и тогава "image/jpeg" е лъжа.
-    content = [
-        {"type": "image", "source": {
-            "type": "base64", "media_type": _image_media_type(img) or "image/jpeg", "data": img}}
-        for img in body.images
-    ]
-    content.append({"type": "text", "text": body.question})
+    messages = _build_messages(body.images, body.history, body.question)
     try:
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=1500,
             system=SYSTEM[lang],
-            messages=[{"role": "user", "content": content}],
+            messages=messages,
         )
     except APIError:
         raise HTTPException(502, ASK_ERROR_MESSAGE[lang])

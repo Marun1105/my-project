@@ -51,6 +51,7 @@ const Speak = (() => {
     if (synth && (synth.speaking || synth.pending)) synth.cancel();
     current = null;
     setSpeaking(false);
+    document.querySelectorAll('.speak-btn.is-speaking').forEach(b => b.classList.remove('is-speaking'));
   }
 
   function start(el) {
@@ -69,7 +70,12 @@ const Speak = (() => {
   }
 
   function toggle(el) {
-    if (current) stop(); else start(el);
+    // The thread has one speaker per answer. Whichever was pressed is the one
+    // whose state should change — not the most recently attached.
+    const wasSpeaking = !!current;
+    stop();
+    button = el.querySelector('.speak-btn') || button;
+    if (!wasSpeaking) start(el);
   }
 
   // Called by tutor.js after every render. The answer's HTML is rebuilt each

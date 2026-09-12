@@ -2622,3 +2622,49 @@ body.tour-open .sidebar { transition: none; }
 .speak-btn.is-speaking .speak-wave { animation: speak-pulse 1.1s ease-in-out infinite; }
 @keyframes speak-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 @media (prefers-reduced-motion: reduce) { .speak-btn.is-speaking .speak-wave { animation: none; } }
+
+/* ---------- the conversation ---------- */
+/* The student's replies are small and to the right, the tutor's answers are
+   full cards: the same asymmetry every chat has, so nobody has to learn it. */
+.thread { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.thread:empty { display: none; }
+.thread .answer { margin: 0; }
+.turn-user {
+  align-self: flex-end;
+  max-width: 78%;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 16px 16px 4px 16px;
+  padding: 10px 14px;
+  animation: climby-rise 0.3s ease both;
+}
+.turn-user .turn-who {
+  display: block;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 2px;
+}
+.turn-user p { margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 1.5; }
+.follow-up {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  margin-top: 12px;
+}
+.follow-up textarea {
+  flex: 1;
+  resize: none;
+  min-height: 44px;
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated, var(--bg));
+  color: var(--text);
+}
+.follow-up textarea:focus { outline: none; border-color: var(--purple); }
+.follow-up .btn-ai { flex: none; }
+@media (prefers-reduced-motion: reduce) { .turn-user { animation: none; } }

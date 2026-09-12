@@ -575,6 +575,13 @@
 </div>
 
 <div id="answer" class="card answer hidden" role="status" aria-live="polite"></div>
+<!-- The rest of the conversation: the student's replies and the tutor's answers,
+     in order. The reply box appears once there is something to reply to. -->
+<div id="thread" class="thread"></div>
+<div id="followUp" class="follow-up hidden">
+  <textarea id="followQuestion" rows="2" data-i18n-placeholder="scanner.followUpPlaceholder" placeholder="Reply, or ask more…"></textarea>
+  <button id="followBtn" class="btn-ai" type="button"><span class="spark climbai-mark" aria-hidden="true"></span><span data-i18n="scanner.followUpBtn">Send</span></button>
+</div>
 
 </main>
 
