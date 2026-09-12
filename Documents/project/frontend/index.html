@@ -265,7 +265,7 @@
              приложение значи "тук работи AI" и никъде другаде. Знакът е този,
              който стои и върху AI бутоните — един и същ навсякъде. -->
         <button class="nav-link nav-parent nav-ai active" data-view="tutor">
-          <span class="nav-ai-mark climbai-mark" aria-hidden="true"></span>
+          <span class="nav-ai-mark climbai-mark climbai-mark--color" aria-hidden="true"></span>
           <span data-i18n="nav.tutor">ClimbAI</span>
           <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
@@ -575,6 +575,13 @@
 </div>
 
 <div id="answer" class="card answer hidden" role="status" aria-live="polite"></div>
+<!-- The rest of the conversation: the student's replies and the tutor's answers,
+     in order. The reply box appears once there is something to reply to. -->
+<div id="thread" class="thread"></div>
+<div id="followUp" class="follow-up hidden">
+  <textarea id="followQuestion" rows="2" data-i18n-placeholder="scanner.followUpPlaceholder" placeholder="Reply, or ask more…"></textarea>
+  <button id="followBtn" class="btn-ai" type="button"><span class="spark climbai-mark" aria-hidden="true"></span><span data-i18n="scanner.followUpBtn">Send</span></button>
+</div>
 
 </main>
 
@@ -878,6 +885,11 @@
 <canvas id="capture" class="hidden"></canvas>
 <canvas id="output" class="hidden"></canvas>
 
+<!-- ClimbAI from anywhere: a circle in the corner of every screen except its
+     own, and never over the focus camera. -->
+<button id="aiFab" class="ai-fab hidden" type="button" data-i18n-aria="nav.tutor" aria-label="ClimbAI">
+  <span class="climbai-mark climbai-mark--color" aria-hidden="true"></span>
+</button>
 <script src="config.js"></script>
 <script src="i18n.js"></script>
 <script src="net.js"></script>
@@ -887,6 +899,7 @@
 <script src="help.js"></script>
 <script src="scanner.js"></script>
 <script src="phone.js"></script>
+<script src="speak.js"></script>
 <script src="tutor.js"></script>
 <script src="auth.js"></script>
 <script src="checklist.js"></script>

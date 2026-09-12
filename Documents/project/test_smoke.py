@@ -508,3 +508,60 @@ def test_the_resend_sandbox_wall_is_named_for_what_it_is(monkeypatch, capsys):
     assert "verified in Resend" in said
     assert "RESEND_FROM" in said
     assert email_service._delivery["failed"] == 1
+
+
+# --- the tutor as a conversation ------------------------------------------------
+
+def _turn(role, text):
+    return server.Turn(role=role, text=text)
+
+
+def test_a_first_question_carries_the_photos():
+    msgs = server._build_messages(["/9j/x"], [], "What is this?")
+    assert [m["role"] for m in msgs] == ["user"]
+    kinds = [b["type"] for b in msgs[0]["content"]]
+    assert kinds == ["image", "text"]
+
+
+def test_photos_are_attached_once_to_the_first_student_turn_only():
+    """The pages are the context of the whole conversation, not of every reply.
+
+    Sending them again on each turn would multiply the cost of a lesson by its
+    length, for nothing the model does not already know.
+    """
+    history = [_turn("user", "Задача 3?"), _turn("assistant", "Първо: какво се търси?"),
+               _turn("user", "Периметърът."), _turn("assistant", "Точно. Коя формула?")]
+    msgs = server._build_messages(["/9j/x"], history, "2a + 2b")
+    assert [m["role"] for m in msgs] == ["user", "assistant", "user", "assistant", "user"]
+    image_turns = [i for i, m in enumerate(msgs) if any(b["type"] == "image" for b in m["content"])]
+    assert image_turns == [0]
+    assert msgs[-1]["content"] == [{"type": "text", "text": "2a + 2b"}]
+
+
+def test_a_history_the_api_would_reject_is_repaired():
+    """Strict alternation, opening with the student: the API refuses anything else.
+
+    The client is not trusted to get it right — two student turns in a row are
+    merged, and a history that opens with the assistant loses that turn.
+    """
+    history = [_turn("assistant", "stray"), _turn("user", "a"), _turn("user", "b"),
+               _turn("assistant", "c")]
+    msgs = server._build_messages([], history, "d")
+    assert [m["role"] for m in msgs] == ["user", "assistant", "user"]
+    assert [b["text"] for b in msgs[0]["content"]] == ["a", "b"]
+
+
+def test_the_conversation_is_bounded():
+    """Each reply resends the whole history to Anthropic; the cap is the bill."""
+    too_long = [{"role": "user", "text": "x"}] * 13
+    res = client.post("/ask", json={"images": [], "question": "q", "history": too_long})
+    assert res.status_code == 422
+
+
+def test_the_tutor_is_told_to_teach_not_tell():
+    for lang in ("bg", "en"):
+        prompt = server.SYSTEM[lang]
+        # the ladder of hints and one-question-at-a-time are the two rules the
+        # research is clearest about; their absence would be a regression
+        assert ("Стълба от подсказки" in prompt) or ("ladder of hints" in prompt)
+        assert ("Един въпрос наведнъж" in prompt) or ("One question at a time" in prompt)

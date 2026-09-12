@@ -1,5 +1,10 @@
 // nav.js — превключва между секциите (Учител / Чеклист / ...) и управлява страничното меню на мобилни
 const Nav = (() => {
+  function currentView() {
+    const shown = [...document.querySelectorAll('.view')].find(v => !v.classList.contains('hidden'));
+    return shown ? shown.id.replace(/^view-/, '') : 'tutor';
+  }
+
   function activate(view) {
     document.querySelectorAll('.view').forEach(el => {
       el.classList.toggle('hidden', el.id !== `view-${view}`);
@@ -55,6 +60,17 @@ const Nav = (() => {
         closeSidebar();
       });
     });
+
+    // The corner button: everywhere but ClimbAI itself, and not while the
+    // focus camera is running — it would sit on the face overlay.
+    const fab = document.getElementById('aiFab');
+    if (fab) {
+      fab.addEventListener('click', () => { activate('tutor'); closeSidebar(); });
+      const place = view => fab.classList.toggle('hidden', view === 'tutor' || document.body.classList.contains('focus-live'));
+      window.addEventListener('climby:view-shown', e => place(e.detail.view));
+      window.addEventListener('climby:focus-live', () => place(currentView()));
+      place(currentView());
+    }
 
     const menuToggle = document.getElementById('menuToggle');
     if (menuToggle) menuToggle.addEventListener('click', openSidebar);
