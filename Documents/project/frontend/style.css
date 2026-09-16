@@ -45,7 +45,14 @@
      single grey shadow under every card is the tell of a template. */
   --shadow-contact: 0 1px 2px rgba(0, 0, 0, 0.45);
   --shadow-ambient: 0 22px 48px -22px rgba(0, 0, 0, 0.65);
-  --aurora: rgba(168, 85, 247, 0.10);
+  --aurora: rgba(168, 85, 247, 0.22);
+  --aurora-2: rgba(232, 121, 249, 0.16);
+  /* Glass: a translucent surface over the aurora, frosted. The alpha is high
+     enough that text keeps its contrast whatever drifts behind it. */
+  --glass: rgba(20, 20, 26, 0.70);
+  --glass-strong: rgba(20, 20, 26, 0.84);
+  --glass-border: rgba(255, 255, 255, 0.11);
+  --glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02) 40%, rgba(196, 75, 251, 0.10));
   /* затъмняването зад всички пълноекранни слоеве — един токен, за да не се
      разминават с по няколко стотни при всяко ново добавяне */
   --scrim: rgba(0, 0, 0, 0.5);
@@ -140,7 +147,12 @@
   --shadow: rgba(0, 0, 0, 0.14);
   --shadow-contact: 0 1px 2px rgba(22, 22, 26, 0.08);
   --shadow-ambient: 0 22px 48px -24px rgba(22, 22, 26, 0.22);
-  --aurora: rgba(124, 58, 237, 0.07);
+  --aurora: rgba(124, 58, 237, 0.16);
+  --aurora-2: rgba(217, 70, 239, 0.12);
+  --glass: rgba(255, 255, 255, 0.66);
+  --glass-strong: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(22, 22, 26, 0.12);
+  --glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3) 40%, rgba(124, 58, 237, 0.08));
   --scrim: rgba(0, 0, 0, 0.45);
 
   /* вълната е една и съща в двете теми — тя е самоличността на ClimbAI */
@@ -650,7 +662,7 @@ body {
   pointer-events: none;
   z-index: 0;
 }
-:root[data-theme="light"] .main-area::before { filter: brightness(0); opacity: 0.045; }
+:root[data-theme="light"] .main-area::before { filter: brightness(0); opacity: 0.02; }
 /* Съдържанието минава отгоре, иначе водният знак го застъпва. */
 .main-area > * { position: relative; z-index: 1; }
 
@@ -2865,24 +2877,6 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
   .paper-card:hover::after, .paper-card.is-active::after, .paper-page:hover::before, .paper-page.is-busy::before { animation: none; }
 }
 
-/* ---------- the source of the violet ---------- */
-/* One atmospheric element and no more: a faint aurora high in the main column,
-   so the accent colour that runs through the buttons and edges has somewhere it
-   comes from. Fixed, behind everything, inert. */
-.view { position: relative; }
-.view::before {
-  content: "";
-  position: absolute;
-  top: -120px; left: 50%;
-  /* Never wider than the column: an ellipse past the viewport edge is a
-     horizontal scrollbar on a phone. */
-  width: min(780px, 100%); height: 420px;
-  transform: translateX(-50%);
-  background: radial-gradient(ellipse at center, var(--aurora), transparent 62%);
-  pointer-events: none;
-  z-index: 0;
-}
-.view > * { position: relative; z-index: 1; }
 
 /* ---------- the rest of the surface ---------- */
 /* Every text field answers focus the same way: the violet takes the edge and
@@ -2929,4 +2923,83 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
 @media (max-width: 560px) {
   .focus-intro { grid-template-columns: 1fr; }
   .focus-ring { grid-row: auto; justify-self: center; }
+}
+
+/* ---------- presence ---------- */
+/* The aurora is the room the app lives in: two colours, large, drifting so
+   slowly that it is felt rather than watched. It sits behind everything,
+   including the sidebar, and every surface is glass over it. */
+body { position: relative; }
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 38% at 22% 18%, var(--aurora), transparent 70%),
+    radial-gradient(36% 34% at 78% 72%, var(--aurora-2), transparent 70%),
+    radial-gradient(30% 30% at 60% 10%, var(--aurora), transparent 70%);
+  animation: climby-aurora 38s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes climby-aurora {
+  from { transform: translate3d(-3%, -2%, 0) rotate(0deg); }
+  to   { transform: translate3d(3%, 3%, 0) rotate(4deg); }
+}
+/* Only the shell needs lifting above the aurora: the overlays are fixed with
+   their own z-index and already sit above it. */
+.app-shell { position: relative; z-index: 1; }
+
+/* Glass surfaces. Frosted, with a sheen along the top-left edge — the way light
+   crosses a pane — and a hairline that is brighter than the surface. */
+.card, .sidebar, .auth-card, .settings-card, .tour-card, .entry-choice, .paper-card, .turn-user, .follow-up textarea, .ai-fab, .paper-back, .speak-btn {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  border-color: var(--glass-border);
+}
+.card, .auth-card, .settings-card, .tour-card, .entry-choice, .paper-card {
+  background-image: var(--glass-sheen);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), var(--shadow-contact), var(--shadow-ambient);
+}
+.sidebar { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 30%); }
+/* The gate is frosted, not transparent: the app behind is a hint of a room,
+   not a page competing with the sign-in card. */
+.entry-gate {
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(120%);
+  backdrop-filter: blur(22px) saturate(120%);
+}
+.explainer { background: var(--glass-strong); }
+
+/* Titles carry the colour. */
+.page-header h1, .paper-title, .tour-title, .auth-card h2 {
+  background: var(--ai-text-gradient);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: climby-ai-wave 14s linear infinite;
+}
+
+/* Glow where the app is alive: the active item, the AI button, the corner. */
+.nav-link.active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 24px -10px var(--ai-glow); }
+.nav-link.nav-ai.active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 10px 30px -8px var(--ai-glow); }
+.btn-ai { box-shadow: 0 8px 28px -4px var(--ai-glow), 0 0 0 1px rgba(255, 255, 255, 0.08) inset; }
+.btn-ai:hover { box-shadow: 0 12px 36px -4px var(--ai-glow), 0 0 0 1px rgba(255, 255, 255, 0.14) inset; }
+.ai-fab { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 0 1px var(--glass-border), 0 0 34px -6px var(--ai-glow); }
+.ai-fab::after {
+  content: ""; position: absolute; inset: -6px; border-radius: 50%;
+  border: 1px solid rgba(196, 75, 251, 0.35);
+  animation: climby-halo 3.2s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes climby-halo { 0% { transform: scale(.92); opacity: .8; } 100% { transform: scale(1.25); opacity: 0; } }
+.entry-choice.entry-choice-ai, .paper-card.is-active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 14px 40px -12px var(--ai-glow); }
+.answer::before { height: 3px; box-shadow: 0 0 18px var(--ai-glow); }
+
+@media (prefers-reduced-motion: reduce) {
+  body::before, .page-header h1, .paper-title, .tour-title, .auth-card h2, .ai-fab::after { animation: none; }
 }
