@@ -1,0 +1,25 @@
+{
+  "_": "Past exam papers, published by the Ministry of Education (МОН) for preparation. One row per paper. Adding an exam, subject or year is a row here, not code. `id` is what the app requests; `url` is never sent to the browser — the server fetches it once and serves the file itself, because mon.bg sends no CORS headers.",
+  "exams": {
+    "nvo7":  { "label": { "bg": "НВО 7 клас", "en": "NVO, grade 7" } },
+    "nvo10": { "label": { "bg": "НВО 10 клас", "en": "NVO, grade 10" } },
+    "matura": { "label": { "bg": "Матура", "en": "Matura (grade 12)" } }
+  },
+  "subjects": {
+    "math": { "label": { "bg": "Математика", "en": "Mathematics" } },
+    "bel":  { "label": { "bg": "Български език и литература", "en": "Bulgarian language and literature" } }
+  },
+  "papers": [
+    { "id": "nvo7-math-2026", "exam": "nvo7", "subject": "math", "year": 2026, "url": "https://www.mon.bg/nfs/2026/06/nvo26_matematika_7klasotgovori_19062026.pdf" },
+    { "id": "nvo7-math-2025", "exam": "nvo7", "subject": "math", "year": 2025, "url": "https://www.mon.bg/nfs/2025/06/nvo-7-klas-math-v2-otgovori-20.06.2025.pdf" },
+    { "id": "nvo7-math-2024", "exam": "nvo7", "subject": "math", "year": 2024, "url": "https://www.mon.bg/nfs/2024/06/nvo_math-7klotgovori_21062024.pdf" },
+    { "id": "nvo7-math-2023", "exam": "nvo7", "subject": "math", "year": 2023, "url": "https://www.mon.bg/nfs/2023/06/nvo_math_7klas_variant2_16.06.2023.pdf" },
+    { "id": "nvo7-math-2022", "exam": "nvo7", "subject": "math", "year": 2022, "url": "https://www.mon.bg/nfs/2022/06/7kl_nvo_math_16062022.pdf" },
+    { "id": "nvo7-math-2021", "exam": "nvo7", "subject": "math", "year": 2021, "url": "https://www.mon.bg/nfs/2021/06/nvo-math_7kl_18062021.pdf" },
+    { "id": "nvo7-math-2020", "exam": "nvo7", "subject": "math", "year": 2020, "url": "https://www.mon.bg/nfs/2020/06/nvo-viikl-math_17062020.pdf" },
+    { "id": "nvo7-math-2019", "exam": "nvo7", "subject": "math", "year": 2019, "url": "https://www.mon.bg/nfs/2019/06/math_190619-7kl.pdf" },
+    { "id": "nvo7-math-2018", "exam": "nvo7", "subject": "math", "year": 2018, "url": "https://www.mon.bg/nfs/2018/05/7kl-math_230518.pdf" },
+    { "id": "nvo7-math-2017", "exam": "nvo7", "subject": "math", "year": 2017, "url": "https://www.mon.bg/nfs/2018/01/7kl_math_22052017.pdf" },
+    { "id": "nvo7-math-2016", "exam": "nvo7", "subject": "math", "year": 2016, "url": "https://www.mon.bg/nfs/2018/01/vo_7kl_math_20052016.pdf" }
+  ]
+}

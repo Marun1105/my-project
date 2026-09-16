@@ -5,3 +5,6 @@ climby.db
 node_modules/
 electron/dist/
 electron/out/
+
+# downloaded exam papers — a mirror, rebuilt on demand
+papers_cache/
