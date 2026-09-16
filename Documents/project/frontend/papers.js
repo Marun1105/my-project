@@ -209,6 +209,9 @@ const Papers = (() => {
     if (!btn) return;
     btn.addEventListener('click', open);
     $('paperBack').addEventListener('click', close);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !$('paperPicker').classList.contains('hidden')) close();
+    });
     window.addEventListener('climby:lang-changed', () => { if (catalogue && !$('paperPicker').classList.contains('hidden')) renderTabs(); });
   }
 

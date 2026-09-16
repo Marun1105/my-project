@@ -10,10 +10,12 @@
   /* Никъде чисто черно: #000 върху OLED дъно изглежда като дупка в екрана и
      ръбовете на картите изчезват. Тонът е едва доловимо студен, за да не изглежда
      сиво-мръсен, но си остава неутрален. */
-  --bg: #0d0d10;
-  --bg-elevated: #17171b;
-  --bg-sunken: #08080a;
-  --border: #2c2c33;
+  --bg: #0a0a0d;
+  --bg-elevated: #141419;
+  --bg-sunken: #060608;
+  /* A hairline of light, not a grey line: the edge a lit surface has. */
+  --border: rgba(255, 255, 255, 0.085);
+  --edge-light: rgba(255, 255, 255, 0.045);
   --text: #f7f7f8;
   --text-dim: #a4a4ad;
   /* Третото стъпало носи истински текст — етикетите на полетата в покой и всеки
@@ -39,6 +41,11 @@
   --purple: #c44bfb;   /* вторичен акцент за AI, върху тъмен фон: 5.31:1 */
   --pink: #ffffff;
   --shadow: rgba(0, 0, 0, 0.4);
+  /* Two shadows, not one: a tight contact shadow and a soft ambient one. The
+     single grey shadow under every card is the tell of a template. */
+  --shadow-contact: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-ambient: 0 22px 48px -22px rgba(0, 0, 0, 0.65);
+  --aurora: rgba(168, 85, 247, 0.10);
   /* затъмняването зад всички пълноекранни слоеве — един токен, за да не се
      разминават с по няколко стотни при всяко ново добавяне */
   --scrim: rgba(0, 0, 0, 0.5);
@@ -80,7 +87,7 @@
   /* Стълба за размера на текста. Дотук всяко заглавие си избираше размер само
      (18/600, 18/700, 19/700, 17/600, 15/700) и приликите между тях бяха случайни.
      Пет стъпала стигат: екран, заглавие на карта, текст, второстепенно, надпис. */
-  --fs-page: 26px;
+  --fs-page: 30px;
   --fs-section: 18px;
   --fs-body: 15px;
   --fs-meta: 13px;
@@ -106,10 +113,11 @@
 }
 
 :root[data-theme="light"] {
-  --bg: #f4f4f6;
-  --bg-elevated: #fcfcfd;
-  --bg-sunken: #e8e8ec;
-  --border: #d7d7dd;
+  --bg: #f3f3f6;
+  --bg-elevated: #ffffff;
+  --bg-sunken: #e9e9ee;
+  --border: rgba(22, 22, 26, 0.10);
+  --edge-light: rgba(255, 255, 255, 0.9);
   --text: #16161a;
   --text-dim: #585858;
   /* Същото и на светло: #8a8a8a падаше до 3.14:1 върху --bg. #6e6e73 държи
@@ -130,6 +138,9 @@
   --purple: #7b2ff7;   /* върху светъл фон: 5.85:1 */
   --pink: #16161a;
   --shadow: rgba(0, 0, 0, 0.14);
+  --shadow-contact: 0 1px 2px rgba(22, 22, 26, 0.08);
+  --shadow-ambient: 0 22px 48px -24px rgba(22, 22, 26, 0.22);
+  --aurora: rgba(124, 58, 237, 0.07);
   --scrim: rgba(0, 0, 0, 0.45);
 
   /* вълната е една и съща в двете теми — тя е самоличността на ClimbAI */
@@ -387,7 +398,6 @@ body {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--text-faint);
 }
 .account-menu-theme .theme-switch { width: 100%; }
@@ -960,8 +970,8 @@ body {
   font-family: var(--font-heading);
   font-size: var(--fs-page);
   font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
   color: var(--text);
 }
 .page-subtitle {
@@ -1271,14 +1281,17 @@ button:disabled { opacity: 0.4; cursor: default; }
 .card {
   position: relative;
   width: 100%;
-  margin-top: 18px;
+  margin-top: 20px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: var(--radius-lg);
-  padding: 20px 22px;
+  padding: 22px 24px;
   line-height: 1.65;
   font-size: 15.5px;
+  /* The one-pixel highlight along the top edge is what makes a dark surface
+     read as an object under light rather than a rectangle of a lighter grey. */
+  box-shadow: inset 0 1px 0 var(--edge-light), var(--shadow-contact), var(--shadow-ambient);
   animation: climby-rise 0.35s ease both;
   overflow: hidden;
 }
@@ -1747,7 +1760,8 @@ button:disabled { opacity: 0.4; cursor: default; }
   width: 100%;
   margin-top: 14px;
   background: var(--accent-soft);
-  border: 1px solid var(--accent);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
   border-radius: var(--radius);
   padding: 14px 16px;
   font-size: 14px;
@@ -2263,10 +2277,13 @@ button:disabled { opacity: 0.4; cursor: default; }
   width: 100%;
   display: grid;
   /* Four doors now. They wrap to two-by-two before they would crush. */
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
-@media (max-width: 720px) {
+@media (max-width: 900px) {
+  .entry-choices { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 520px) {
   .entry-choices { grid-template-columns: 1fr; }
 }
 
@@ -2555,8 +2572,6 @@ button:disabled { opacity: 0.4; cursor: default; }
 .tour-step {
   margin: 0 0 6px;
   font-size: 12px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
   color: var(--text-dim);
 }
 .tour-title {
@@ -2642,13 +2657,12 @@ body.tour-open .sidebar { transition: none; }
 .turn-user .turn-who {
   display: block;
   font-size: 11px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
   color: var(--text-faint);
   margin-bottom: 2px;
 }
 .turn-user p { margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 1.5; }
 .follow-up {
+  width: 100%;
   display: flex;
   gap: 10px;
   align-items: flex-end;
@@ -2717,7 +2731,7 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
   transition: background-color .45s ease, color .45s ease, border-color .45s ease;
 }
 .btn-ai, .ai-badge { transition: box-shadow .3s ease, transform .18s ease; }
-.btn-ai:hover { animation-duration: 2.4s; transform: translateY(-1px); box-shadow: 0 10px 26px var(--ai-glow); }
+.btn-ai:hover { animation-duration: 2.4s; box-shadow: 0 10px 26px var(--ai-glow); }
 .entry-choice { position: relative; }
 .entry-choice::after {
   content: "";
@@ -2803,7 +2817,7 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
   cursor: pointer; text-align: left; font: inherit;
   transition: transform .18s ease, box-shadow .3s ease, border-color .25s ease;
 }
-.paper-card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18); }
+.paper-card:hover { box-shadow: var(--shadow-contact), var(--shadow-ambient); }
 /* The same flowing violet edge the entry cards have: one language, not two. */
 .paper-card::after {
   content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
@@ -2832,7 +2846,7 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
   cursor: pointer; scroll-snap-align: start;
   transition: transform .18s ease, box-shadow .3s ease, border-color .25s ease;
 }
-.paper-page:hover { transform: translateY(-2px); border-color: var(--purple); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2); }
+.paper-page:hover { border-color: var(--purple); }
 .paper-page::before {
   content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 1;
   background: var(--ai-gradient); background-size: 200% 100%;
@@ -2850,3 +2864,22 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
   .paper-picker, .paper-card, .paper-page, .paper-back { animation: none; transition: none; }
   .paper-card:hover::after, .paper-card.is-active::after, .paper-page:hover::before, .paper-page.is-busy::before { animation: none; }
 }
+
+/* ---------- the source of the violet ---------- */
+/* One atmospheric element and no more: a faint aurora high in the main column,
+   so the accent colour that runs through the buttons and edges has somewhere it
+   comes from. Fixed, behind everything, inert. */
+.view { position: relative; }
+.view::before {
+  content: "";
+  position: absolute;
+  top: -120px; left: 50%;
+  /* Never wider than the column: an ellipse past the viewport edge is a
+     horizontal scrollbar on a phone. */
+  width: min(780px, 100%); height: 420px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, var(--aurora), transparent 62%);
+  pointer-events: none;
+  z-index: 0;
+}
+.view > * { position: relative; z-index: 1; }

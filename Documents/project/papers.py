@@ -9,6 +9,7 @@
 import json
 import os
 import re
+import uuid
 from pathlib import Path
 
 import httpx
@@ -56,7 +57,10 @@ def catalogue():
 def _fetch_to_cache(paper: dict, target: Path) -> None:
     """One download, streamed to disk, refused if it grows past the cap."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    tmp = target.with_suffix(".part")
+    # Unique per attempt: Render runs several workers, and two of them fetching
+    # the same paper at once would otherwise write into one temp file and leave
+    # a corrupted PDF behind for everyone.
+    tmp = target.with_name(f"{target.stem}.{os.getpid()}.{uuid.uuid4().hex[:8]}.part")
     written = 0
     try:
         with httpx.stream("GET", paper["url"], timeout=60, follow_redirects=True) as r:
