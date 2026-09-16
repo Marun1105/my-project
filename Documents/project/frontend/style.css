@@ -65,7 +65,7 @@
   --on-ai: #0d0d10;
 
   /* меко осветяване на фона — вече неутрално, за да не връща зелен оттенък */
-  --ambient-a: rgba(255, 255, 255, 0.05);
+  --ambient-a: rgba(168, 85, 247, 0.12);
   --ambient-b: rgba(255, 255, 255, 0.03);
 
   --font-body: 'Inter', system-ui, sans-serif;
@@ -151,7 +151,7 @@
   --ai-text-gradient: linear-gradient(100deg, #6d28d9 0%, #9333ea 45%, #7c3aed 75%, #6d28d9 100%);
   --on-ai: #0d0d10;
 
-  --ambient-a: rgba(0, 0, 0, 0.04);
+  --ambient-a: rgba(124, 58, 237, 0.08);
   --ambient-b: rgba(0, 0, 0, 0.03);
 }
 
@@ -591,7 +591,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 24px 22px 20px;
-  box-shadow: 0 20px 50px var(--shadow);
+  box-shadow: inset 0 1px 0 var(--edge-light), var(--shadow-contact), 0 28px 60px -24px rgba(0, 0, 0, 0.6);
   animation: climby-rise 0.2s ease both;
 }
 .settings-card h2 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin-bottom: 6px; padding-right: 24px; }
@@ -646,7 +646,7 @@ body {
   height: min(60vw, 620px);
   background: url('logo-icon.png') center/contain no-repeat;
   filter: brightness(0) invert(1);
-  opacity: 0.035;
+  opacity: 0.028;
   pointer-events: none;
   z-index: 0;
 }
@@ -707,7 +707,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 28px 26px 26px;
-  box-shadow: 0 16px 40px var(--shadow);
+  box-shadow: inset 0 1px 0 var(--edge-light), var(--shadow-contact), 0 28px 60px -24px rgba(0, 0, 0, 0.6);
 }
 .auth-card .explainer:first-child { margin-top: 0; }
 
@@ -2883,3 +2883,50 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
   z-index: 0;
 }
 .view > * { position: relative; z-index: 1; }
+
+/* ---------- the rest of the surface ---------- */
+/* Every text field answers focus the same way: the violet takes the edge and
+   a soft halo, so the eye finds the active field without a hard outline. */
+.field input:focus, .task-form input:focus, .task-form textarea:focus,
+#question:focus, .follow-up textarea:focus, .code-input:focus, .settings-card input:focus {
+  outline: none;
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(196, 75, 251, 0.18);
+}
+.tour-replay { white-space: nowrap; }
+
+/* Ascent, before it is switched on: the switch and its explanation sit in one
+   lit card, with the timer's ring already there, at rest. The screen was a
+   switch and a sentence floating in a column of nothing. */
+.focus-intro {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px 24px;
+  align-items: center;
+}
+.focus-intro .focus-toggle-row { margin: 0; grid-column: 1; grid-row: 1; }
+.focus-intro .hint { margin: 0; grid-column: 1; grid-row: 2; }
+.focus-ring {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, var(--bg-elevated) 78%, transparent 80%),
+    conic-gradient(from 210deg, var(--purple) 0 62%, var(--border) 62% 100%);
+  position: relative;
+}
+.focus-ring::after {
+  content: "";
+  position: absolute; inset: 30px;
+  border-radius: 50%;
+  background: var(--ai-gradient);
+  opacity: .9;
+}
+/* Once the camera is on, the live overlay is the ring; the resting one goes. */
+.focus-intro:has(#focusOff.hidden) { grid-template-columns: 1fr; }
+.focus-intro:has(#focusOff.hidden) .focus-ring { display: none; }
+@media (max-width: 560px) {
+  .focus-intro { grid-template-columns: 1fr; }
+  .focus-ring { grid-row: auto; justify-self: center; }
+}
