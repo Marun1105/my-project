@@ -238,7 +238,7 @@ _image_media_type = image_media_type
 
 class Turn(BaseModel):
     role: Literal["user", "assistant"]
-    text: str = Field(max_length=4000)
+    text: str = Field(min_length=1, max_length=4000)
 
 
 class Ask(BaseModel):
@@ -246,7 +246,7 @@ class Ask(BaseModel):
     # пълен размер наведнъж — сметката при Anthropic е за негова сметка, но се
     # плаща от този сървър. Осем страници стигат за най-дългото домашно.
     images: List[str] = Field(max_length=8)
-    question: str = Field(max_length=2000)
+    question: str = Field(min_length=1, max_length=2000)
     # Кратък езиков код; без таван и това поле е място, откъдето влиза мегабайт текст.
     lang: str = Field(default="en", max_length=16)
     # Предишните реплики на същия разговор, по ред, като текст. Снимките са в
@@ -401,6 +401,8 @@ def _build_messages(images: list, history: list, question: str) -> list:
     ]
     messages = []
     for turn in history:
+        if not turn.text.strip():
+            continue   # an empty text block is rejected by the API outright
         if messages and messages[-1]["role"] == turn.role:
             messages[-1]["content"].append({"type": "text", "text": turn.text})
         else:

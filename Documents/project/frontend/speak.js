@@ -106,8 +106,9 @@ const Speak = (() => {
     // Voices arrive late; a button decided against before they load would be
     // wrong. Re-attach once they are known, if an answer is on screen.
     synth.addEventListener('voiceschanged', () => {
-      const el = document.getElementById('answer');
-      if (el && !el.classList.contains('hidden') && !el.querySelector('.speak-btn')) attach(el);
+      const cards = [...document.querySelectorAll('.answer:not(.hidden)')];
+      const el = cards[cards.length - 1];
+      if (el && !el.querySelector('.speak-btn')) attach(el);
     });
     window.addEventListener('climby:view-shown', stop);
     window.addEventListener('climby:lang-changed', stop);

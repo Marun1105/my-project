@@ -565,3 +565,17 @@ def test_the_tutor_is_told_to_teach_not_tell():
         # research is clearest about; their absence would be a regression
         assert ("Стълба от подсказки" in prompt) or ("ladder of hints" in prompt)
         assert ("Един въпрос наведнъж" in prompt) or ("One question at a time" in prompt)
+
+
+def test_a_blank_turn_is_dropped_before_it_reaches_the_api():
+    """An empty text block is a 400 from Anthropic, not a conversation."""
+    history = [_turn("user", "a"), _turn("assistant", "   "), _turn("user", "b")]
+    msgs = server._build_messages([], history, "c")
+    # the blank assistant turn is gone, so "a", "b" and "c" merge into one student turn
+    assert [m["role"] for m in msgs] == ["user"]
+    assert [b["text"] for b in msgs[0]["content"]] == ["a", "b", "c"]
+
+
+def test_an_empty_question_is_refused_before_the_api():
+    res = client.post("/ask", json={"images": [], "question": "", "history": []})
+    assert res.status_code == 422

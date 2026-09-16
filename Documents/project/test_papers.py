@@ -20,8 +20,11 @@ client = TestClient(server.app)
 
 
 @pytest.fixture(autouse=True)
-def _clean():
+def _clean(monkeypatch, tmp_path):
     rate_limit._hits.clear()
+    # CACHE_DIR is read when papers.py is imported, and another test module may
+    # have imported it first — so the env var above is not enough on its own.
+    monkeypatch.setattr(papers, "CACHE_DIR", tmp_path)
     yield
 
 
@@ -95,3 +98,11 @@ def test_a_paper_that_is_not_a_pdf_is_refused(monkeypatch):
     res = client.get("/papers/nvo7-math-2016.pdf")
     assert res.status_code == 502
     assert not (papers.CACHE_DIR / "nvo7-math-2016.pdf").exists(), "a non-PDF was cached"
+
+
+def test_two_workers_fetching_the_same_paper_do_not_share_a_temp_file():
+    """Render runs several workers. A shared temp file means one truncates the
+    other's download and a corrupted PDF is cached for everyone."""
+    import inspect
+    src = inspect.getsource(papers._fetch_to_cache)
+    assert "getpid" in src and "uuid" in src
