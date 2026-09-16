@@ -441,3 +441,18 @@ def test_read_aloud_is_attached_after_maths_is_rendered():
     assert tutor.index("renderMathInElement(el") < tutor.index("Speak.attach(el)")
     # The property, not the word: the comment in speak.js names innerText to say why not.
     assert ".katex-mathml" in speak and ".innerText" not in speak
+
+
+def test_past_paper_strings_exist_in_both_languages():
+    source = _read("i18n.js")
+    for key in ("entry.paperTitle", "papers.title", "papers.page", "papers.errPaper"):
+        assert source.count(f"'{key}'") >= 2, f"{key} is missing from a language"
+
+
+def test_the_paper_picker_is_a_sibling_of_the_entry_stage():
+    """It replaces the entry cards while open. Nested inside them, hiding the
+    stage hides the picker with it — which is exactly what happened first."""
+    html = _read("index.html")
+    a = html.index('id="entryStage"'); b = html.index('id="paperPicker"')
+    between = html[a:b]
+    assert between.count("<div") == between.count("</div>"), "the picker is inside the entry stage"

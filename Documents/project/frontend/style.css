@@ -2262,7 +2262,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 .entry-choices {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* Four doors now. They wrap to two-by-two before they would crush. */
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 12px;
 }
 @media (max-width: 720px) {
@@ -2743,4 +2744,109 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
 @media (prefers-reduced-motion: reduce) {
   body, .sidebar, .card, .view, .entry-choice, .settings-panel, .btn-ai, .ai-badge, .ai-fab { transition: none; }
   .btn-ai:hover, .entry-choice:hover::after, .nav-link.nav-ai.active { animation: none; }
+}
+
+/* ---------- past papers ---------- */
+/* The picker replaces the four entry cards while it is open. It borrows the
+   vocabulary already on screen: the card, the chip, the violet edge that
+   flows under the pointer, the gradient bar that means "this one". */
+.paper-picker { width: 100%; animation: climby-rise 0.3s ease both; }
+.paper-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+.paper-back {
+  flex: none;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated, var(--bg));
+  color: var(--text-dim);
+  display: grid; place-items: center;
+  cursor: pointer; padding: 0;
+  transition: color .2s ease, border-color .2s ease, transform .18s ease;
+}
+.paper-back svg { width: 20px; height: 20px; }
+.paper-back:hover { color: var(--text); border-color: var(--text-dim); transform: translateX(-2px); }
+.paper-title { font-family: var(--font-heading); font-size: 22px; margin: 4px 0 4px; line-height: 1.2; }
+.paper-sub { margin: 0; color: var(--text-dim); font-size: 14px; line-height: 1.5; max-width: 52ch; }
+
+.paper-tabs { display: flex; gap: 6px; padding: 4px; border-radius: 14px; background: var(--bg-sunken); width: max-content; max-width: 100%; overflow-x: auto; margin-bottom: 10px; }
+.paper-tab {
+  font: inherit; font-size: 14px; font-weight: 600;
+  padding: 8px 14px; border-radius: 10px; border: 0;
+  background: transparent; color: var(--text-dim); cursor: pointer;
+  white-space: nowrap;
+  transition: background-color .25s ease, color .25s ease, box-shadow .25s ease;
+}
+.paper-tab.is-active { background: var(--bg-elevated, var(--bg)); color: var(--text); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18); }
+.paper-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.paper-chip {
+  font: inherit; font-size: 13px;
+  padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--border); background: transparent; color: var(--text-dim);
+  cursor: pointer; transition: border-color .2s ease, color .2s ease, background-color .2s ease;
+}
+.paper-chip.is-active { border-color: var(--purple); color: var(--text); background: var(--ai-gradient-soft); }
+.paper-status { margin: 8px 0 12px; color: var(--text-dim); font-size: 14px; }
+
+.paper-years {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 12px;
+}
+.paper-card {
+  position: relative;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  padding: 16px 16px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated, var(--bg));
+  color: var(--text);
+  cursor: pointer; text-align: left; font: inherit;
+  transition: transform .18s ease, box-shadow .3s ease, border-color .25s ease;
+}
+.paper-card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18); }
+/* The same flowing violet edge the entry cards have: one language, not two. */
+.paper-card::after {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
+  background: var(--ai-gradient); background-size: 200% 100%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: 0; transition: opacity .35s ease; pointer-events: none;
+}
+.paper-card:hover::after, .paper-card.is-active::after { opacity: 1; animation: climby-ai-wave 4s linear infinite; }
+.paper-card.is-active { border-color: transparent; }
+.paper-year { font-family: var(--font-heading); font-size: 28px; font-weight: 700; line-height: 1; letter-spacing: -0.01em; }
+.paper-meta { font-size: 12px; color: var(--text-dim); line-height: 1.35; }
+
+/* Pages of the chosen paper: a filmstrip. The chosen one carries the answer
+   card's gradient bar — the mark that already means "this one" here. */
+.paper-pages {
+  display: flex; gap: 12px; overflow-x: auto; padding: 18px 2px 8px;
+  scroll-snap-type: x proximity;
+}
+.paper-page {
+  position: relative; flex: none;
+  width: 150px; min-height: 200px;
+  padding: 0; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--bg-sunken);
+  cursor: pointer; scroll-snap-align: start;
+  transition: transform .18s ease, box-shadow .3s ease, border-color .25s ease;
+}
+.paper-page:hover { transform: translateY(-2px); border-color: var(--purple); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2); }
+.paper-page::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 1;
+  background: var(--ai-gradient); background-size: 200% 100%;
+  opacity: 0; transition: opacity .25s ease;
+}
+.paper-page:hover::before, .paper-page.is-busy::before { opacity: 1; animation: climby-ai-wave 3s linear infinite; }
+.paper-thumb { display: block; width: 100%; height: auto; }
+.paper-page-num {
+  position: absolute; right: 8px; bottom: 8px;
+  font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 999px;
+  background: rgba(8, 8, 12, 0.72); color: #fff;
+}
+.paper-page.is-busy { opacity: .65; cursor: progress; }
+@media (prefers-reduced-motion: reduce) {
+  .paper-picker, .paper-card, .paper-page, .paper-back { animation: none; transition: none; }
+  .paper-card:hover::after, .paper-card.is-active::after, .paper-page:hover::before, .paper-page.is-busy::before { animation: none; }
 }

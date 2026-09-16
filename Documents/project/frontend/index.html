@@ -414,6 +414,13 @@
       <span class="entry-choice-title" data-i18n="entry.fileTitle">Снимка отпреди</span>
       <span class="entry-choice-hint" data-i18n="entry.fileHint">Такава, която вече е на този компютър.</span>
     </button>
+    <button id="entryPaperBtn" class="entry-choice" type="button">
+      <span class="entry-choice-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h9l4 4V20a.5.5 0 0 1-.5.5h-12A.5.5 0 0 1 6 20z"/><path d="M15 3.5v4h4"/><path d="M9 12h6M9 15.5h6M9 8.5h2"/></svg>
+      </span>
+      <span class="entry-choice-title" data-i18n="entry.paperTitle">Изпитен вариант</span>
+      <span class="entry-choice-hint" data-i18n="entry.paperHint">НВО и матура от предишни години, вече снимани.</span>
+    </button>
   </div>
 
 <!-- Снимка от телефона: лаптопът рядко има камера, годна за страница от учебник,
@@ -450,6 +457,25 @@
   <p id="phoneQueue" class="hint phone-queue hidden" role="status" aria-live="polite"></p>
   <p id="phoneError" class="auth-error hidden" role="alert"></p>
 </div>
+</div>
+<!-- Past papers: exam, subject, year, page — and the page goes to the scanner as
+     if it had been photographed. Hidden until the fourth entry card is pressed. -->
+<div id="paperPicker" class="paper-picker hidden">
+  <div class="paper-head">
+    <button id="paperBack" class="paper-back" type="button" data-i18n-aria="papers.back" aria-label="Назад">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <div>
+      <h2 class="paper-title" data-i18n="papers.title">Изпитни варианти</h2>
+      <p class="paper-sub" data-i18n="papers.sub">Истинските изпити от МОН. Избери година и страница — после питай за задачата.</p>
+    </div>
+  </div>
+  <div id="paperExams" class="paper-tabs" role="tablist"></div>
+  <div id="paperSubjects" class="paper-chips hidden"></div>
+  <p id="paperStatus" class="paper-status hidden"></p>
+  <div id="paperYears" class="paper-years"></div>
+  <div id="paperPages" class="paper-pages hidden"></div>
+
 
   <!-- Как стига снимката от телефона дотук. Рисува се, вместо да се обяснява с
        три изречения: пътят е кратък и се разбира по-бързо с очи. -->
@@ -899,6 +925,7 @@
 <script src="help.js"></script>
 <script src="scanner.js"></script>
 <script src="phone.js"></script>
+<script src="papers.js"></script>
 <script src="speak.js"></script>
 <script src="tutor.js"></script>
 <script src="auth.js"></script>
