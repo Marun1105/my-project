@@ -969,9 +969,34 @@
 
 <!-- ClimbAI from anywhere: a circle in the corner of every screen except its
      own, and never over the focus camera. -->
-<button id="aiFab" class="ai-fab hidden" type="button" data-i18n-aria="nav.tutor" aria-label="ClimbAI">
+<button id="aiFab" class="ai-fab hidden" type="button" data-i18n-aria="chat.open" aria-label="Chat with ClimbAI" aria-expanded="false" aria-controls="chatPanel">
   <span class="climbai-mark climbai-mark--color" aria-hidden="true"></span>
 </button>
+<!-- The chat the corner circle opens: ClimbAI from any screen, no photo needed. -->
+<div id="chatPanel" class="chat-panel hidden" role="dialog" aria-label="ClimbAI">
+  <div class="chat-head">
+    <span class="climbai-mark climbai-mark--color chat-mark" aria-hidden="true"></span>
+    <div class="chat-title">
+      <strong>ClimbAI</strong>
+      <span data-i18n="chat.sub">Питай каквото и да е</span>
+    </div>
+    <button id="chatNew" class="chat-icon" type="button" data-i18n-aria="chat.new" aria-label="Нов разговор" title="Нов разговор">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button id="chatClose" class="chat-icon" type="button" data-i18n-aria="chat.close" aria-label="Затвори" title="Затвори">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div id="chatLog" class="chat-log" aria-live="polite">
+  </div>
+  <p id="chatEmpty" class="chat-empty" data-i18n="chat.empty">Питай нещо — задача, дума, правило. Отговарям стъпка по стъпка.</p>
+  <div class="chat-input-row">
+    <textarea id="chatInput" rows="1" data-i18n-placeholder="chat.placeholder" placeholder="Напиши въпрос…"></textarea>
+    <button id="chatSend" class="btn-ai chat-send" type="button" data-i18n-aria="chat.send" aria-label="Изпрати">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+</div>
 <script src="config.js"></script>
 <script src="prefs.js"></script>
 <script src="i18n.js"></script>
@@ -983,6 +1008,7 @@
 <script src="scanner.js"></script>
 <script src="phone.js"></script>
 <script src="papers.js"></script>
+<script src="chat.js"></script>
 <script src="speak.js"></script>
 <script src="tutor.js"></script>
 <script src="auth.js"></script>
