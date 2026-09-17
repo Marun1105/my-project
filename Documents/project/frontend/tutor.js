@@ -110,7 +110,8 @@ const Tutor = (() => {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ images: scannedImages, question, lang: I18n.get(), history }),
+        body: JSON.stringify({ images: scannedImages, question, lang: I18n.get(), history,
+                               mode: window.Prefs ? Prefs.get('tutor') : 'hints' }),
       });
       const data = await res.json().catch(() => ({}));
       target.classList.remove('thinking');
@@ -157,6 +158,19 @@ const Tutor = (() => {
   function init() {
     window.addEventListener('climby:scan-ready', e => revealQuestionBox(e.detail.dataUrls));
     $('askBtn').addEventListener('click', () => Net.guardClick($('askBtn'), ask));
+    // Quick questions fill the box; the person can still edit before sending.
+    document.querySelectorAll('.quick').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const box = $('question');
+        box.value = t(btn.dataset.quick);
+        box.focus();
+        if (btn.dataset.quickFocus) { box.setSelectionRange(box.value.length, box.value.length); return; }
+        Net.guardClick($('askBtn'), ask);
+      });
+    });
+    $('question').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); Net.guardClick($('askBtn'), ask); }
+    });
     $('followBtn').addEventListener('click', () => Net.guardClick($('followBtn'), followUp));
     // Enter sends, Shift+Enter is a new line — the way every chat works.
     $('followQuestion').addEventListener('keydown', e => {

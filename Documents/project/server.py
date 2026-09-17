@@ -151,6 +151,15 @@ app.add_middleware(
 # "Всички предмети, с малки изключения" — учителят не се ограничава само до математика.
 # Изключения като физическо възпитание или музикално изпълнение не стават чрез снимка на страница,
 # затова моделът сам казва кога темата не е подходяща за този начин на учене, вместо да отгатва.
+# Appended to the prompt when the student has chosen full solutions in Settings.
+# It overrides the ladder of hints, not the teaching: every step still says why.
+FULL_SOLUTIONS = {
+    "bg": "\n\nУченикът е избрал режим „Цяло решение“: дай пълното решение стъпка по стъпка, "
+          "с обяснение защо се прави всяка стъпка. Не задържай отговора, но не пропускай и разсъждението.",
+    "en": "\n\nThe student has chosen \"Full solutions\": give the complete solution step by step, "
+          "explaining why each step is taken. Do not withhold the answer, and do not skip the reasoning.",
+}
+
 SYSTEM = {
     "bg": """Ти си учител, който помага на ученици от 1-ви до 12-ти клас с домашните им.
 Пред теб има една или няколко снимки на страници от учебник (по всеки предмет — математика, български,
@@ -254,6 +263,11 @@ class Ask(BaseModel):
     # целия разговор, а не на всеки въпрос поотделно. Таванът пази сметката:
     # всяка реплика отива при Anthropic отново с цялата история.
     history: List[Turn] = Field(default_factory=list, max_length=12)
+    # How much the tutor holds back. "hints" is the research default — the
+    # ladder of hints, solution last. "full" is a choice a student or parent can
+    # make in Settings: complete worked solutions, still explained. Both are
+    # teaching; one of them is what you want the night before a test.
+    mode: Literal["hints", "full"] = "hints"
 
     @field_validator("images")
     @classmethod
@@ -439,7 +453,7 @@ def ask(
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=1500,
-            system=SYSTEM[lang],
+            system=SYSTEM[lang] + (FULL_SOLUTIONS[lang] if body.mode == "full" else ""),
             messages=messages,
         )
     except APIError:

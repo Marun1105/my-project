@@ -244,6 +244,37 @@ const Checklist = (() => {
   // тръгнала преди триенето и се връща след него.
   let renderSeq = 0;
 
+  // The line above the list: how much of today is done, and one button for the
+  // evening when everything on it is. Hidden while there is nothing to count.
+  function updateTools(allTasks, pending) {
+    const tools = $('taskTools');
+    if (!tools) return;
+    const total = allTasks.length, done = total - pending.length;
+    tools.classList.toggle('hidden', total === 0);
+    $('taskProgressText').textContent = t('checklist.progress', { done, total });
+    $('taskProgressFill').style.width = (total ? Math.round(100 * done / total) : 0) + '%';
+    $('taskDoneAllBtn').classList.toggle('hidden', pending.length === 0);
+  }
+
+  async function markAllDone() {
+    if (!lastTasks) return;
+    const open = lastTasks.filter(x => !x.done && (!subjectFilter || x.subject === subjectFilter));
+    if (!open.length) return;
+    if (!window.confirm(t('checklist.doneAllConfirm', { n: open.length }))) return;
+    const btn = $('taskDoneAllBtn');
+    btn.disabled = true;
+    try {
+      // One by one, not in parallel: the API is rate-limited per account and a
+      // burst of twenty would trip it for the last few.
+      for (const task of open) {
+        await api(`/tasks/${task.id}`, { method: 'PATCH', body: JSON.stringify({ done: true }) });
+      }
+      _announceChange();
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   async function render() {
     if (!Auth.isLoggedIn()) return;
     // Скрит изглед не се рисува: иначе едно отмятане тегли /tasks и за трите
@@ -282,6 +313,7 @@ const Checklist = (() => {
     updateBadge(allTasks);
 
     let pending = allTasks.filter(t => !t.done);
+    updateTools(allTasks, pending);
     const filtered = subjectFilter
       ? pending.filter(t => t.subject === subjectFilter)
       : pending;
@@ -335,6 +367,7 @@ const Checklist = (() => {
   }
 
   function init() {
+    if ($('taskDoneAllBtn')) $('taskDoneAllBtn').addEventListener('click', markAllDone);
     $('taskForm').addEventListener('submit', e => {
       e.preventDefault();
       Net.guardSubmit(e.currentTarget, () => handleAdd(e));
