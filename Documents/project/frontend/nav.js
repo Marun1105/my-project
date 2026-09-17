@@ -65,11 +65,11 @@ const Nav = (() => {
     // focus camera is running — it would sit on the face overlay.
     const fab = document.getElementById('aiFab');
     if (fab) {
-      fab.addEventListener('click', () => { activate('tutor'); closeSidebar(); });
-      const place = view => fab.classList.toggle('hidden', view === 'tutor' || document.body.classList.contains('focus-live'));
-      window.addEventListener('climby:view-shown', e => place(e.detail.view));
-      window.addEventListener('climby:focus-live', () => place(currentView()));
-      place(currentView());
+      // The circle opens the chat (chat.js). It is on every screen, ClimbAI's own
+      // included, and steps aside only while the focus camera runs.
+      const place = () => fab.classList.toggle('hidden', document.body.classList.contains('focus-live'));
+      window.addEventListener('climby:focus-live', place);
+      place();
     }
 
     const menuToggle = document.getElementById('menuToggle');
