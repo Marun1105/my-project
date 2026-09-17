@@ -235,6 +235,44 @@
         <button type="button" class="theme-switch-option" data-theme-mode="dark" aria-pressed="false" data-i18n="theme.dark">Тъмна</button>
       </div>
     </div>
+    <div class="settings-row settings-row-stack">
+      <span data-i18n="settings.text">Размер на текста</span>
+      <div class="theme-switch" role="group">
+        <button type="button" class="theme-switch-option" data-pref="text" data-value="small" aria-pressed="false" data-i18n="settings.textSmall">Малък</button>
+        <button type="button" class="theme-switch-option" data-pref="text" data-value="normal" aria-pressed="false" data-i18n="settings.textNormal">Обичаен</button>
+        <button type="button" class="theme-switch-option" data-pref="text" data-value="large" aria-pressed="false" data-i18n="settings.textLarge">Голям</button>
+      </div>
+    </div>
+    <div class="settings-row settings-row-stack">
+      <span data-i18n="settings.reading">Четене</span>
+      <div class="theme-switch" role="group">
+        <button type="button" class="theme-switch-option" data-pref="reading" data-value="normal" aria-pressed="false" data-i18n="settings.readingNormal">Обичайно</button>
+        <button type="button" class="theme-switch-option" data-pref="reading" data-value="easy" aria-pressed="false" data-i18n="settings.readingEasy">По-широко</button>
+      </div>
+      <p class="settings-note" data-i18n="settings.readingNote">По-широки букви и редове — по-лесно за очите, особено при дислексия.</p>
+    </div>
+    <div class="settings-row settings-row-stack">
+      <span data-i18n="settings.tutorMode">Как обяснява ClimbAI</span>
+      <div class="theme-switch" role="group">
+        <button type="button" class="theme-switch-option" data-pref="tutor" data-value="hints" aria-pressed="false" data-i18n="settings.tutorHints">Подсказки първо</button>
+        <button type="button" class="theme-switch-option" data-pref="tutor" data-value="full" aria-pressed="false" data-i18n="settings.tutorFull">Цяло решение</button>
+      </div>
+      <p class="settings-note" data-i18n="settings.tutorNote">Подсказките учат повече; цялото решение е за вечерта преди контролно.</p>
+    </div>
+    <div class="settings-row settings-row-stack">
+      <span data-i18n="settings.autoread">Четене на глас</span>
+      <div class="theme-switch" role="group">
+        <button type="button" class="theme-switch-option" data-pref="autoread" data-value="off" aria-pressed="false" data-i18n="settings.autoreadOff">Само с бутона</button>
+        <button type="button" class="theme-switch-option" data-pref="autoread" data-value="on" aria-pressed="false" data-i18n="settings.autoreadOn">Всеки отговор</button>
+      </div>
+    </div>
+    <div class="settings-row settings-row-stack">
+      <span data-i18n="settings.motion">Движение</span>
+      <div class="theme-switch" role="group">
+        <button type="button" class="theme-switch-option" data-pref="motion" data-value="auto" aria-pressed="false" data-i18n="settings.motionAuto">Както е</button>
+        <button type="button" class="theme-switch-option" data-pref="motion" data-value="calm" aria-pressed="false" data-i18n="settings.motionCalm">Спокойно</button>
+      </div>
+    </div>
     <div class="settings-row">
       <span data-i18n="settings.tour">Show the tour again</span>
       <button id="tourReplayBtn" class="btn-secondary tour-replay" type="button" data-i18n="settings.tourBtn">Start</button>
@@ -592,10 +630,19 @@
   </div>
 </div>
 
-<div id="qa" class="qa hidden">
+<div id="qa" class="qa composer card hidden">
   <label for="question" data-i18n="scanner.questionLabel">Питай нещо за страницата</label>
+  <!-- The things people ask most, one tap each. They fill the box; the person
+       can still edit before sending. -->
+  <div class="quick-row" role="group" data-i18n-aria-label="scanner.quickLabel" aria-label="Бързи въпроси">
+    <button type="button" class="quick" data-quick="scanner.quickCheck" data-i18n="scanner.quickCheckBtn">Провери решението ми</button>
+    <button type="button" class="quick" data-quick="scanner.quickExplain" data-quick-focus="1" data-i18n="scanner.quickExplainBtn">Обясни задача…</button>
+    <button type="button" class="quick" data-quick="scanner.quickHint" data-i18n="scanner.quickHintBtn">Само подсказка</button>
+    <button type="button" class="quick" data-quick="scanner.quickWhy" data-i18n="scanner.quickWhyBtn">Защо е така?</button>
+  </div>
   <textarea id="question" data-i18n-placeholder="scanner.questionPlaceholder" placeholder="Напр. „Как се решава задача 5?“ или „Провери решението ми“"></textarea>
-  <div class="controls" style="margin-top: 12px;">
+  <div class="composer-actions">
+    <span class="composer-hint" data-i18n="scanner.composerHint">Enter изпраща · Shift+Enter нов ред</span>
     <button id="askBtn" class="btn-ai" type="button"><span class="spark climbai-mark" aria-hidden="true"></span><span data-i18n="scanner.askBtn">Питай</span></button>
   </div>
 </div>
@@ -652,6 +699,13 @@
       <button type="submit" class="btn-primary" data-i18n="checklist.addBtn">Добави задача</button>
     </form>
 
+    <div id="taskTools" class="task-tools hidden">
+      <div class="task-progress">
+        <span id="taskProgressText" class="task-progress-text"></span>
+        <span class="task-progress-bar" aria-hidden="true"><span id="taskProgressFill" class="task-progress-fill"></span></span>
+      </div>
+      <button id="taskDoneAllBtn" class="btn-secondary task-tool" type="button" data-i18n="checklist.doneAll">Отметни всички</button>
+    </div>
     <ul id="taskList" class="task-list"></ul>
     <div id="taskEmpty" class="empty-state"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6.5h11M9.5 12h11M9.5 17.5h11"/><path d="m3 6.5 1.4 1.4L7 5.4"/><path d="m3 12 1.4 1.4L7 10.9"/><path d="m3 17.5 1.4 1.4L7 16.4"/></svg></span><p class="empty-title" data-i18n="checklist.emptyDefault">Няма добавени задачи още — добави първата отгоре.</p></div>
 
@@ -919,6 +973,7 @@
   <span class="climbai-mark climbai-mark--color" aria-hidden="true"></span>
 </button>
 <script src="config.js"></script>
+<script src="prefs.js"></script>
 <script src="i18n.js"></script>
 <script src="net.js"></script>
 <script src="theme.js"></script>

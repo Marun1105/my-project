@@ -99,6 +99,9 @@ const Speak = (() => {
     el.insertBefore(b, el.firstChild);
     button = b;
     setSpeaking(false);
+    // A choice in Settings: every answer is read as it arrives, for the student
+    // who would otherwise press the button every time — or cannot find it.
+    if (window.Prefs && Prefs.get('autoread') === 'on') start(el);
   }
 
   function init() {

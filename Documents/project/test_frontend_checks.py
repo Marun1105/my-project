@@ -456,3 +456,19 @@ def test_the_paper_picker_is_a_sibling_of_the_entry_stage():
     a = html.index('id="entryStage"'); b = html.index('id="paperPicker"')
     between = html[a:b]
     assert between.count("<div") == between.count("</div>"), "the picker is inside the entry stage"
+
+
+def test_preference_strings_exist_in_both_languages():
+    source = _read("i18n.js")
+    for key in ("settings.text", "settings.reading", "settings.tutorMode", "settings.autoread", "settings.motion",
+                "checklist.doneAll", "checklist.progress", "scanner.quickHint", "scanner.quickCheck"):
+        assert source.count(f"'{key}'") >= 2, f"{key} is missing from a language"
+
+
+def test_preferences_are_applied_before_first_paint():
+    """prefs.js sets the data attributes at load, not on DOMContentLoaded — a
+    large-text reader must not see the small layout flash first."""
+    html = _read("index.html")
+    assert html.index('<script src="prefs.js">') < html.index('<script src="i18n.js">')
+    js = _read("prefs.js")
+    assert "root.setAttribute('data-' + k, read(k))" in js

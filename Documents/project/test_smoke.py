@@ -579,3 +579,11 @@ def test_a_blank_turn_is_dropped_before_it_reaches_the_api():
 def test_an_empty_question_is_refused_before_the_api():
     res = client.post("/ask", json={"images": [], "question": "", "history": []})
     assert res.status_code == 422
+
+
+def test_full_solutions_mode_changes_the_prompt_not_the_teaching():
+    """A choice in Settings, sent per request. Both languages carry it."""
+    for lang in ("bg", "en"):
+        assert "step" in server.FULL_SOLUTIONS[lang].lower() or "стъпка" in server.FULL_SOLUTIONS[lang]
+    res = client.post("/ask", json={"images": [], "question": "q", "history": [], "mode": "sideways"})
+    assert res.status_code == 422, "only the two modes exist"
