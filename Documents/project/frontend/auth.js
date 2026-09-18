@@ -173,13 +173,11 @@ const Auth = (() => {
     }
   }
 
-  // Enter в полетата трябва да прави същото като бутона — иначе изглежда, че нищо не става.
+  // These are real <form>s so that password managers offer to save and fill
+  // them, and Enter reaches the primary button natively. The one thing a real
+  // form must not do here is navigate: the button's click handler does the work.
   function _submitOnEnter(formId, btnId) {
-    $(formId).addEventListener('keydown', e => {
-      if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
-      e.preventDefault();
-      $(btnId).click();
-    });
+    $(formId).addEventListener('submit', e => e.preventDefault());
   }
 
   // ---------- password strength meter (register + reset) ----------

@@ -69,7 +69,7 @@
       <strong data-i18n="auth.why">Защо трябва да влезеш:</strong> <span data-i18n="auth.entryWhyBody">за да пазим чеклиста и историята ти в акаунт, видими от всяко устройство.</span>
     </div>
 
-    <div id="loginForm" class="auth-form">
+    <form novalidate id="loginForm" class="auth-form">
       <div class="field">
         <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
         <input id="loginEmail" type="email" placeholder=" " autocomplete="email">
@@ -85,7 +85,7 @@
         <span class="remember-box"></span>
         <span data-i18n="auth.rememberMe">Запомни ме на това устройство</span>
       </label>
-      <button id="loginBtn" class="btn-primary" type="button" data-i18n="auth.loginBtn">Влез</button>
+      <button id="loginBtn" class="btn-primary" type="submit" data-i18n="auth.loginBtn">Влез</button>
       <p class="auth-switch"><span data-i18n="auth.noAccount">Нямаш акаунт?</span> <a href="#" id="showRegister" data-i18n="auth.registerLink">Регистрирай се</a></p>
       <p class="auth-switch"><a href="#" id="showForgot" data-i18n="auth.forgotLink">Забравена парола?</a></p>
       <!-- Hidden until the server confirms it can actually do this. A button
@@ -96,9 +96,9 @@
           <span data-i18n="auth.google">Continue with Google</span>
         </button>
       </div>
-    </div>
+    </form>
 
-    <div id="registerForm" class="auth-form hidden">
+    <form novalidate id="registerForm" class="auth-form hidden">
       <div class="field">
         <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg></span>
         <input id="registerName" type="text" placeholder=" " autocomplete="given-name">
@@ -152,20 +152,20 @@
           </span>
         </label>
       </fieldset>
-      <button id="registerBtn" class="btn-primary" type="button" data-i18n="auth.registerBtn">Регистрирай се</button>
+      <button id="registerBtn" class="btn-primary" type="submit" data-i18n="auth.registerBtn">Регистрирай се</button>
       <p class="auth-switch"><span data-i18n="auth.haveAccount">Вече имаш акаунт?</span> <a href="#" id="showLogin" data-i18n="auth.loginLink">Влез</a></p>
-    </div>
+    </form>
 
-    <div id="verifyForm" class="auth-form hidden">
+    <form novalidate id="verifyForm" class="auth-form hidden">
       <div class="explainer" data-i18n="auth.verifyInfo">Изпратихме ти код за потвърждение по имейл. Провери пощата си (и папка спам).</div>
       <div class="field">
         <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="m9.5 12 2 2 3-3.5"/></svg></span>
         <input id="verifyCode" type="text" inputmode="numeric" placeholder=" " autocomplete="one-time-code">
         <label for="verifyCode" data-i18n="auth.codeLabel">Код за потвърждение</label>
       </div>
-      <button id="verifyBtn" class="btn-primary" type="button" data-i18n="auth.verifyBtn">Потвърди</button>
+      <button id="verifyBtn" class="btn-primary" type="submit" data-i18n="auth.verifyBtn">Потвърди</button>
       <p class="auth-switch"><a href="#" id="resendCodeLink" data-i18n="auth.resendCode">Изпрати нов код</a></p>
-    </div>
+    </form>
 
     <div id="roleForm" class="auth-form hidden">
       <h2 data-i18n="auth.roleTitle">Which are you?</h2>
@@ -178,18 +178,18 @@
     </div>
 
 
-    <div id="forgotForm" class="auth-form hidden">
+    <form novalidate id="forgotForm" class="auth-form hidden">
       <div class="explainer" data-i18n="auth.forgotInfo">Няма страшно — случва се на всеки. Въведи имейла си и ще ти пратим код за нова парола.</div>
       <div class="field">
         <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
         <input id="forgotEmail" type="email" placeholder=" " autocomplete="email">
         <label for="forgotEmail" data-i18n="auth.email">Имейл</label>
       </div>
-      <button id="forgotBtn" class="btn-primary" type="button" data-i18n="auth.forgotBtn">Изпрати код</button>
+      <button id="forgotBtn" class="btn-primary" type="submit" data-i18n="auth.forgotBtn">Изпрати код</button>
       <p class="auth-switch"><a href="#" id="showLoginFromForgot" data-i18n="auth.loginLink">Влез</a></p>
-    </div>
+    </form>
 
-    <div id="resetForm" class="auth-form hidden">
+    <form novalidate id="resetForm" class="auth-form hidden">
       <div class="explainer" data-i18n="auth.resetInfo">Изпратихме код на имейла ти (ако има акаунт с него). Въведи го тук заедно с новата си парола.</div>
       <div class="field">
         <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="m9.5 12 2 2 3-3.5"/></svg></span>
@@ -205,9 +205,9 @@
         <div class="pw-strength-track"><span id="resetPwBar" class="pw-strength-fill"></span></div>
         <span id="resetPwLabel" class="pw-strength-label"></span>
       </div>
-      <button id="resetBtn" class="btn-primary" type="button" data-i18n="auth.resetBtn">Смени паролата</button>
+      <button id="resetBtn" class="btn-primary" type="submit" data-i18n="auth.resetBtn">Смени паролата</button>
       <p class="auth-switch"><a href="#" id="resendResetLink" data-i18n="auth.resendCode">Изпрати нов код</a></p>
-    </div>
+    </form>
 
     <p id="authError" class="auth-error hidden"></p>
   </div>

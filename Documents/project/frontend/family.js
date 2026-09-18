@@ -111,17 +111,23 @@ const Family = (() => {
   // стои на екрана, докато сървърът се събужда. И по-бавен стар отговор не бива
   // да пребива по-нов — същата защита като в checklist.js.
   let renderedFor = null;
-  let renderSeq = 0;
+  // One counter per list. They are requested together, so a single shared
+  // counter meant the second request always outran the first: the students
+  // list saw a newer sequence number when it came back, decided it was stale,
+  // and left "Loading…" on screen for good.
+  let studentsSeq = 0;
+  let parentsSeq = 0;
 
   function forgetRendered() {
     renderedFor = null;
-    renderSeq++;
+    studentsSeq++;
+    parentsSeq++;
     $('familyStudents').innerHTML = '';
     $('familyParents').innerHTML = '';
   }
 
   async function renderStudents() {
-    const seq = ++renderSeq;
+    const seq = ++studentsSeq;
     const account = Auth.getToken();
     if (renderedFor !== account) {
       renderedFor = account;
@@ -143,13 +149,13 @@ const Family = (() => {
       // Тук стоеше students = [], тоест паднал интернет се показваше като
       // "Още нямаш свързан ученик" — приложението отричаше връзка, която си
       // има. Каквото вече се вижда, остава; отдолу пише, че не сме се свързали.
-      if (seq !== renderSeq) return;
+      if (seq !== studentsSeq) return;
       inlineError(wrap, 'family.errLoadStudents');
       if (!wrap.children.length) empty.classList.add('hidden');
       return;
     }
 
-    if (seq !== renderSeq) return;
+    if (seq !== studentsSeq) return;
     clearInlineError(wrap);
     wrap.innerHTML = '';
     setEmptyText(empty, t('family.noStudents'));
@@ -158,7 +164,7 @@ const Family = (() => {
   }
 
   async function renderParents() {
-    const seq = ++renderSeq;
+    const seq = ++parentsSeq;
     const account = Auth.getToken();
     if (renderedFor !== account) {
       renderedFor = account;
@@ -171,11 +177,11 @@ const Family = (() => {
     } catch {
       // Липсващият списък казва "никой няма достъп до данните ти" — точно
       // обратното на истината, ако заявката просто не е стигнала.
-      if (seq !== renderSeq) return;
+      if (seq !== parentsSeq) return;
       inlineError(wrap, 'family.errLoadParents');
       return;
     }
-    if (seq !== renderSeq) return;
+    if (seq !== parentsSeq) return;
     clearInlineError(wrap);
     wrap.innerHTML = '';
     if (!parents.length) return;
