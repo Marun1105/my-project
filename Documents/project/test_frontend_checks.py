@@ -319,7 +319,13 @@ def test_phone_page_never_leaves_a_promise_rejection_unhandled(phone_page):
 # Имена на екрани, които вече не съществуват. Ключовете в i18n.js още се казват
 # checklist.* и history.* — това са вътрешни имена и е нормално. Но текстът, който
 # ЧОВЕКЪТ чете, не бива да сочи към екран, който го няма в менюто.
-RETIRED_SCREEN_WORDS = ["чеклист", "Семейство", "Чеклист"]
+RETIRED_SCREEN_WORDS = [
+    "чеклист", "Семейство", "Чеклист",
+    # The Teacher tab became ClimbAI. Its title was renamed; the strings that
+    # *pointed at it* — an empty state, a settings hint — were missed twice,
+    # which is exactly the failure this list exists to catch.
+    "Teacher tab", "раздел Учител", "раздела „Учител", "focus camera", "фокус камерата",
+]
 
 
 def _translation_values(i18n_src):
