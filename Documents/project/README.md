@@ -104,6 +104,9 @@ Frontend changes reach people only through a new desktop build. `phone_page.html
 
 ### Notes
 
+- [`docs/review-2026-09.md`](docs/review-2026-09.md) — a full product review: defects,
+  copy, design, what behavioural design is worth doing for children and what isn't,
+  and where the growth actually is.
 - [`docs/ai-v-ucheneto.md`](docs/ai-v-ucheneto.md) — what the research says about AI's benefit and harm in learning, and what that meant for the decisions here.
 - [`docs/proba-s-istinski-telefon.md`](docs/proba-s-istinski-telefon.md) — twenty minutes with a real textbook; the only thing that can confirm the scanner.
 - [`docs/baza-danni.md`](docs/baza-danni.md) — why the database is on Neon, what broke with Render's free one, and the steps for moving.
