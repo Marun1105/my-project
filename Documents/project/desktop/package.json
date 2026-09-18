@@ -11,7 +11,9 @@
     "start": "electron .",
     "dist": "electron-builder --win",
     "pack": "electron-builder --win --dir",
-    "release": "electron-builder --win --publish always"
+    "release": "electron-builder --win --publish always",
+    "dist:store": "electron-builder --win appx",
+    "dist:linux": "electron-builder --linux"
   },
   "devDependencies": {
     "electron": "^43.4.0",
@@ -53,7 +55,9 @@
     "protocols": [
       {
         "name": "Climby",
-        "schemes": ["climby"]
+        "schemes": [
+          "climby"
+        ]
       }
     ],
     "win": {
@@ -71,6 +75,29 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Climby"
+    },
+    "appx": {
+      "identityName": "MartinHristov.Climby",
+      "publisher": "CN=00000000-0000-0000-0000-000000000000",
+      "publisherDisplayName": "Martin Hristov",
+      "applicationId": "Climby",
+      "displayName": "Climby",
+      "backgroundColor": "#101010",
+      "languages": [
+        "en-US",
+        "bg-BG"
+      ],
+      "artifactName": "${productName}-${version}-store.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "../frontend/icon-512.png",
+      "category": "Education",
+      "artifactName": "${productName}-${version}.${ext}",
+      "synopsis": "Understand your homework, don't copy it",
+      "description": "Photograph a problem from the textbook and ClimbAI works through it with you, step by step."
     }
   },
   "dependencies": {

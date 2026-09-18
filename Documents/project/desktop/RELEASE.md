@@ -1,93 +1,98 @@
-# Как се пуска нова версия на Climby
+# Releasing a new version of Climby
 
-> **Номерът на версията е на едно място.** Смени го в `package.json`, после
-> навсякъде по-долу чети `X.Y.Z` като него. Ако двете се разминат, обновяването
-> просто няма да се предложи на никого — електронният updater търси точно този
-> номер.
+> **The version number lives in one place.** Change it in `package.json`, then
+> read `X.Y.Z` below as that number. If the two disagree, the update is simply
+> never offered to anyone — the updater looks for exactly that number.
 
-От версия **1.0.2** нататък Climby се обновява сам: при пускане проверява
-GitHub Releases, сваля новото тихо на заден план и пита ученика да рестартира.
+From **1.0.2** on, Climby updates itself: on launch it checks GitHub Releases,
+downloads the new version quietly in the background, and asks the student to
+restart.
 
-**Важно за сегашните потребители (1.0.1):** те няма да се обновят сами.
-Версия 1.0.1 е направена преди да има обновяване в приложението — тя просто не
-знае къде да гледа. Затова всеки, който вече има Climby, трябва **един
-последен път** да си инсталира X.Y.Z на ръка. След това всичко е автоматично.
-Готово съобщение за приятелите има най-долу.
+**About users still on 1.0.1:** they will not update by themselves. 1.0.1 was
+built before the app had an updater — it doesn't know where to look. Anyone on
+it has to install X.Y.Z by hand **one last time**. After that everything is
+automatic. A ready-to-paste message for them is at the bottom.
 
 ---
 
-## 1. Преди да пуснеш версия
+## 1. Before releasing
 
-1. Провери, че всичко работи: `python -m pytest -q` в главната папка.
-2. Вдигни номера на версията в `desktop/package.json` → полето `"version"`.
-   Правилото е просто: поправка → `X.Y.Z`, нова функция → `1.1.0`.
-   **Номерът трябва да е по-голям от предишния, иначе приложението няма да
-   види обновяването.**
-3. Комитни промяната.
+1. Check that everything works: `python -m pytest -q` in the project folder.
+2. Raise the version in `desktop/package.json` → `"version"`.
+   The rule is simple: a fix → `X.Y.Z+1`, a new feature → `1.Y+1.0`.
+   **The number must be greater than the previous one, or the app won't see
+   the update.**
+3. Commit that change.
 
-## 2. Сглобяване
+## 2. Building
 
 ```
 cd desktop
-npm run dist
+npm run dist            # Windows: installer + portable
+npm run dist:linux      # Linux: AppImage
+npm run dist:store      # Microsoft Store package (see §5)
 ```
 
-В `desktop/dist/` се появяват:
+`desktop/dist/` then contains:
 
-| Файл | За какво е |
+| File | What it's for |
 |---|---|
-| `Climby-Setup-X.Y.Z.exe` | инсталаторът — това сваля човек |
-| `Climby-Setup-X.Y.Z.exe.blockmap` | позволява следващото обновяване да тегли само разликата (няколко МБ вместо 100) |
-| `latest.yml` | тук приложението гледа коя е последната версия |
-| `Climby-X.Y.Z-portable.exe` | вариант без инсталиране; **не се обновява сам** |
+| `Climby-Setup-X.Y.Z.exe` | the installer — this is what a person downloads |
+| `Climby-Setup-X.Y.Z.exe.blockmap` | lets the next update download only the difference (a few MB instead of 100) |
+| `latest.yml` | where the Windows app looks for the newest version |
+| `Climby-X.Y.Z-portable.exe` | no-install variant; **does not update itself** |
+| `Climby-X.Y.Z.AppImage` | Linux; runs on any distribution, updates itself |
+| `latest-linux.yml` | where the Linux app looks for the newest version |
+| `Climby-X.Y.Z-store.appx` | for the Microsoft Store only; not for GitHub Releases |
 
-## 3. Качване в GitHub Releases
+## 3. Uploading to GitHub Releases
 
-### Вариант А — автоматично (по-лесно, като го настроиш веднъж)
+### Option A — automatic (easier once set up)
 
-Нужен е токен от GitHub:
+You need a GitHub token:
 GitHub → Settings → Developer settings → Personal access tokens → Tokens
-(classic) → Generate new token → сложи отметка на **`repo`** → Generate.
-Копирай токена (показва се само веднъж).
+(classic) → Generate new token → tick **`repo`** → Generate.
+Copy the token (it is shown once).
 
-После, в PowerShell:
+Then, in PowerShell:
 
 ```
 cd C:\Users\Admin\Documents\project\desktop
-$env:GH_TOKEN = "<ТОКЕНЪТ ТИ — НЕ ГО ЗАПИСВАЙ В ТОЗИ ФАЙЛ>"
+$env:GH_TOKEN = "<YOUR TOKEN — DO NOT WRITE IT IN THIS FILE>"
 npm run release
 ```
 
-Това сглобява и качва всичко само, с етикет `vX.Y.Z`.
+This builds and uploads everything by itself, tagged `vX.Y.Z`.
 
-> **Не залепвай токена тук.** Този файл е в repo-то, а repo-то е публично —
-> един `git add` дели залепения токен от това да е видим за всички. Случвало се
-> е вече два пъти: и двата пъти токенът е бил хванат в работното дърво, преди
-> да влезе в комит, но това е късмет, а не защита.
+> **Never paste the token here.** This file is in the repo, and the repo is
+> public — one `git add` separates a pasted token from being visible to
+> everyone. It has already happened twice: both times the token was caught in
+> the working tree before it reached a commit, but that is luck, not
+> protection.
 >
-> Вместо това го подавай само на реда в конзолата, в момента на пускането —
-> `$env:GH_TOKEN` живее колкото прозореца на PowerShell и не остава никъде.
+> Pass it only on the console line, at the moment of release —
+> `$env:GH_TOKEN` lives as long as the PowerShell window and is stored nowhere.
 
-### Вариант Б — на ръка
+### Option B — by hand
 
-1. Отвори https://github.com/Marun1105/my-project/releases → **Draft a new release**.
-2. **Tag:** `vX.Y.Z` (буквата `v` + номера от `package.json`).
-3. Провлачи **и трите** файла: `Climby-Setup-X.Y.Z.exe`,
-   `Climby-Setup-X.Y.Z.exe.blockmap` и `latest.yml`.
-4. Натисни **Publish release** — не „Save draft".
-   Чернова е невидима за инсталираните копия: electron-updater пита
-   `/releases/latest`, а той чернови не показва. Тоест файловете стоят в GitHub,
-   изглеждат качени, а всяко приложение продължава да твърди, че е последна
-   версия — и никой не разбира, докато не отвори страницата и не види етикета
-   „Draft". (`package.json` вече казва `releaseType: release`, но това важи само
-   за `npm run release`; направиш ли изданието на ръка, черновата пак е по
-   подразбиране.)
+1. Open https://github.com/Marun1105/my-project/releases → **Draft a new release**.
+2. **Tag:** `vX.Y.Z` (the letter `v` + the number from `package.json`).
+3. Drag in **all of** these: `Climby-Setup-X.Y.Z.exe`,
+   `Climby-Setup-X.Y.Z.exe.blockmap`, `latest.yml`, and — if you built Linux —
+   `Climby-X.Y.Z.AppImage` and `latest-linux.yml`.
+4. Press **Publish release** — not "Save draft".
+   A draft is invisible to installed copies: electron-updater asks
+   `/releases/latest`, which never returns drafts. The files sit on GitHub,
+   look uploaded, and every app keeps insisting it is up to date — and nobody
+   finds out until they open the page and see the "Draft" label.
+   (`package.json` says `releaseType: release`, but that only applies to
+   `npm run release`; a release made by hand is a draft by default.)
 
-### Преди да натиснеш Publish: провери, че `latest.yml` описва точно този файл
+### Before pressing Publish: check that `latest.yml` describes exactly this file
 
-Това вече се е случвало веднъж: `latest.yml` беше от предишното сглобяване и
-сочеше друг размер и друга сума. Такова издание се сваля и после се отказва при
-проверката — обновяването пада безшумно за всички.
+This has happened once: `latest.yml` was left over from the previous build and
+pointed at a different size and checksum. Such a release downloads and is then
+rejected at verification — the update fails silently for everyone.
 
 ```bash
 cd desktop/dist
@@ -96,43 +101,76 @@ import hashlib,base64,re,os
 y=open('latest.yml',encoding='utf-8').read()
 f=re.search(r'path: (\S+)',y).group(1)
 h=base64.b64encode(hashlib.sha512(open(f,'rb').read()).digest()).decode()
-print('размер:', os.path.getsize(f)==int(re.search(r'size: (\d+)',y).group(1)))
-print('сума  :', h==re.search(r'^sha512: (\S+)',y,re.M).group(1))
+print('size  :', os.path.getsize(f)==int(re.search(r'size: (\d+)',y).group(1)))
+print('sha512:', h==re.search(r'^sha512: (\S+)',y,re.M).group(1))
 "
 ```
 
-Двете трябва да са `True`. Ако не са — сглоби наново и качи трите файла заедно.
-   Черновите и „pre-release" версиите не се виждат от приложението.
+Both must be `True`. If not, rebuild and upload the files together. Drafts and
+"pre-release" versions are not seen by the app.
 
-**Не преименувай файловете.** Имената нарочно са без интервали: GitHub
-заменя интервалите с точки, а `latest.yml` сочи към точното име. Ако не
-съвпадат, приложението търси файл, който не съществува, и обновяването се
-проваля тихо.
+**Do not rename the files.** The names deliberately contain no spaces: GitHub
+replaces spaces with dots, and `latest.yml` points at the exact name. If they
+don't match, the app looks for a file that doesn't exist and the update fails
+silently.
 
-## 4. Проверка, че е станало
+## 4. Checking that it worked
 
-Отвори инсталирания Climby → меню **Помощ → Провери за обновяване**.
+Open the installed Climby → menu **Help → Check for Updates**.
 
-- „Climby е с последната версия." → вече си на новата.
-- „Има нова версия: X.Y.Z." → работи; свалянето тръгва на заден план.
-- „Не успях да проверя за обновяване." → или няма интернет, или нещо в
-  release-а не е наред (черновa, липсващ `latest.yml`, преименуван файл).
+- "Climby is up to date." → you're already on the new one.
+- "A new version is available: X.Y.Z." → it works; the download starts in the background.
+- "We could not check for updates." → either no internet, or something in the
+  release is wrong (a draft, a missing `latest.yml`, a renamed file).
 
-Ако искаш да видиш какво точно става, пусни приложението от команден ред и
-гледай редовете, започващи с `[updater]`.
+To see exactly what's happening, start the app from a terminal and watch the
+lines beginning with `[updater]`.
 
 ---
 
-## Съобщение за приятелите (за копиране)
+## 5. The Microsoft Store
 
-> Здрасти! Climby има нова версия. Този път трябва да я инсталираш на ръка —
-> само този път. Изтегли `Climby-Setup-X.Y.Z.exe` оттук:
+The Store is the only way to remove the "Windows protected your PC" screen: Store
+apps are re-signed by Microsoft and never show it. (A code-signing certificate
+no longer does this — Microsoft's own guidance says so.)
+
+**Once:** an individual developer account at
+https://partner.microsoft.com/dashboard/registration ($19, one time). Then, in
+Partner Center → your app → **Product management → Product identity**, copy the
+three values into `package.json` → `build.appx`:
+
+| Partner Center | `package.json` |
+|---|---|
+| Package/Identity/Name | `identityName` |
+| Package/Identity/Publisher | `publisher` (starts with `CN=`) |
+| Package/Properties/PublisherDisplayName | `publisherDisplayName` |
+
+They must match character for character or the upload is rejected. The Store
+also needs a privacy policy URL: https://marun1105.github.io/my-project/privacy.html.
+
+**Each release:** `npm run dist:store`, then upload
+`dist/Climby-X.Y.Z-store.appx` in Partner Center → Packages. The package is
+deliberately unsigned; the Store signs it. Store copies update through the
+Store, not through GitHub Releases, so the updater is not involved.
+
+## 6. Linux
+
+`npm run dist:linux` produces an AppImage. It needs no installation: the user
+marks it executable and runs it. It updates itself from GitHub Releases the
+same way Windows does, as long as `latest-linux.yml` is uploaded alongside it.
+
+---
+
+## Message for friends (to copy)
+
+> Hi! There's a new version of Climby. This once you have to install it by
+> hand — only this once. Download `Climby-Setup-X.Y.Z.exe` from
 > https://github.com/Marun1105/my-project/releases
-> и я пусни. Ще се сложи върху старата, нищо няма да се загуби.
+> and run it. It installs over the old one; nothing is lost.
 >
-> Windows може да покаже син екран „Windows protected your PC" — това е,
-> защото приложението не е платено за подпис, не е вирус. Натисни
+> Windows may show a blue "Windows protected your PC" screen — that's because
+> the app isn't paid up for a signature, not because it's a virus. Click
 > **More info → Run anyway**.
 >
-> От тук нататък Climby ще се обновява сам — просто ще те пита да рестартираш,
-> когато има нещо ново.
+> From here on Climby updates itself — it'll just ask you to restart when
+> there's something new.

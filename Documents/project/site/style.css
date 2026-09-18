@@ -1,0 +1,208 @@
+/* Climby — the public page.
+   Two tones on purpose: the hero is the app at night (deep violet, where the
+   product lives), the body is the promise in daylight (the app's own light
+   theme). One bold element — the sentence. Everything else reads like a letter. */
+
+:root {
+  --night: #140f1f;
+  --night-2: #1d1530;
+  --day: #f6f2ff;
+  --paper: #ffffff;
+  --ink: #16161a;
+  --soft: #5c5c66;
+  --line: #e4dcf5;
+  --violet: #7c3aed;
+  --violet-bright: #c084fc;
+  --violet-ink: #4c1d95;
+  --display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --text: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --measure: 66ch;
+}
+
+* { box-sizing: border-box; }
+html { color-scheme: light; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--day);
+  color: var(--ink);
+  font: 400 17px/1.6 var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--violet-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--violet-bright); outline-offset: 3px; }
+
+.wrap { width: min(100% - 2.5rem, 72rem); margin-inline: auto; }
+.prose { max-width: var(--measure); }
+
+/* ---------- hero ---------- */
+
+.hero {
+  background: var(--night);
+  color: #f3eefc;
+  padding: 2rem 0 4.5rem;
+  position: relative;
+  overflow: hidden;
+}
+/* The aurora from the app, one wash, low and to the right, so the sentence
+   sits in front of something rather than on a flat slab. */
+.hero::before {
+  content: "";
+  position: absolute; inset: auto -20% -40% 30%;
+  height: 90%;
+  background: radial-gradient(60% 60% at 60% 60%, rgba(124, 58, 237, .45), transparent 70%);
+  pointer-events: none;
+}
+.hero > .wrap { position: relative; }
+
+.brand {
+  display: flex; align-items: center; gap: .8rem;
+  font: 600 1.25rem/1 var(--display);
+  letter-spacing: -.01em;
+  color: #fff;
+  text-decoration: none;
+}
+.brand img { width: 40px; height: 40px; border-radius: 50%; }
+
+.hero h1 {
+  font: 500 clamp(2.4rem, 7vw, 5.4rem)/1.02 var(--display);
+  letter-spacing: -.035em;
+  margin: 4.5rem 0 1.4rem;
+  max-width: 16ch;
+  text-wrap: balance;
+}
+.hero p.lede {
+  font-size: clamp(1.1rem, 1.5vw, 1.3rem);
+  color: #cfc4e6;
+  max-width: 46ch;
+  margin: 0 0 2.4rem;
+}
+
+.actions { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: center; }
+
+.button {
+  display: inline-flex; align-items: center; gap: .6rem;
+  background: #fff; color: var(--ink);
+  font: 600 1.05rem/1 var(--text);
+  padding: 1rem 1.5rem;
+  border-radius: 999px;
+  text-decoration: none;
+  border: 0;
+}
+.button:hover { background: #efe9fb; }
+.button svg { width: 18px; height: 18px; }
+.actions .quiet { color: #cfc4e6; font-size: .95rem; }
+.actions .quiet a { color: #fff; }
+
+/* ---------- sections ---------- */
+
+section { padding: 4.5rem 0; }
+section + section { border-top: 1px solid var(--line); }
+
+h2 {
+  font: 500 clamp(1.6rem, 3vw, 2.2rem)/1.15 var(--display);
+  letter-spacing: -.025em;
+  margin: 0 0 1.2rem;
+  max-width: 30ch;
+  text-wrap: balance;
+}
+p { margin: 0 0 1.1rem; }
+p:last-child { margin-bottom: 0; }
+
+/* The three ways in — a list, because it is one, not three cards. */
+.ways { list-style: none; padding: 0; margin: 1.5rem 0 0; display: grid; gap: 1.4rem; max-width: var(--measure); }
+.ways li { padding-left: 1.4rem; border-left: 3px solid var(--violet); }
+.ways strong { font-family: var(--display); font-weight: 600; letter-spacing: -.01em; }
+
+.shot {
+  margin: 2.5rem 0 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 30px 60px -30px rgba(76, 29, 149, .35);
+  background: var(--night);
+}
+.shot img { display: block; width: 100%; height: auto; }
+.shot figcaption { font-size: .9rem; color: var(--soft); padding: .8rem 1rem; background: var(--paper); border-top: 1px solid var(--line); }
+
+/* ---------- the promise ----------
+   Set large. This is what a parent is actually deciding on. */
+.promise { background: var(--paper); }
+.promise ol {
+  list-style: none; padding: 0; margin: 1.5rem 0 0;
+  display: grid; gap: 1.6rem;
+}
+.promise li {
+  font: 500 clamp(1.25rem, 2.4vw, 1.75rem)/1.3 var(--display);
+  letter-spacing: -.02em;
+  max-width: 30ch;
+}
+.promise li small {
+  display: block;
+  font: 400 1rem/1.55 var(--text);
+  color: var(--soft);
+  letter-spacing: 0;
+  margin-top: .35rem;
+  max-width: 52ch;
+}
+
+/* ---------- install ---------- */
+
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 1.5rem 0 0; display: grid; gap: 1.2rem; max-width: var(--measure); }
+.steps li { counter-increment: step; display: grid; grid-template-columns: 2.2rem 1fr; gap: .8rem; align-items: baseline; }
+.steps li::before {
+  content: counter(step);
+  font: 600 1rem/2.2rem var(--display);
+  width: 2.2rem; height: 2.2rem; text-align: center;
+  border-radius: 50%;
+  background: var(--violet); color: #fff;
+}
+
+/* The warning, drawn: a parent should recognise it before they see it. */
+.warn {
+  margin: 2rem 0 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1.2rem;
+  max-width: 44rem;
+}
+.dialog {
+  background: #0a5cbf; color: #fff;
+  border-radius: 10px;
+  padding: 1.2rem 1.3rem 1.3rem;
+  font: 400 .92rem/1.45 var(--text);
+  min-height: 12rem;
+  display: flex; flex-direction: column; gap: .6rem;
+  position: relative;
+}
+.dialog b { font-size: 1.05rem; font-weight: 600; }
+.dialog .link { text-decoration: underline; align-self: flex-start; }
+.dialog .hl { outline: 3px solid #ffd166; outline-offset: 4px; border-radius: 3px; }
+.dialog .btns { margin-top: auto; display: flex; gap: .6rem; }
+.dialog .btn { background: #d9e6f7; color: #0a3a75; padding: .4rem .9rem; border-radius: 3px; font-weight: 600; }
+.dialog .btn.ghost { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6); }
+.dialog figcaption, .warn figcaption { font-size: .9rem; color: var(--soft); margin-top: .5rem; }
+.warn figure { margin: 0; }
+
+/* ---------- footer ---------- */
+
+footer { padding: 3rem 0 4rem; border-top: 1px solid var(--line); color: var(--soft); font-size: .95rem; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: center; }
+footer a { color: var(--ink); }
+
+/* ---------- privacy page ---------- */
+
+.doc { padding: 3rem 0 4rem; }
+.doc h1 { font: 500 clamp(2rem, 5vw, 3rem)/1.1 var(--display); letter-spacing: -.03em; margin: 0 0 .5rem; }
+.doc .date { color: var(--soft); margin-bottom: 2.5rem; }
+.doc h2 { font-size: 1.35rem; margin-top: 2.6rem; }
+.doc ul { padding-left: 1.2rem; }
+.doc li { margin-bottom: .4rem; }
+.topbar { padding: 1.2rem 0; border-bottom: 1px solid var(--line); background: var(--paper); }
+.topbar .brand { color: var(--ink); }
+
+@media (max-width: 40rem) {
+  .hero { padding-bottom: 3.5rem; }
+  .hero h1 { margin-top: 3rem; }
+  section { padding: 3.2rem 0; }
+}
