@@ -73,6 +73,7 @@ const Chat = (() => {
       }
       render(data.answer, theirs);
       if (window.Speak) Speak.attach(theirs);
+      window.dispatchEvent(new CustomEvent('climby:activity'));
       history.push({ role: 'user', text }, { role: 'assistant', text: data.answer });
     } catch (err) {
       theirs.classList.remove('chat-thinking');
@@ -108,6 +109,12 @@ const Chat = (() => {
     $('chatClose').addEventListener('click', () => setOpen(false));
     $('chatNew').addEventListener('click', reset);
     $('chatSend').addEventListener('click', send);
+    document.querySelectorAll('.chat-starter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        $('chatInput').value = btn.textContent;
+        send();
+      });
+    });
     $('chatInput').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
     });

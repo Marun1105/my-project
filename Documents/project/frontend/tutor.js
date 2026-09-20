@@ -124,6 +124,7 @@ const Tutor = (() => {
         showError(target, t('scanner.errNoAnswer'));
         return false;
       }
+      window.dispatchEvent(new CustomEvent('climby:activity'));
       renderAnswer(data.answer, target);
       history.push({ role: 'user', text: question }, { role: 'assistant', text: data.answer });
       $('followUp').classList.remove('hidden');

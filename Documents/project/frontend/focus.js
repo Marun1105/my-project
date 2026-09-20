@@ -116,6 +116,7 @@ const Focus = (() => {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Auth.getToken()}` },
         body: JSON.stringify({ duration_seconds: durationSeconds, focus_pct: focusPct }),
       });
+      window.dispatchEvent(new CustomEvent('climby:activity'));
     } catch {
       // статистиката не е критична — сесията вече приключи за ученика, независимо дали се е записала
     }
