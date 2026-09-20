@@ -1003,7 +1003,16 @@
   </div>
   <div id="chatLog" class="chat-log" aria-live="polite">
   </div>
-  <p id="chatEmpty" class="chat-empty" data-i18n="chat.empty">Питай нещо — задача, дума, правило. Отговарям стъпка по стъпка.</p>
+  <div id="chatEmpty" class="chat-empty">
+    <p data-i18n="chat.empty">Ask anything — a problem, a word, a rule. I answer step by step.</p>
+    <!-- A blank box with a blinking cursor is a blank page, and blank pages stop
+         children. Three questions to press instead of compose. -->
+    <div class="chat-starters" role="group" data-i18n-aria="chat.startersAria" aria-label="Example questions">
+      <button type="button" class="chat-starter" data-i18n="chat.starter1">What is a prime number?</button>
+      <button type="button" class="chat-starter" data-i18n="chat.starter2">Explain fractions to me</button>
+      <button type="button" class="chat-starter" data-i18n="chat.starter3">Check my answer: 7 × 8 = 54</button>
+    </div>
+  </div>
   <div class="chat-input-row">
     <textarea id="chatInput" rows="1" data-i18n-placeholder="chat.placeholder" placeholder="Напиши въпрос…"></textarea>
     <button id="chatSend" class="btn-ai chat-send" type="button" data-i18n-aria="chat.send" aria-label="Изпрати">

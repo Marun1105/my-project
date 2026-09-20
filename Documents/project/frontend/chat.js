@@ -109,6 +109,12 @@ const Chat = (() => {
     $('chatClose').addEventListener('click', () => setOpen(false));
     $('chatNew').addEventListener('click', reset);
     $('chatSend').addEventListener('click', send);
+    document.querySelectorAll('.chat-starter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        $('chatInput').value = btn.textContent;
+        send();
+      });
+    });
     $('chatInput').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
     });

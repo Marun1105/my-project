@@ -254,6 +254,10 @@ const Checklist = (() => {
     $('taskProgressText').textContent = t('checklist.progress', { done, total });
     $('taskProgressFill').style.width = (total ? Math.round(100 * done / total) : 0) + '%';
     $('taskDoneAllBtn').classList.toggle('hidden', pending.length === 0);
+    // The planner can only say "there is nothing to plan" on an empty list —
+    // a primary button that cannot succeed. It appears with the first task.
+    const planWrap = $('planBtn').parentElement;
+    if (planWrap) planWrap.classList.toggle('hidden', pending.length === 0);
   }
 
   async function markAllDone() {

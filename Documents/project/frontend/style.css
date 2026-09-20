@@ -3138,3 +3138,29 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
   color: var(--text);
   font-weight: 600;
 }
+
+/* ---------- chat starters ----------
+   Three questions to press instead of compose. Quiet outlines, not buttons
+   that compete with the send arrow; they disappear with the first message. */
+.chat-starters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.chat-starter {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  width: auto;
+}
+.chat-starter:hover { border-color: var(--accent); }
+.chat-starter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
