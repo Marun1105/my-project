@@ -89,7 +89,7 @@ const Nav = (() => {
 
   document.addEventListener('DOMContentLoaded', init);
 
-  return { activate, openSidebar, closeSidebar };
+  return { activate, openSidebar, closeSidebar, currentView };
 })();
 
 window.Nav = Nav;

@@ -230,6 +230,7 @@ const Checklist = (() => {
   function showListError(err) {
     const empty = $('taskEmpty');
     $('taskList').innerHTML = '';
+    $('planBtn').parentElement.classList.add('hidden');
     setEmptyText(empty, err.message || t('checklist.errLoad'));
     empty.classList.remove('hidden');
   }
@@ -364,6 +365,8 @@ const Checklist = (() => {
       $('taskList').innerHTML = '';
       $('taskEmpty').classList.add('hidden');
       $('checklistBadge').classList.add('hidden');
+      // and the planner button, which otherwise keeps the previous account's state
+      $('planBtn').parentElement.classList.add('hidden');
       lastTasks = null;
       renderedFor = null;
       renderSeq++; // отговор по вече тръгнала заявка от старата сметка не важи

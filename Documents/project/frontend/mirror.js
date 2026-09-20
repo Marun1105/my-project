@@ -69,6 +69,10 @@ const Mirror = (() => {
   async function render() {
     const el = $('mirror');
     if (!el) return;
+    // Events arrive from every screen — a task ticked on the Route, a chat
+    // message. Fetching for a line that is inside a hidden view is a wasted
+    // request; the view-shown handler redraws it the moment it matters.
+    if (window.Nav && Nav.currentView && Nav.currentView() !== 'tutor') return;
     if (!window.Auth || !Auth.isLoggedIn()) { el.classList.add('hidden'); return; }
     const my = ++seq;
     let data;

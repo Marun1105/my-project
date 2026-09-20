@@ -19,6 +19,10 @@ const FIRST_CHECK_DELAY_MS = 8000;
 // Преносимият (portable) вариант е един .exe, който потребителят си е сложил
 // някъде сам — няма какво да се "инсталира" върху него, затова там не пипаме нищо.
 const IS_PORTABLE = Boolean(process.env.PORTABLE_EXECUTABLE_DIR);
+// A copy installed from the Microsoft Store updates through the Store. There
+// is no app-update.yml in that package, so electron-updater would fail on
+// every launch and 'Check for Updates' would blame the internet connection.
+const IS_STORE = Boolean(process.windowsStore);
 
 let started = false;
 let manualCheck = false;
@@ -61,7 +65,7 @@ function check() {
 // за да могат съобщенията да се закачат за него.
 function initAutoUpdate(getWindowFn) {
   getWindow = getWindowFn;
-  if (started) return;
+  if (started || IS_STORE) return;
   started = true;
 
   autoUpdater.autoDownload = true;
@@ -141,6 +145,11 @@ function initAutoUpdate(getWindowFn) {
 function checkForUpdatesManually() {
   if (!app.isPackaged) {
     info('Update checks only work in the installed app.', `Version: ${app.getVersion()}`);
+    return;
+  }
+  if (IS_STORE) {
+    info('This copy updates through the Microsoft Store.',
+         `Version: ${app.getVersion()}. Open the Store app to check for updates.`);
     return;
   }
   if (IS_PORTABLE) {
