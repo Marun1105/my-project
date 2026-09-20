@@ -3118,3 +3118,23 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
   .chat-panel { right: 0; bottom: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; z-index: 210; }
 }
 @media (prefers-reduced-motion: reduce) { .chat-panel { animation: none; } }
+
+/* ---------- the mirror line (mirror.js) ----------
+   One sentence above the ClimbAI cards. Quiet on purpose: it is a fact, not a
+   banner. The streak carries the only emphasis, and only through the flame. */
+.mirror {
+  width: 100%;
+  align-self: flex-start;
+  text-align: left;
+  margin: -8px 0 18px;
+  font-size: var(--fs-meta);
+  line-height: 1.5;
+  color: var(--text-dim);
+  max-width: 56ch;
+}
+.mirror-streak {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text);
+  font-weight: 600;
+}

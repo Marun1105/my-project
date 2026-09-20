@@ -404,6 +404,9 @@
   <button class="help-toggle" type="button" data-help-view="tutor" aria-expanded="false" data-i18n-aria="help.aria" aria-label="Как работи този екран"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 17h.01"/></svg></button>
 </header>
 
+<!-- One line that is different every day: what you did, what is due, the
+     streak. Hidden until there is something true to say. -->
+<p id="mirror" class="mirror hidden" aria-live="polite"></p>
 
 <div id="splash" class="splash">
   <!-- A mask, not an <img>: the artwork is a silhouette, and a silhouette has to
@@ -1017,6 +1020,7 @@
 <script src="ai-planner.js"></script>
 <script src="history.js"></script>
 <script src="focus.js"></script>
+<script src="mirror.js"></script>
 <script src="family.js"></script>
 <script src="classes.js"></script>
 <script src="onboarding.js"></script>

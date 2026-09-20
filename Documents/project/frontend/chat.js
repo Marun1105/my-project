@@ -73,6 +73,7 @@ const Chat = (() => {
       }
       render(data.answer, theirs);
       if (window.Speak) Speak.attach(theirs);
+      window.dispatchEvent(new CustomEvent('climby:activity'));
       history.push({ role: 'user', text }, { role: 'assistant', text: data.answer });
     } catch (err) {
       theirs.classList.remove('chat-thinking');
