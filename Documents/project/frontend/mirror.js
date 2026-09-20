@@ -4,7 +4,7 @@
 // nothing. This is one line above the cards that changes every day — what you
 // did yesterday (or today so far), what is due today, and how many days in a
 // row you have shown up. People finish what already looks started; that is the
-// whole trick, and it costs three requests the app already makes elsewhere.
+// whole trick, and it costs one request.
 //
 // It says nothing to a brand-new account. The cards are the invitation; a
 // second empty state on top of them would only be noise. And it never counts
@@ -52,11 +52,11 @@ const Mirror = (() => {
 
   function plural(n, one, many) { return n === 1 ? t(one) : t(many, { n }); }
 
-  function summarise(day, scans, sessions, tasks) {
-    const q = scans.filter(s => dayOf(s.created_at) === day).length;
-    const secs = sessions.filter(s => dayOf(s.created_at) === day)
-      .reduce((a, s) => a + (s.duration_seconds || 0), 0);
-    const done = tasks.filter(x => x.done && x.completed_at && dayOf(x.completed_at) === day).length;
+  function summarise(day, events) {
+    const on = events.filter(e => dayOf(e.at) === day);
+    const q = on.filter(e => e.kind === 'question').length;
+    const secs = on.filter(e => e.kind === 'session').reduce((a, e) => a + (e.seconds || 0), 0);
+    const done = on.filter(e => e.kind === 'task').length;
     const parts = [];
     if (q) parts.push(plural(q, 'mirror.qOne', 'mirror.qMany'));
     if (secs >= 60) parts.push(t('mirror.min', { n: Math.round(secs / 60) }));
@@ -71,22 +71,24 @@ const Mirror = (() => {
     if (!el) return;
     if (!window.Auth || !Auth.isLoggedIn()) { el.classList.add('hidden'); return; }
     const my = ++seq;
-    let scans, sessions, tasks;
+    let data;
     try {
-      [scans, sessions, tasks] = await Promise.all([get('/scans'), get('/focus'), get('/tasks')]);
+      // /activity is every moment of effort in the last 120 days, uncapped —
+      // the list endpoints stop at the last 30 or 50 items, which would cap a
+      // daily user's streak at about two weeks. "today" goes along because the
+      // server can't know which calendar day it is where the child sits.
+      data = await get('/activity?today=' + localDate(new Date()));
     } catch {
       return; // the cards below still work; this line is a nicety, not a screen
     }
     if (my !== seq) return;
 
-    const today = summarise(daysAgo(0), scans, sessions, tasks);
-    const yesterday = summarise(daysAgo(1), scans, sessions, tasks);
-    const dueToday = tasks.filter(x => !x.done && x.deadline === localDate(new Date())).length;
+    const events = data.events || [];
+    const today = summarise(daysAgo(0), events);
+    const yesterday = summarise(daysAgo(1), events);
+    const dueToday = data.due_today || 0;
 
-    const active = new Set();
-    scans.forEach(s => active.add(dayOf(s.created_at)));
-    sessions.forEach(s => active.add(dayOf(s.created_at)));
-    tasks.forEach(x => { if (x.done && x.completed_at) active.add(dayOf(x.completed_at)); });
+    const active = new Set(events.map(e => dayOf(e.at)));
     const streak = streakOf(active);
 
     const sentences = [];

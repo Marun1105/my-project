@@ -31,6 +31,7 @@ import migrations
 import email_service
 import oauth
 import papers
+import activity
 import rate_limit
 import scans
 import tasks
@@ -61,6 +62,7 @@ app.include_router(focus_sessions.router)
 app.include_router(family.router)
 app.include_router(classes.router)
 app.include_router(devices.router)
+app.include_router(activity.router)
 app.include_router(oauth.router)
 app.include_router(papers.router)
 
