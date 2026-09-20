@@ -3129,7 +3129,7 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
   margin: -8px 0 18px;
   font-size: var(--fs-meta);
   line-height: 1.5;
-  color: var(--text-dim);
+  color: var(--text);
   max-width: 56ch;
 }
 .mirror-streak {
