@@ -854,8 +854,12 @@
   </div>
 
   <div id="familyApp" class="hidden">
+    <!-- One screen, two people. A parent enters a code and sees numbers; a
+         student makes a code and sees who holds their rope. The account has a
+         role, so each person sees their half and never the other's. -->
+    <div id="familyParentHalf" class="hidden">
     <div class="explainer help-note hidden">
-      <strong data-i18n="family.intro">Родителски изглед.</strong> <span data-i18n="family.introBody">Виждаш само обобщени числа — колко задачи са свършени и колко време е учено. Текстът на задачите и въпросите към учителя остават лични за ученика.</span>
+      <strong data-i18n="family.intro">Parent view.</strong> <span data-i18n="family.introBody">You see summary numbers only — how many tasks are done and how long they studied. The text of tasks and questions to ClimbAI stays private to the student.</span>
     </div>
 
     <h3 class="history-section-title" data-i18n="family.studentsTitle">Свързани ученици</h3>
@@ -868,15 +872,22 @@
       <button class="btn-primary" type="submit" data-i18n="family.linkBtn">Свържи</button>
     </form>
     <p id="familyLinkError" class="auth-error hidden"></p>
+    </div>
+
+    <div id="familyStudentHalf" class="hidden">
+    <div class="explainer help-note hidden">
+      <strong data-i18n="family.introStudent">Your rope team.</strong> <span data-i18n="family.introStudentBody">Whoever you give a code to sees your numbers — how many tasks, how many minutes, how many days in a row. Never what a task says or what you asked.</span>
+    </div>
 
     <h3 class="history-section-title" data-i18n="family.shareTitle">Дай достъп на родител</h3>
-    <p class="hint" data-i18n="family.shareBody">Ако ти си ученикът: създай код и го дай на родителя си. Кодът важи 48 часа и може да се използва веднъж.</p>
+    <p class="hint" data-i18n="family.shareBody">Създай код и го дай на родителя си. Кодът важи 48 часа и може да се използва веднъж.</p>
     <div class="controls">
       <button id="familyInviteBtn" class="btn-ghost" type="button" data-i18n="family.inviteBtn">Създай код</button>
     </div>
     <p id="familyInviteCode" class="family-code hidden"></p>
 
     <div id="familyParents"></div>
+    </div>
   </div>
 
 </main>

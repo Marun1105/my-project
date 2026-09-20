@@ -184,12 +184,21 @@ const Family = (() => {
     if (seq !== parentsSeq) return;
     clearInlineError(wrap);
     wrap.innerHTML = '';
-    if (!parents.length) return;
 
     const title = document.createElement('h3');
     title.className = 'history-section-title';
     title.textContent = t('family.parentsTitle');
     wrap.appendChild(title);
+
+    // An empty list used to render as nothing at all, so a student could not
+    // tell "nobody is linked" from "this hasn't loaded". Say it.
+    if (!parents.length) {
+      const none = document.createElement('p');
+      none.className = 'hint';
+      none.textContent = t('family.noParents');
+      wrap.appendChild(none);
+      return;
+    }
 
     for (const p of parents) {
       const row = document.createElement('div');
@@ -212,9 +221,20 @@ const Family = (() => {
     }
   }
 
+  // Which half of the screen this account is. A parent (or a teacher, who can
+  // hold a rope too) enters codes and reads numbers; a student makes codes and
+  // sees who holds theirs. Nobody sees the other half — a student was being
+  // told "ask your child for a code".
+  function isParentSide() {
+    return Auth.getRole() !== 'student';
+  }
+
   function render() {
-    renderStudents();
-    renderParents();
+    const parentSide = isParentSide();
+    $('familyParentHalf').classList.toggle('hidden', !parentSide);
+    $('familyStudentHalf').classList.toggle('hidden', parentSide);
+    if (parentSide) renderStudents();
+    else renderParents();
   }
 
   function showLinkError(msg) {
