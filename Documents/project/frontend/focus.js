@@ -135,7 +135,15 @@ const Focus = (() => {
     if (typeof faceapi === 'undefined') {
       throw new Error(t('focus.errModelLoading'));
     }
-    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    // Two models, not one. The detector finds the face; the landmarks draw
+    // the frame around it. Loading only the first meant every frame with a
+    // real face in it threw "load model before inference" — the session ran
+    // and counted nothing, with no error on screen. The fake camera in tests
+    // never showed a face, so it never asked for landmarks.
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
+    ]);
     modelReady = true;
   }
 
