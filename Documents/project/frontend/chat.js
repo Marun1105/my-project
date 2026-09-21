@@ -61,8 +61,12 @@ const Chat = (() => {
         timeout: Net.AI_TIMEOUT_MS,
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        // context: the tutor is told what is on the Route and what was asked
+        // recently, so "what should I start with?" means something. Signed-in
+        // only; the server ignores it for guests.
         body: JSON.stringify({ images: [], question: text, lang: I18n.get(), history,
-                               mode: window.Prefs ? Prefs.get('tutor') : 'hints' }),
+                               mode: window.Prefs ? Prefs.get('tutor') : 'hints',
+                               context: !!token }),
       });
       const data = await res.json().catch(() => ({}));
       theirs.classList.remove('chat-thinking');
@@ -109,6 +113,17 @@ const Chat = (() => {
     $('chatClose').addEventListener('click', () => setOpen(false));
     $('chatNew').addEventListener('click', reset);
     $('chatSend').addEventListener('click', send);
+    // What the tutor can see is stated, not hidden. Both the line and the
+    // starter that relies on it appear only when there is an account to see.
+    const syncContext = () => {
+      const on = !!(window.Auth && Auth.isLoggedIn());
+      const sees = document.getElementById('chatSees');
+      const route = document.getElementById('chatStarterRoute');
+      if (sees) sees.classList.toggle('hidden', !on);
+      if (route) route.classList.toggle('hidden', !on);
+    };
+    syncContext();
+    window.addEventListener('climby:auth-changed', syncContext);
     document.querySelectorAll('.chat-starter').forEach(btn => {
       btn.addEventListener('click', () => {
         $('chatInput').value = btn.textContent;

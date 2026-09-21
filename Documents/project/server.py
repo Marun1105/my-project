@@ -36,7 +36,7 @@ import rate_limit
 import scans
 import tasks
 from db import Base, engine, get_db
-from models import ScanHistory, User
+from models import ScanHistory, Task, User
 from schemas import image_media_type
 
 app = FastAPI()
@@ -274,6 +274,11 @@ class Ask(BaseModel):
     # make in Settings: complete worked solutions, still explained. Both are
     # teaching; one of them is what you want the night before a test.
     mode: Literal["hints", "full"] = "hints"
+    # The chat sets this. With it, and a signed-in account, the tutor is told
+    # what is on the student's Route and what they asked recently — so "what
+    # should I start with?" and "like the one I asked yesterday" mean something.
+    # Guests have nothing to show; the photo tutor doesn't ask for it.
+    context: bool = False
 
     @field_validator("images")
     @classmethod
@@ -438,6 +443,55 @@ def _build_messages(images: list, history: list, question: str) -> list:
     return messages
 
 
+# What the tutor is told about the student, and the rules for using it. Kept
+# short on purpose: every token here is paid on every turn of every chat. The
+# rules matter as much as the data — a tutor that opens with "I see you have
+# three overdue tasks" is a nag, not a tutor.
+STUDENT_CONTEXT = {
+    "en": (
+        "\n\nWhat you know about this student (use it only when they ask about their "
+        "homework, what to do next, or refer to something they asked before; never "
+        "list it unprompted, never scold about deadlines):\n{block}"
+    ),
+    "bg": (
+        "\n\nКакво знаеш за този ученик (използвай го само когато пита за домашните си, "
+        "какво да прави след това, или се позовава на нещо, което е питал преди; никога "
+        "не го изброявай без повод, никога не мъмри за срокове):\n{block}"
+    ),
+}
+CONTEXT_MAX_TASKS = 10
+CONTEXT_MAX_QUESTIONS = 6
+
+
+def _student_context(db: Session, user: User, lang: str) -> str:
+    """The Route and the recent questions, as a few lines — or nothing."""
+    tasks = (db.query(Task)
+             .filter(Task.user_id == user.id, Task.done.is_(False))
+             .order_by(Task.deadline.is_(None), Task.deadline)
+             .limit(CONTEXT_MAX_TASKS).all())
+    recent = (db.query(ScanHistory)
+              .filter(ScanHistory.user_id == user.id)
+              .order_by(ScanHistory.created_at.desc())
+              .limit(CONTEXT_MAX_QUESTIONS).all())
+    if not tasks and not recent:
+        return ""
+    lines = []
+    if tasks:
+        lines.append("Pending tasks on their Route:" if lang == "en" else "Чакащи задачи в Маршрута:")
+        for t in tasks:
+            bits = [t.text[:120]]
+            if t.subject:
+                bits.append(t.subject[:40])
+            if t.deadline:
+                bits.append(("due " if lang == "en" else "срок ") + t.deadline.isoformat())
+            lines.append("- " + " — ".join(bits))
+    if recent:
+        lines.append("Recent questions to you:" if lang == "en" else "Скорошни въпроси към теб:")
+        for r in recent:
+            lines.append("- " + r.question[:120].replace("\n", " "))
+    return STUDENT_CONTEXT[lang].format(block="\n".join(lines))
+
+
 @app.post("/ask")
 def ask(
     body: Ask,
@@ -455,11 +509,14 @@ def ask(
     # Типът се взима от самата снимка, а не се предполага: приложението праща JPEG,
     # но качен от компютър файл спокойно може да е PNG и тогава "image/jpeg" е лъжа.
     messages = _build_messages(body.images, body.history, body.question)
+    system = SYSTEM[lang] + (FULL_SOLUTIONS[lang] if body.mode == "full" else "")
+    if body.context and user:
+        system += _student_context(db, user, lang)
     try:
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=1500,
-            system=SYSTEM[lang] + (FULL_SOLUTIONS[lang] if body.mode == "full" else ""),
+            system=system,
             messages=messages,
         )
     except APIError:
