@@ -1,0 +1,42 @@
+# Deploys the backend to Render on every push that changes it.
+#
+# Render's own "Auto-Deploy: On Commit" was on and still nothing deployed for
+# forty commits — the webhook from GitHub to Render had gone quiet. This does
+# not depend on it: GitHub itself calls Render's deploy hook after a push.
+#
+# Needs one repository secret, RENDER_DEPLOY_HOOK: Render → my-project →
+# Settings → Deploy Hook → copy the URL → GitHub → repo → Settings → Secrets
+# and variables → Actions → New repository secret. The URL is a credential
+# (anyone holding it can trigger deploys), so it lives there and nowhere else.
+#
+# Frontend, site, docs and desktop changes do not trigger it: none of those
+# reach the server, so a deploy for them would be a two-minute no-op.
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Documents/project/**'
+      - '!Documents/project/frontend/**'
+      - '!Documents/project/site/**'
+      - '!Documents/project/docs/**'
+      - '!Documents/project/desktop/**'
+      - '!Documents/project/**.md'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask Render to deploy the latest commit
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK secret is not set — see the comment at the top of this workflow"
+            exit 1
+          fi
+          code=$(curl -s -o body.txt -w '%{http_code}' -X POST "$HOOK")
+          echo "Render answered HTTP $code"; cat body.txt; echo
+          [ "$code" = "200" ] || [ "$code" = "201" ]
