@@ -4,7 +4,7 @@
 // има свой прозорец, своя икона в лентата на задачите и се стартира от менюто "Старт".
 // Сървърът (Render) остава същият, за да може ученикът да влезе в акаунта си и от
 // телефон, и от компютър и да вижда същия чеклист.
-const { app, BrowserWindow, Menu, dialog, protocol, net, session, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, protocol, net, session, shell, ipcMain } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { initAutoUpdate, checkForUpdatesManually } = require('./updater');
@@ -209,6 +209,11 @@ if (!gotLock) {
     event.preventDefault();
     forwardSignIn(url);
   });
+
+  // Asked by Settings in the page (see preload.js). The update check reuses
+  // the same path as the hidden Help menu, dialogs and all.
+  ipcMain.handle('climby:version', () => app.getVersion());
+  ipcMain.handle('climby:check-updates', () => { checkForUpdatesManually(); });
 
   app.whenReady().then(() => {
     // Content-Security-Policy нарочно не се слага тук с onHeadersReceived: същата

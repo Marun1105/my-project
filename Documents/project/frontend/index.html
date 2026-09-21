@@ -277,6 +277,12 @@
       <span data-i18n="settings.tour">Show the tour again</span>
       <button id="tourReplayBtn" class="btn-secondary tour-replay" type="button" data-i18n="settings.tourBtn">Start</button>
     </div>
+    <!-- Desktop only (settings.js hides it elsewhere). The menu bar that held
+         these is hidden, and nobody presses Alt to find a menu. -->
+    <div class="settings-row hidden" id="settingsAboutRow">
+      <span><span data-i18n="settings.version">Version</span> <strong id="settingsVersion">…</strong></span>
+      <button id="settingsUpdateBtn" class="btn-secondary tour-replay" type="button" data-i18n="settings.checkUpdates">Check for updates</button>
+    </div>
     <!-- Свързаните телефони живеят тук, защото откачането е нещо, което се прави
          веднъж и обикновено набързо — при изгубен телефон. -->
     <div class="settings-row settings-row-stack" id="settingsDevicesRow">

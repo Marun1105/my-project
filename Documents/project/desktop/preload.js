@@ -11,4 +11,8 @@ contextBridge.exposeInMainWorld('CLIMBY_DESKTOP', {
   // Викa се веднъж от auth.js. Страницата не получава самия ipcRenderer —
   // получава една функция и нищо друго, което да обърка.
   onSignIn: handler => ipcRenderer.on('climby:auth-token', (_event, payload) => handler(payload)),
+  // The menu bar is hidden, so Help → About and Help → Check for Updates are
+  // invisible to anyone who doesn't press Alt. Settings shows them instead.
+  version: () => ipcRenderer.invoke('climby:version'),
+  checkForUpdates: () => ipcRenderer.invoke('climby:check-updates'),
 });

@@ -143,4 +143,17 @@ const AccountUI = (() => {
   return { init };
 })();
 
+// The version and the update check, only where there is a desktop to ask.
+// In a browser the row stays hidden: there is nothing to update.
+(function aboutRow() {
+  const bridge = window.CLIMBY_DESKTOP;
+  const row = document.getElementById('settingsAboutRow');
+  if (!row || !bridge || typeof bridge.version !== 'function') return;
+  row.classList.remove('hidden');
+  bridge.version().then(v => { document.getElementById('settingsVersion').textContent = v; }).catch(() => {});
+  document.getElementById('settingsUpdateBtn').addEventListener('click', () => {
+    bridge.checkForUpdates().catch(() => {});
+  });
+})();
+
 document.addEventListener('DOMContentLoaded', AccountUI.init);
