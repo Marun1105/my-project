@@ -1,0 +1,50 @@
+# Builds the Linux AppImage on Linux and attaches it to a release.
+#
+# Building it on Windows needs symlinks, which Windows only grants with
+# Developer Mode or an admin shell — and even then the build stalled on this
+# machine. Ubuntu builds it in a few minutes with nothing to configure.
+#
+# Runs by itself when a release is published, or by hand from the Actions tab
+# with a tag (e.g. v1.0.9). Attaches Climby-X.Y.Z.AppImage and
+# latest-linux.yml to that release; installed Linux copies update from there.
+name: Linux build
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to attach the AppImage to (e.g. v1.0.9)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  appimage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Documents/project/desktop/package-lock.json
+
+      - name: Install
+        working-directory: Documents/project/desktop
+        run: npm ci
+
+      - name: Build AppImage
+        working-directory: Documents/project/desktop
+        run: npx electron-builder --linux --publish never
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        working-directory: Documents/project/desktop/dist
+        run: |
+          ls -la *.AppImage latest-linux.yml
+          gh release upload "$TAG" *.AppImage latest-linux.yml --clobber --repo "$GITHUB_REPOSITORY"

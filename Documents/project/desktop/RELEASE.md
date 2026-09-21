@@ -155,9 +155,17 @@ Store, not through GitHub Releases, so the updater is not involved.
 
 ## 6. Linux
 
-`npm run dist:linux` produces an AppImage. It needs no installation: the user
-marks it executable and runs it. It updates itself from GitHub Releases the
-same way Windows does, as long as `latest-linux.yml` is uploaded alongside it.
+**Built for you, on Linux.** Publishing a release runs
+`.github/workflows/linux-release.yml`, which builds the AppImage on Ubuntu and
+attaches `Climby-X.Y.Z.AppImage` and `latest-linux.yml` to that release. To
+run it for an existing release: Actions → *Linux build* → Run workflow → tag.
+
+Building it here also works, but Windows only allows the symlinks an AppImage
+needs with Developer Mode on (Settings → For developers) or an admin shell:
+`npm run dist:linux` from `desktop/`.
+
+The AppImage needs no installation — mark it executable and run it. It
+updates itself from GitHub Releases the same way Windows does.
 
 ---
 
