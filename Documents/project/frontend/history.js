@@ -357,7 +357,9 @@ const History = (() => {
     updateGate();
   }
 
-  return { init };
+  return { init, relativeAgo };
 })();
 
 document.addEventListener('DOMContentLoaded', History.init);
+
+window.History = History;

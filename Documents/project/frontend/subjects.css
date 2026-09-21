@@ -107,3 +107,14 @@
 #view-checklist {
   padding-bottom: calc(var(--subject-bar-h, 65px) + env(safe-area-inset-bottom) + var(--space-3));
 }
+
+/* On a wide screen the Route is two columns and the list is the right one.
+   The filter belongs under the list, not in the middle of the room. */
+@media (min-width: 1440px) {
+  /* the track is as wide as the whole column; the chips start where the list
+     column starts — past the form (360px) and the gap (36px) */
+  .subject-bar-track { padding-left: calc(360px + 36px + var(--gutter)); }
+}
+@media (min-width: 1800px) {
+  .subject-bar-track { padding-left: calc(400px + 44px + var(--gutter)); }
+}

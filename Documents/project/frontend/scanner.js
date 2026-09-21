@@ -86,6 +86,9 @@ const Scanner = (() => {
     });
     const onEntry = id === 'entryStage';
     const onCamera = id === 'cameraStage';
+    // the recent-questions list lives under the entry cards and goes with them
+    const recent = document.getElementById('recentAsked');
+    if (recent) recent.classList.toggle('offstage', !onEntry);
     // Без камера панелът за качване заема мястото на визьора — но само на този
     // етап, иначе би останал видим зад редактирането на снимката.
     const showNoCamera = onCamera && !hasCamera;

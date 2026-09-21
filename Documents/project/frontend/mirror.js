@@ -66,7 +66,38 @@ const Mirror = (() => {
 
   let seq = 0;
 
+  // The last few questions, under the cards. Only when the cards are showing —
+  // once the camera or a paper is open, the screen is that, not this.
+  const RECENT_MAX = 3;
+  let recentSeq = 0;
+
+  async function renderRecent() {
+    const box = $('recentAsked');
+    const list = $('recentAskedList');
+    if (!box || !list) return;
+    if (!window.Auth || !Auth.isLoggedIn()) { box.classList.add('hidden'); return; }
+    const my = ++recentSeq;
+    let scans;
+    try { scans = await get('/scans'); } catch { return; }
+    if (my !== recentSeq) return;
+    scans = (scans || []).slice(0, RECENT_MAX);
+    list.textContent = '';
+    for (const scan of scans) {
+      const li = document.createElement('li');
+      const q = document.createElement('span');
+      q.className = 'recent-asked-q';
+      q.textContent = scan.question.length > 110 ? scan.question.slice(0, 107) + '…' : scan.question;
+      const when = document.createElement('span');
+      when.className = 'recent-asked-when';
+      when.textContent = window.History && History.relativeAgo ? History.relativeAgo(scan.created_at) : '';
+      li.append(q, when);
+      list.appendChild(li);
+    }
+    box.classList.toggle('hidden', scans.length === 0);
+  }
+
   async function render() {
+    renderRecent();
     const el = $('mirror');
     if (!el) return;
     // Events arrive from every screen — a task ticked on the Route, a chat
@@ -122,6 +153,8 @@ const Mirror = (() => {
   }
 
   function init() {
+    const all = document.querySelector('.recent-asked-all');
+    if (all) all.addEventListener('click', () => { if (window.Nav) Nav.activate('history'); });
     window.addEventListener('climby:view-shown', e => { if (e.detail.view === 'tutor') render(); });
     window.addEventListener('climby:auth-changed', render);
     window.addEventListener('climby:lang-changed', render);

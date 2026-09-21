@@ -505,6 +505,16 @@
   <p id="phoneError" class="auth-error hidden" role="alert"></p>
 </div>
 </div>
+<!-- What you asked recently, under the cards. The home screen had one line
+     about you and then nothing; the last few questions are the most natural
+     thing to find there, and the way back into something half-understood. -->
+<section id="recentAsked" class="recent-asked hidden" aria-labelledby="recentAskedTitle">
+  <div class="recent-asked-head">
+    <h2 id="recentAskedTitle" class="history-section-title" data-i18n="recent.title">Recently asked</h2>
+    <button type="button" class="recent-asked-all" data-view="history" data-i18n="recent.all">All questions</button>
+  </div>
+  <ul id="recentAskedList" class="recent-asked-list"></ul>
+</section>
 <!-- Past papers: exam, subject, year, page — and the page goes to the scanner as
      if it had been photographed. Hidden until the fourth entry card is pressed. -->
 <div id="paperPicker" class="paper-picker hidden">

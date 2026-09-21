@@ -1599,6 +1599,13 @@ button:disabled { opacity: 0.4; cursor: default; }
 .nav-parent .nav-badge { margin-left: auto; margin-right: 8px; }
 
 /* ---------- родителски изглед ---------- */
+/* The two halves are plain wrappers inside a centred flex column; without a
+   width they shrink to their content and float in the middle. */
+/* Every screen's app wrapper is a plain div inside .view, which centres its
+   children; without a width they shrink to content and float. The Route's
+   already had one from its grid; the rest did not. */
+#checklistApp, #historyApp, #familyApp, #teacherApp, #studentClassesApp,
+#familyParentHalf, #familyStudentHalf { width: 100%; }
 .family-students { width: 100%; display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
 .family-card {
   background: var(--bg-elevated);
@@ -3198,3 +3205,82 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
   font-size: 12px;
   color: var(--text-faint);
 }
+
+/* ==========================================================================
+   Wide screens. The column was sized for a laptop; on a monitor it sat like
+   a phone in the middle of the room, content in the top third, the watermark
+   owning the rest. Above 1440px the column grows, the watermark steps aside
+   to the lower right instead of sitting under the text, and the Route — the
+   one screen with a form AND a list — becomes two columns: add on the left,
+   the route itself on the right, so both are visible at once.
+   ========================================================================== */
+@media (min-width: 1440px) {
+  :root { --content-width: 980px; --gutter: 32px; }
+
+  .main-area::before {
+    width: min(34vw, 560px);
+    height: min(34vw, 560px);
+    left: auto;
+    right: -4vw;
+    top: auto;
+    bottom: -6vh;
+    transform: none;
+  }
+
+  /* ---- The Route, two columns ---- */
+  #checklistApp {
+    display: grid;
+    grid-template-columns: 360px minmax(0, 1fr);
+    column-gap: 36px;
+    align-items: start;
+    width: 100%;
+  }
+  #checklistApp > .help-note { grid-column: 1 / -1; }
+  #checklistApp > #taskForm {
+    grid-column: 1;
+    grid-row: 2 / span 5;
+    position: sticky;
+    top: 28px;
+    margin-top: 0;
+  }
+  /* Explicit rows for everything: the help note is display:none once read,
+     and auto-placement would then slide the tools row up into its slot, above
+     the form's first field. */
+  #checklistApp > #taskTools   { grid-column: 2; grid-row: 2; margin-top: 0; }
+  #checklistApp > #taskList    { grid-column: 2; grid-row: 3; }
+  #checklistApp > #taskEmpty   { grid-column: 2; grid-row: 4; }
+  #checklistApp > .controls    { grid-column: 2; grid-row: 5; }
+  #checklistApp > #planAdvice  { grid-column: 2; grid-row: 6; }
+  #checklistApp > :not(#taskForm):not(.help-note) { width: 100%; max-width: none; }
+
+  /* the entry cards can breathe */
+  .entry-choice { min-height: 200px; }
+}
+
+@media (min-width: 1800px) {
+  :root { --content-width: 1120px; }
+  #checklistApp { grid-template-columns: 400px minmax(0, 1fr); column-gap: 44px; }
+}
+
+/* ---------- recently asked (mirror.js) ----------
+   Under the entry cards. Plain rows, no cards inside cards: a question and
+   when. The link to Summited is the only action. */
+.recent-asked { width: 100%; margin-top: 26px; }
+.recent-asked-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.recent-asked-head .history-section-title { margin: 0; }
+.recent-asked-all {
+  font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--text-dim); background: none; border: 0; padding: 4px 0; cursor: pointer;
+  white-space: nowrap; flex: none;
+}
+.recent-asked-all:hover { color: var(--text); }
+.recent-asked-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.recent-asked-list li {
+  display: flex; justify-content: space-between; gap: 16px; align-items: baseline;
+  padding: 11px 0; border-top: 1px solid var(--border);
+  font-size: 14px; line-height: 1.45;
+}
+.recent-asked-list li:last-child { border-bottom: 1px solid var(--border); }
+.recent-asked-q { color: var(--text); min-width: 0; }
+.recent-asked-when { color: var(--text-faint); font-size: 12.5px; white-space: nowrap; }
+.recent-asked.offstage { display: none; }
