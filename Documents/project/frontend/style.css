@@ -1,8 +1,8 @@
 /* style.css — общ дизайн на Climby: тъмна тема (основна) + светла тема (превключваема) */
 
 /* Шрифтовете се зареждат от fonts.css, който стои при приложението (виж там защо).
-   Inter носи целия текст и интерфейса; Space Grotesk е само за заглавия и марката.
-   Space Grotesk няма кирилица, затова Inter стои втори в --font-heading и поема
+   Inter carries all text and interface; Manrope is for headings and the brand.
+   Both have Cyrillic. Inter stays second in --font-heading as a plain fallback for
    българските заглавия — смяната се вижда само на латиница. */
 
 :root {
@@ -76,7 +76,7 @@
   --ambient-b: rgba(255, 255, 255, 0.03);
 
   --font-body: 'Inter', system-ui, sans-serif;
-  --font-heading: 'Space Grotesk', 'Inter', sans-serif;
+  --font-heading: 'Manrope', 'Inter', sans-serif;
   /* Стари имена, запазени, за да не се пипат десетки правила наведнъж.
      И двете сочат към заглавния шрифт — марката и заглавията са едно и също. */
   --font-brand: var(--font-heading);
@@ -985,7 +985,7 @@ body {
 /* На телефон единственото, което казваше на ученика къде се намира, беше
    осветеният ред в менюто — а то е извън екрана. Всеки изглед започва с името
    си, със същите думи като в менюто, и с едно изречение отдолу, което казва за
-   какво служи екранът. Space Grotesk е тук на мястото си: това са заглавия. */
+   какво служи екранът. Manrope е тук на мястото си: това са заглавия. */
 .page-header {
   width: 100%;
   margin-bottom: var(--space-2);
@@ -1637,7 +1637,22 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--text-dim);
 }
 .family-link-form { width: 100%; display: flex; gap: 10px; margin-top: 16px; }
-.family-link-form input { flex: 1; font-size: var(--fs-input); }
+/* The code box on Rope Team and Base Camp is the same component as the Route's
+   inputs and should look it. It had no rule of its own, so the browser drew its
+   default grey box next to the app's dark ones. */
+.family-link-form input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: var(--fs-input);
+  color: var(--text);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 13px 15px;
+}
+.family-link-form input:focus { outline: none; border-color: var(--accent); }
+.family-link-form input::placeholder { color: var(--text-faint); }
 
 /* Само за КОДОВЕ. Голямите букви и разредката помагат да се преписват без грешка
    (нула или буква О), но същото лежеше върху целия ред и хващаше и полето за ИМЕ
