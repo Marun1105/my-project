@@ -29,7 +29,7 @@ automatic. A ready-to-paste message for them is at the bottom.
 ```
 cd desktop
 npm run dist            # Windows: installer + portable
-npm run dist:linux      # Linux: AppImage
+npm run dist:linux      # Linux: AppImage — Linux/macOS only; on Windows use the workflow (§6)
 npm run dist:store      # Microsoft Store package (see §5)
 ```
 
@@ -160,9 +160,11 @@ Store, not through GitHub Releases, so the updater is not involved.
 attaches `Climby-X.Y.Z.AppImage` and `latest-linux.yml` to that release. To
 run it for an existing release: Actions → *Linux build* → Run workflow → tag.
 
-Building it here also works, but Windows only allows the symlinks an AppImage
-needs with Developer Mode on (Settings → For developers) or an admin shell:
-`npm run dist:linux` from `desktop/`.
+It cannot be built on Windows. electron-builder's AppImage tooling ships
+`mksquashfs` for Linux and macOS only, so on Windows the build ends with
+`darwin\mksquashfs … ENOENT` no matter what (and before that, a symlink error
+unless Developer Mode is on). `npm run dist:linux` exists for a Linux or macOS
+machine; on this one, use the workflow.
 
 The AppImage needs no installation — mark it executable and run it. It
 updates itself from GitHub Releases the same way Windows does.
