@@ -495,7 +495,13 @@ const Auth = (() => {
     });
   }
 
-  return { getToken, getUser, getRole, isLoggedIn, logout, init, openEntryGate: showEntryGate };
+  // After a password change the server hands back a fresh token; every other
+  // session is over. Keep the same storage as before (remembered or not).
+  function replaceSession(token, user) {
+    _setSession(token, user, !!localStorage.getItem(TOKEN_KEY));
+  }
+
+  return { getToken, getUser, getRole, isLoggedIn, logout, init, openEntryGate: showEntryGate, replaceSession };
 })();
 
 // Модулите се пишат като `const X = (() => {...})()`, а `const` на най-горно ниво

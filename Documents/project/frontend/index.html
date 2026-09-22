@@ -289,6 +289,35 @@
       <span data-i18n="settings.devicesTitle">Свързани телефони</span>
       <div id="settingsDevices" class="device-list"></div>
     </div>
+
+    <!-- The account itself: change the password, take the data, leave. Signed-in
+         only. Leaving is last and behind a confirmation, because it is total. -->
+    <div id="accountRows" class="hidden">
+      <div class="settings-row settings-row-stack">
+        <span data-i18n="account.passwordTitle">Password</span>
+        <form id="accountPasswordForm" class="account-form" novalidate>
+          <input id="accountCurrentPw" type="password" autocomplete="current-password" data-i18n-placeholder="account.currentPw" placeholder="Current password">
+          <input id="accountNewPw" type="password" autocomplete="new-password" minlength="8" data-i18n-placeholder="account.newPw" placeholder="New password (8+ characters)">
+          <button class="btn-secondary" type="submit" data-i18n="account.changePw">Change password</button>
+        </form>
+        <p id="accountPwMsg" class="settings-note hidden" role="status"></p>
+      </div>
+      <div class="settings-row">
+        <span><span data-i18n="account.exportTitle">Your data</span><br><small class="settings-note" data-i18n="account.exportHint">Everything Climby keeps about you, as one file.</small></span>
+        <button id="accountExportBtn" class="btn-secondary" type="button" data-i18n="account.exportBtn">Download</button>
+      </div>
+      <div class="settings-row settings-row-stack account-danger">
+        <span data-i18n="account.deleteTitle">Delete account</span>
+        <p class="settings-note" data-i18n="account.deleteHint">Removes your account and everything in it — tasks, questions, sessions, links. Immediately, and for good.</p>
+        <button id="accountDeleteBtn" class="btn-secondary" type="button" data-i18n="account.deleteBtn">Delete my account…</button>
+        <form id="accountDeleteForm" class="account-form hidden" novalidate>
+          <input id="accountDeletePw" type="password" autocomplete="current-password" data-i18n-placeholder="account.deletePw" placeholder="Your password, to confirm">
+          <input id="accountDeleteWord" type="text" autocomplete="off" class="hidden" data-i18n-placeholder="account.deleteWord" placeholder="Type DELETE to confirm">
+          <button class="btn-danger" type="submit" data-i18n="account.deleteConfirm">Delete everything</button>
+        </form>
+        <p id="accountDeleteMsg" class="settings-note hidden" role="alert"></p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1044,6 +1073,7 @@
 <script src="net.js"></script>
 <script src="theme.js"></script>
 <script src="settings.js"></script>
+<script src="account.js"></script>
 <script src="nav.js"></script>
 <script src="help.js"></script>
 <script src="scanner.js"></script>

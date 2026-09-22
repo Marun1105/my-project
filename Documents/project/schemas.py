@@ -135,7 +135,10 @@ class UserOut(BaseModel):
     phone: Optional[str] = None
     is_email_verified: bool
     is_phone_verified: bool
-
+    # Whether the account has a password at all. One made with Google does not,
+    # and the account screen asks it to type a word instead of a password it
+    # never chose.
+    has_password: bool = False
 
 class AuthResponse(BaseModel):
     token: str
