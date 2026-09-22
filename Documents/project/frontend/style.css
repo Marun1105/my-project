@@ -2945,9 +2945,12 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
   grid-row: 1 / span 2;
   width: 96px; height: 96px;
   border-radius: 50%;
+  /* At rest it is a dial, not a gauge. It used to show a 62% arc while
+     nothing was running — a ring that says "most of the way" before a single
+     session is a ring that lies. Empty until there is something to measure. */
   background:
     radial-gradient(closest-side, var(--bg-elevated) 78%, transparent 80%),
-    conic-gradient(from 210deg, var(--purple) 0 62%, var(--border) 62% 100%);
+    conic-gradient(var(--border) 0 100%);
   position: relative;
 }
 .focus-ring::after {
