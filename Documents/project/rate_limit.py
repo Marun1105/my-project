@@ -124,3 +124,18 @@ def enforce(request: Request, bucket: str, max_calls: int, window_seconds: int,
         if len(hits) >= max_calls:
             raise HTTPException(429, message)
         hits.append(now)
+
+
+def forgive(request: Request, bucket: str, user=None) -> None:
+    """Take back the most recent hit for this caller.
+
+    The in-memory brake must stay first — it is what stands between a bot and
+    the database — so the daily budget is checked after it. When the budget
+    then refuses, the hit is returned: a call that spent nothing should cost
+    nothing, or the hour after the reset is spent on 429s.
+    """
+    key = f"{bucket}:{_identity(request, user)}"
+    with _lock:
+        hits = _hits.get(key)
+        if hits:
+            hits.pop()

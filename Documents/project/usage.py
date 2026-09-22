@@ -11,7 +11,9 @@
 import os
 from datetime import datetime, timezone
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
+
+import rate_limit
 from sqlalchemy import Column, Date, Integer, text
 from sqlalchemy.orm import Session
 
@@ -56,10 +58,35 @@ def _today():
     return datetime.now(timezone.utc).date()
 
 
+# How often recording has failed since this worker started. The cap fails
+# open by design — an answer is worth more than its receipt — but a guard on
+# money that has quietly stopped counting must be visible somewhere, and
+# stdout is not somewhere. /healthz shows it.
+_record_failures = 0
+
+
 def today(db: Session) -> dict:
     row = db.query(AiUsage).filter(AiUsage.day == _today()).first()
     return {"day": _today().isoformat(), "calls": row.calls if row else 0,
-            "tokens": row.tokens if row else 0, "cap": DAILY_TOKEN_CAP}
+            "tokens": row.tokens if row else 0, "cap": DAILY_TOKEN_CAP,
+            "record_failures": _record_failures}
+
+
+def guard(db: Session, lang: str, request: Request, bucket: str, user=None) -> None:
+    """The order that is right for both brakes.
+
+    The per-caller limit first: it is in memory and costs nothing, and it is
+    what stands between a flood from one address and the database. Then the
+    day's budget, which is a query. If the budget refuses, the hit the limit
+    just recorded is given back — that call spent nothing.
+    """
+    if DAILY_TOKEN_CAP <= 0:
+        return
+    try:
+        check(db, lang)
+    except HTTPException:
+        rate_limit.forgive(request, bucket, user)
+        raise
 
 
 def check(db: Session, lang: str = "en") -> None:
@@ -80,8 +107,10 @@ def record(db: Session, resp) -> None:
     try:
         _record(db, resp)
     except Exception as err:  # noqa: BLE001 — anything; the answer matters more
+        global _record_failures
+        _record_failures += 1
         db.rollback()
-        print(f"[usage] could not record tokens: {err!r}", flush=True)
+        print(f"[usage] could not record tokens ({_record_failures} so far): {err!r}", flush=True)
 
 
 def _record(db: Session, resp) -> None:

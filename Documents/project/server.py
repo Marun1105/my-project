@@ -512,11 +512,11 @@ def ask(
     # пази от неограничени разходи за Anthropic API от един клиент/бот.
     # Разговорът значи повече реплики. С акаунт: 30 на час — един истински урок.
     # Гост остава на 12 по адрес: без акаунт няма по кого да броим.
-    # The day's budget first: a call refused for budget must not also charge
-    # the student's hourly quota, or the hour after the reset is spent on 429s.
-    usage.check(db, lang)
     rate_limit.enforce(request, "ask", max_calls=30 if user else 12, window_seconds=3600,
                        message=RATE_LIMIT_MESSAGE[lang], user=user)
+    # The day's budget, after the in-memory brake and never before it; a call
+    # refused for budget gives its hit back. See usage.guard.
+    usage.guard(db, lang, request, "ask", user)
     # Типът се взима от самата снимка, а не се предполага: приложението праща JPEG,
     # но качен от компютър файл спокойно може да е PNG и тогава "image/jpeg" е лъжа.
     messages = _build_messages(body.images, body.history, body.question)
@@ -537,7 +537,13 @@ def ask(
 
     if user:
         # Пазим само текста на въпроса/отговора за историята — снимките, стигнали дотук, не се записват.
-        db.add(ScanHistory(user_id=user.id, question=body.question, answer=answer, lang=lang))
-        db.commit()
+        # Best effort, like the token count above it: the answer is already
+        # bought, and a database hiccup here must not throw it away as a 500.
+        try:
+            db.add(ScanHistory(user_id=user.id, question=body.question, answer=answer, lang=lang))
+            db.commit()
+        except Exception as err:  # noqa: BLE001
+            db.rollback()
+            print(f"[ask] could not save to history: {err!r}", flush=True)
 
     return {"answer": answer}

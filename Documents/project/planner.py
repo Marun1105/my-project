@@ -101,9 +101,9 @@ def plan(body: PlanRequest, request: Request,
     if not body.tasks:
         return {"advice": NO_TASKS_MESSAGE[lang]}
 
-    usage.check(db, lang)
     rate_limit.enforce(request, "plan", max_calls=20, window_seconds=3600,
                        message=RATE_LIMIT_MESSAGE[lang], user=user)
+    usage.guard(db, lang, request, "plan", user)
 
     lines = []
     for t in body.tasks:
@@ -138,9 +138,9 @@ def split(body: SplitRequest, request: Request,
     if not text:
         raise HTTPException(400, SPLIT_ERROR_MESSAGE[lang])
 
-    usage.check(db, lang)
     rate_limit.enforce(request, "split", max_calls=20, window_seconds=3600,
                        message=RATE_LIMIT_MESSAGE[lang], user=user)
+    usage.guard(db, lang, request, "split", user)
 
     prompt = text if not body.subject else f"{text} (subject: {body.subject})"
     try:

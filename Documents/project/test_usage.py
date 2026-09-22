@@ -125,3 +125,49 @@ def test_a_call_refused_for_budget_does_not_charge_the_hour(monkeypatch):
         assert _ask().status_code == 503
     hits_after = sum(len(v) for k, v in rate_limit._hits.items() if k.startswith("ask:"))
     assert hits_after == hits_before, "refused-for-budget calls must not count against the hourly quota"
+
+
+def test_the_brake_stays_in_front_of_the_database(monkeypatch):
+    """A flood from one address is stopped in memory, not with a query each."""
+    queries = []
+    real_check = usage.check
+    monkeypatch.setattr(usage, "check", lambda db, lang="en": (queries.append(1), real_check(db, lang))[1])
+    for _ in range(12):            # a guest's hour
+        assert _ask().status_code == 200
+    seen = len(queries)
+    for _ in range(5):             # over quota: refused by the brake alone
+        assert _ask().status_code == 429
+    assert len(queries) == seen, "a rate-limited call must never reach the database"
+
+
+def test_a_history_save_failure_never_discards_a_bought_answer(monkeypatch):
+    import server as srv
+    _, h = _signed_in()
+    # break only the history write: patch ScanHistory to explode on construction
+    monkeypatch.setattr(srv, "ScanHistory", lambda **kw: (_ for _ in ()).throw(RuntimeError("database hiccup")))
+    res = client.post("/ask", json={"images": [], "question": "What is 7x8?", "lang": "en"}, headers=h)
+    assert res.status_code == 200 and res.json()["answer"] == "Answer."
+
+
+def test_recording_failures_are_visible_in_healthz(monkeypatch):
+    def boom(db, resp):
+        raise RuntimeError("database hiccup")
+    monkeypatch.setattr(usage, "_record", boom)
+    before = client.get("/healthz").json()["ai_today"]["record_failures"]
+    _ask()
+    assert client.get("/healthz").json()["ai_today"]["record_failures"] == before + 1
+
+
+def _signed_in():
+    email = "usage-user@example.com"
+    client.post("/auth/register", json={"display_name": "U", "email": email, "password": "testpass123"})
+    from models import User
+    db = SessionLocal()
+    u = db.query(User).filter(User.email == email).first()
+    u.is_email_verified = True
+    db.commit()
+    uid = u.id
+    db.close()
+    rate_limit._hits.clear()
+    res = client.post("/auth/login", json={"email": email, "password": "testpass123"})
+    return uid, {"Authorization": f"Bearer {res.json()['token']}"}
