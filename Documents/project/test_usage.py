@@ -99,3 +99,29 @@ def test_healthz_shows_the_days_spend():
     body = client.get("/healthz").json()
     assert body["ai_today"]["calls"] == 1 and body["ai_today"]["tokens"] == 1000
     assert body["ai_today"]["cap"] == 3_000_000
+
+
+def test_a_bad_cap_value_falls_back_instead_of_breaking_boot(monkeypatch):
+    for bad in ("", "  ", "three million", "3_000_000 "):
+        monkeypatch.setenv("AI_DAILY_TOKEN_CAP", bad)
+        assert usage._cap_from_env() in (3_000_000,), bad
+    monkeypatch.setenv("AI_DAILY_TOKEN_CAP", "1,500,000")
+    assert usage._cap_from_env() == 1_500_000
+
+
+def test_a_bookkeeping_failure_never_discards_a_bought_answer(monkeypatch):
+    def boom(db, resp):
+        raise RuntimeError("database hiccup")
+    monkeypatch.setattr(usage, "_record", boom)
+    res = _ask()
+    assert res.status_code == 200 and res.json()["answer"] == "Answer."
+
+
+def test_a_call_refused_for_budget_does_not_charge_the_hour(monkeypatch):
+    monkeypatch.setattr(usage, "DAILY_TOKEN_CAP", 1)
+    _ask()  # spends the day
+    hits_before = sum(len(v) for k, v in rate_limit._hits.items() if k.startswith("ask:"))
+    for _ in range(5):
+        assert _ask().status_code == 503
+    hits_after = sum(len(v) for k, v in rate_limit._hits.items() if k.startswith("ask:"))
+    assert hits_after == hits_before, "refused-for-budget calls must not count against the hourly quota"

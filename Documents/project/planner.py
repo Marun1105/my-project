@@ -101,6 +101,7 @@ def plan(body: PlanRequest, request: Request,
     if not body.tasks:
         return {"advice": NO_TASKS_MESSAGE[lang]}
 
+    usage.check(db, lang)
     rate_limit.enforce(request, "plan", max_calls=20, window_seconds=3600,
                        message=RATE_LIMIT_MESSAGE[lang], user=user)
 
@@ -114,7 +115,6 @@ def plan(body: PlanRequest, request: Request,
         lines.append("- " + ", ".join(parts))
     tasks_text = "\n".join(lines)
 
-    usage.check(db, lang)
     try:
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",
@@ -138,11 +138,11 @@ def split(body: SplitRequest, request: Request,
     if not text:
         raise HTTPException(400, SPLIT_ERROR_MESSAGE[lang])
 
+    usage.check(db, lang)
     rate_limit.enforce(request, "split", max_calls=20, window_seconds=3600,
                        message=RATE_LIMIT_MESSAGE[lang], user=user)
 
     prompt = text if not body.subject else f"{text} (subject: {body.subject})"
-    usage.check(db, lang)
     try:
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",

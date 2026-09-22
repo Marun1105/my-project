@@ -512,6 +512,9 @@ def ask(
     # пази от неограничени разходи за Anthropic API от един клиент/бот.
     # Разговорът значи повече реплики. С акаунт: 30 на час — един истински урок.
     # Гост остава на 12 по адрес: без акаунт няма по кого да броим.
+    # The day's budget first: a call refused for budget must not also charge
+    # the student's hourly quota, or the hour after the reset is spent on 429s.
+    usage.check(db, lang)
     rate_limit.enforce(request, "ask", max_calls=30 if user else 12, window_seconds=3600,
                        message=RATE_LIMIT_MESSAGE[lang], user=user)
     # Типът се взима от самата снимка, а не се предполага: приложението праща JPEG,
@@ -520,7 +523,6 @@ def ask(
     system = SYSTEM[lang] + (FULL_SOLUTIONS[lang] if body.mode == "full" else "")
     if body.context and user:
         system += _student_context(db, user, lang)
-    usage.check(db, lang)   # the day's budget, for everyone together
     try:
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",

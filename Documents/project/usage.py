@@ -20,7 +20,21 @@ from db import Base
 # Haiku 4.5 is roughly $1 per million input tokens and $5 per million output.
 # Three million tokens a day is on the order of ten dollars a day at the very
 # worst mix, and far more questions than the app has ever seen in a week.
-DAILY_TOKEN_CAP = int(os.environ.get("AI_DAILY_TOKEN_CAP", "3000000"))
+def _cap_from_env(default: int = 3_000_000) -> int:
+    # A blank value (saved when "clearing" it in Render) or a stray character
+    # must not stop the app from booting on the next deploy. A spend knob is
+    # not worth an outage: fall back, say so once.
+    raw = os.environ.get("AI_DAILY_TOKEN_CAP")
+    if raw is None or not raw.strip():
+        return default
+    try:
+        return int(raw.strip().replace("_", "").replace(",", ""))
+    except ValueError:
+        print(f"[usage] AI_DAILY_TOKEN_CAP={raw!r} is not a number — using {default}", flush=True)
+        return default
+
+
+DAILY_TOKEN_CAP = _cap_from_env()
 
 # What the student reads when the day's budget is spent. Not an error: the
 # tutor is resting, and says when it is back.
@@ -57,7 +71,20 @@ def check(db: Session, lang: str = "en") -> None:
 
 
 def record(db: Session, resp) -> None:
-    """Add this answer's tokens to the day. Atomic: workers race, rows don't."""
+    """Add this answer's tokens to the day. Atomic: workers race, rows don't.
+
+    Runs after the paid call. If the database hiccups here the answer has
+    already been bought; a bookkeeping failure must not turn it into a 500
+    and throw it away. Best effort, logged.
+    """
+    try:
+        _record(db, resp)
+    except Exception as err:  # noqa: BLE001 — anything; the answer matters more
+        db.rollback()
+        print(f"[usage] could not record tokens: {err!r}", flush=True)
+
+
+def _record(db: Session, resp) -> None:
     used = 0
     usage = getattr(resp, "usage", None)
     if usage is not None:
