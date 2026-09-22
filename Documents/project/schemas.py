@@ -139,6 +139,26 @@ class UserOut(BaseModel):
     # and the account screen asks it to type a word instead of a password it
     # never chose.
     has_password: bool = False
+    grade: Optional[int] = None
+    city: Optional[str] = None
+    heard_from: Optional[str] = None
+
+class ProfileUpdate(BaseModel):
+    """The first-sign-in questions, and the same fields from Settings later."""
+    grade: Optional[int] = Field(default=None, ge=1, le=12)
+    city: Optional[str] = Field(default=None, max_length=80)
+    heard_from: Optional[str] = Field(default=None, max_length=20)
+
+    _clean_heard = field_validator("heard_from")(_check_heard_from)
+
+    @field_validator("city")
+    @classmethod
+    def _clean_city(cls, v):
+        if v is None:
+            return None
+        v = " ".join(v.split())
+        return v or None
+
 
 class AuthResponse(BaseModel):
     token: str

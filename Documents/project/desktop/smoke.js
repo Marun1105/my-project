@@ -37,7 +37,11 @@ async function main() {
     await new Promise(r => setTimeout(r, 500));
     browser = await chromium.connectOverCDP(`http://127.0.0.1:${PORT}`).catch(() => null);
   }
-  if (!browser) throw new Error('the app never opened its debugging port');
+  if (!browser) {
+    const other = await new Promise(r => { const c = require('net').connect(PORT, '127.0.0.1'); c.on('connect', () => { c.end(); r(true); }); c.on('error', () => r(false)); });
+    throw new Error(other ? `port ${PORT} is already in use — is another Climby running? Close it and try again`
+                          : 'the app never opened its debugging port');
+  }
 
   const page = browser.contexts()[0].pages()[0];
   page.on('pageerror', e => note('page error', e.message.slice(0, 200)));

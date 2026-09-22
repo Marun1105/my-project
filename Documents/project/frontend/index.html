@@ -213,6 +213,46 @@
   </div>
 </div>
 
+<!-- Three questions after the first sign-in: grade, town, how they heard of
+     Climby. The grade is the one that matters — it is what the tutor reads to
+     decide whether to sound like a picture book or a textbook. Skippable, and
+     it comes back a week later; editable any time from Settings. -->
+<div id="profileQuiz" class="settings-overlay hidden" role="dialog" aria-labelledby="profileQuizTitle">
+  <div class="settings-card quiz-card">
+    <h2 id="profileQuizTitle" data-i18n="quiz.title">A few quick questions</h2>
+    <p class="settings-note" data-i18n="quiz.why">So ClimbAI knows who it is talking to — a first-grader and a tenth-grader need different answers.</p>
+
+    <div class="quiz-q" id="quizGradeQ">
+      <span class="quiz-label" data-i18n="quiz.grade">Which grade are you in?</span>
+      <div class="quiz-grades" id="quizGrades" role="group"></div>
+    </div>
+
+    <div class="quiz-q">
+      <label class="quiz-label" for="quizCity" data-i18n="quiz.city">Where are you from?</label>
+      <input id="quizCity" type="text" maxlength="80" autocomplete="address-level2" data-i18n-placeholder="quiz.cityPlaceholder" placeholder="Town or village">
+    </div>
+
+    <div class="quiz-q">
+      <span class="quiz-label" data-i18n="quiz.heard">How did you hear about Climby?</span>
+      <div class="quiz-chips" id="quizHeard" role="group">
+        <button type="button" class="chat-starter" data-value="friend" data-i18n="quiz.hFriend">A friend</button>
+        <button type="button" class="chat-starter" data-value="teacher" data-i18n="quiz.hTeacher">A teacher</button>
+        <button type="button" class="chat-starter" data-value="parent" data-i18n="quiz.hParent">A parent</button>
+        <button type="button" class="chat-starter" data-value="school" data-i18n="quiz.hSchool">School</button>
+        <button type="button" class="chat-starter" data-value="social" data-i18n="quiz.hSocial">Social media</button>
+        <button type="button" class="chat-starter" data-value="search" data-i18n="quiz.hSearch">Searching online</button>
+        <button type="button" class="chat-starter" data-value="other" data-i18n="quiz.hOther">Somewhere else</button>
+      </div>
+    </div>
+
+    <p id="quizError" class="settings-note is-error hidden" role="alert"></p>
+    <div class="quiz-actions">
+      <button id="quizLater" class="btn-ghost" type="button" data-i18n="quiz.later">Later</button>
+      <button id="quizSave" class="btn-primary" type="button" data-i18n="quiz.save">Save</button>
+    </div>
+  </div>
+</div>
+
 <div id="settingsOverlay" class="settings-overlay hidden">
   <div class="settings-card">
     <button id="settingsClose" class="entry-gate-close settings-close" type="button" data-i18n-aria="settings.closeAria" aria-label="Затвори настройките">✕</button>
@@ -220,6 +260,7 @@
     <!-- Език и тема са един и същ вид избор: две-три възможности, всички видими
          наведнъж. Затова изглеждат еднакво. Дотук езикът беше единствената
          системна контрола в иначе изцяло начертан интерфейс и си личеше. -->
+    <h3 class="settings-section" data-i18n="settings.secAppearance">Appearance</h3>
     <div class="settings-row settings-row-stack">
       <span data-i18n="settings.language">Език</span>
       <div class="theme-switch" role="group" data-i18n-aria-label="settings.language" aria-label="Език">
@@ -251,6 +292,7 @@
       </div>
       <p class="settings-note" data-i18n="settings.readingNote">По-широки букви и редове — по-лесно за очите, особено при дислексия.</p>
     </div>
+    <h3 class="settings-section" data-i18n="settings.secTutor">ClimbAI</h3>
     <div class="settings-row settings-row-stack">
       <span data-i18n="settings.tutorMode">Как обяснява ClimbAI</span>
       <div class="theme-switch" role="group">
@@ -273,6 +315,7 @@
         <button type="button" class="theme-switch-option" data-pref="motion" data-value="calm" aria-pressed="false" data-i18n="settings.motionCalm">Спокойно</button>
       </div>
     </div>
+    <h3 class="settings-section" data-i18n="settings.secApp">The app</h3>
     <div class="settings-row">
       <span data-i18n="settings.tour">Show the tour again</span>
       <button id="tourReplayBtn" class="btn-secondary tour-replay" type="button" data-i18n="settings.tourBtn">Start</button>
@@ -293,6 +336,11 @@
     <!-- The account itself: change the password, take the data, leave. Signed-in
          only. Leaving is last and behind a confirmation, because it is total. -->
     <div id="accountRows" class="hidden">
+    <h3 class="settings-section" data-i18n="settings.secAccount">Account</h3>
+    <div class="settings-row">
+      <span><span data-i18n="settings.profileTitle">About you</span><br><small id="settingsProfileSummary" class="settings-note"></small></span>
+      <button id="settingsProfileBtn" class="btn-secondary" type="button" data-i18n="settings.profileBtn">Edit</button>
+    </div>
       <div class="settings-row settings-row-stack">
         <span data-i18n="account.passwordTitle">Password</span>
         <form id="accountPasswordForm" class="account-form" novalidate>
@@ -1074,6 +1122,7 @@
 <script src="theme.js"></script>
 <script src="settings.js"></script>
 <script src="account.js"></script>
+<script src="profile.js"></script>
 <script src="nav.js"></script>
 <script src="help.js"></script>
 <script src="scanner.js"></script>

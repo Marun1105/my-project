@@ -47,6 +47,11 @@ class User(Base):
     # Откъде е чул за Climby — отговор от началния въпросник. По желание и без
     # уникалност: това е статистика, не самоличност.
     heard_from = Column(String, nullable=True)
+    # The two answers the first-sign-in questions collect. The grade is what
+    # the tutor reads: it decides whether an explanation of fractions sounds
+    # like a picture book or a textbook. Both optional; both editable later.
+    grade = Column(Integer, nullable=True)
+    city = Column(String, nullable=True)
     # Уникалността тук е буквална: и SQLite, и Postgres смятат "Ivan@Abv.bg" и
     # "ivan@abv.bg" за различни низове. Затова адресът се смъква до малки букви
     # още преди записа (auth.normalize_email), а търсенето минава през
