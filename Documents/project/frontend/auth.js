@@ -501,7 +501,15 @@ const Auth = (() => {
     _setSession(token, user, !!localStorage.getItem(TOKEN_KEY));
   }
 
-  return { getToken, getUser, getRole, isLoggedIn, logout, init, openEntryGate: showEntryGate, replaceSession };
+  // The profile changed (grade, town); the stored user should say so too,
+  // without a new token and without re-announcing a sign-in.
+  function updateUser(user) {
+    const store = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+    store.setItem(USER_KEY, JSON.stringify(user));
+    window.dispatchEvent(new CustomEvent('climby:user-updated', { detail: { user } }));
+  }
+
+  return { getToken, getUser, getRole, isLoggedIn, logout, init, openEntryGate: showEntryGate, replaceSession, updateUser };
 })();
 
 // Модулите се пишат като `const X = (() => {...})()`, а `const` на най-горно ниво

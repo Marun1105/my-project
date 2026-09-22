@@ -25,7 +25,7 @@ from models import (
     OAuthIdentity, PairRequest, PairedDevice, PhonePhoto, ScanHistory, Task, User,
     VerificationCode,
 )
-from schemas import UserOut
+from schemas import ProfileUpdate, UserOut
 
 router = APIRouter(prefix="/account", tags=["account"])
 
@@ -70,6 +70,26 @@ def change_password(
         token=security.create_access_token(user.id, user.token_version),
         user=UserOut.model_validate(user),
     )
+
+
+# ---------------------------------------------------------------------------
+# profile
+# ---------------------------------------------------------------------------
+
+@router.patch("/profile", response_model=UserOut)
+def update_profile(
+    body: ProfileUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Grade, town, how they heard of Climby. Asked once after the first
+    sign-in; changeable from Settings. A field left out is left alone."""
+    changed = body.model_dump(exclude_unset=True)
+    for field, value in changed.items():
+        setattr(user, field, value)
+    db.commit()
+    db.refresh(user)
+    return UserOut.model_validate(user)
 
 
 # ---------------------------------------------------------------------------

@@ -33,9 +33,11 @@
   --on-accent: #0d0d10;
   --warn: #c9c9c9;
   --warn-soft: rgba(255, 255, 255, 0.09);
-  --danger: #ffffff;
-  --danger-strong: #d6d6d6;
-  --danger-soft: rgba(255, 255, 255, 0.13);
+  /* Danger is red. The palette kept violet as its only colour, but a
+     destructive action that looks like every other action is a trap. */
+  --danger: #f87171;
+  --danger-strong: #ef4444;
+  --danger-soft: rgba(248, 113, 113, 0.14);
   --blue: #ffffff;
   --blue-soft: rgba(255, 255, 255, 0.10);
   --purple: #c44bfb;   /* вторичен акцент за AI, върху тъмен фон: 5.31:1 */
@@ -137,9 +139,9 @@
   --on-accent: #ffffff;
   --warn: #444444;
   --warn-soft: rgba(0, 0, 0, 0.07);
-  --danger: #16161a;
-  --danger-strong: #262626;
-  --danger-soft: rgba(0, 0, 0, 0.09);
+  --danger: #dc2626;
+  --danger-strong: #b91c1c;
+  --danger-soft: rgba(220, 38, 38, 0.10);
   --blue: #16161a;
   --blue-soft: rgba(0, 0, 0, 0.07);
   --purple: #7b2ff7;   /* върху светъл фон: 5.85:1 */
@@ -340,6 +342,13 @@ body {
   transition: grid-template-rows 0.2s ease;
 }
 .nav-group.expanded .nav-children { grid-template-rows: 1fr; }
+/* A group also opens while the mouse is over it, so the sub-items can be
+   reached without first clicking the parent. Hover only — touch has no hover,
+   and there the click still does it. */
+@media (hover: hover) {
+  .nav-group:hover .nav-children { grid-template-rows: 1fr; }
+  .nav-group:hover .nav-chevron { transform: rotate(180deg); }
+}
 .nav-children-inner { overflow: hidden; min-height: 0; display: flex; flex-direction: column; padding-top: 2px; }
 .nav-child { position: relative; padding-left: 30px; font-size: 13px; }
 .nav-child::before {
@@ -505,6 +514,8 @@ body {
 }
 .account-menu-item svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-dim); }
 .account-menu-item:hover { background: var(--accent-soft); }
+.account-menu-item.danger { color: var(--danger); }
+.account-menu-item.danger svg { color: var(--danger); }
 .account-menu-item.danger:hover { background: var(--danger-soft); color: var(--danger); }
 .account-menu-item.danger:hover svg { color: var(--danger); }
 
@@ -610,7 +621,7 @@ body {
 .settings-card {
   position: relative;
   width: 100%;
-  max-width: 400px;
+  max-width: 460px;
   /* The card grew a row at a time and never learned to scroll: on a 900px
      screen the bottom rows were simply unreachable, and because the overlay
      centres it, so was the top. It scrolls inside itself now. */
@@ -3091,9 +3102,18 @@ html[data-text="large"] body { font-size: 17px; }
 html[data-text="large"] .card { font-size: 17px; line-height: 1.7; }
 html[data-text="small"] .card { font-size: 14.5px; }
 /* Wider reading: the spacing that helps a dyslexic reader hold the line. */
-html[data-reading="easy"] body { letter-spacing: 0.02em; word-spacing: 0.1em; line-height: 1.8; }
-html[data-reading="easy"] .card, html[data-reading="easy"] p { line-height: 1.85; }
-html[data-reading="easy"] .card p { margin: 0.9em 0; }
+/* Easy reading has to reach every line. Spacing inherits from body, but
+   forty-odd components set their own line-height and won — so "wider" only
+   widened the text that happened not to. This applies to everything that
+   shows words, with the weight it needs to win; headings and icons excluded. */
+html[data-reading="easy"] body { letter-spacing: 0.03em; word-spacing: 0.12em; }
+html[data-reading="easy"] :not(h1):not(h2):not(h3):not(svg):not(svg *):not(.streak-flame):not(.climbai-mark) {
+  line-height: 1.8 !important;
+  letter-spacing: 0.03em;
+  word-spacing: 0.12em;
+}
+html[data-reading="easy"] h1, html[data-reading="easy"] h2 { line-height: 1.25 !important; }
+html[data-reading="easy"] .card p, html[data-reading="easy"] .chat-msg p { margin: 0.9em 0; }
 /* Calm: the app's own reduce-motion, for people whose OS setting is not theirs to change. */
 html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion="calm"] *::after {
   animation-duration: 0.001s !important; animation-iteration-count: 1 !important; transition-duration: 0.001s !important;
@@ -3312,6 +3332,77 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 .btn-danger {
   font: inherit; font-weight: 600; font-size: 14px;
   padding: 10px 16px; border-radius: var(--radius);
-  background: #7f1d1d; color: #fff; border: 1px solid #991b1b; cursor: pointer;
+  background: var(--danger-strong); color: #fff; border: 1px solid var(--danger-strong); cursor: pointer;
 }
-.btn-danger:hover { background: #991b1b; }
+.btn-danger:hover { filter: brightness(1.1); }
+
+/* ==========================================================================
+   Settings: one grammar for every row.
+   Label and its note on the left, the control on the right, sections with a
+   small heading. It was a pile: some rows centred and stacked, some side by
+   side, notes hanging under centred switches, every segment a different
+   width. Now a row is a row.
+   ========================================================================== */
+.settings-section {
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 22px 0 4px;
+}
+.settings-section:first-of-type { margin-top: 14px; }
+.settings-card .settings-row,
+.settings-card .settings-row-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 8px;
+  text-align: left;
+  padding: 12px 0;
+}
+.settings-card .settings-row > :first-child { grid-column: 1; grid-row: 1; font-weight: 600; font-size: 14px; }
+.settings-card .settings-row > :first-child small { display: block; font-weight: 400; color: var(--text-dim); margin-top: 2px; }
+/* the control is whatever sits right after the label: a switch or a button */
+.settings-card .settings-row > :first-child + .theme-switch,
+.settings-card .settings-row > :first-child + button { grid-column: 2; grid-row: 1; justify-self: end; margin: 0; }
+/* everything else — notes, forms, lists, a lone button — takes the full width beneath */
+.settings-card .settings-row > :not(:first-child):not(:first-child + .theme-switch):not(:first-child + button) {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+.settings-card .settings-row > button:not(:first-child + button) { justify-self: start; }
+.settings-card .settings-note { margin-top: 0; }
+.settings-card .theme-switch-option { padding: 0 12px; }
+.settings-card .tour-replay { width: auto; }
+@media (max-width: 480px) {
+  .settings-card .settings-row { grid-template-columns: 1fr; }
+  .settings-card .settings-row > :first-child + .theme-switch,
+  .settings-card .settings-row > :first-child + button { grid-column: 1; grid-row: auto; justify-self: start; }
+}
+.settings-card .account-form { flex-direction: column; }
+.settings-card .account-form input { flex: none; width: 100%; }
+.settings-card .account-form button { align-self: flex-start; }
+
+/* ---------- the first-sign-in questions (profile.js) ---------- */
+.quiz-card { max-width: 480px; z-index: 1; }
+.quiz-card h2 { margin-bottom: 4px; }
+.quiz-q { margin-top: 20px; }
+.quiz-label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 10px; }
+.quiz-card input[type="text"] {
+  width: 100%; font: inherit; font-size: 14px; color: var(--text);
+  background: var(--bg-sunken); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 12px;
+}
+.quiz-card input[type="text"]:focus { outline: none; border-color: var(--accent); }
+.quiz-grades { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.quiz-grade {
+  font: inherit; font-weight: 600; font-size: 14px;
+  min-height: 40px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--bg-sunken); color: var(--text); cursor: pointer;
+}
+.quiz-grade:hover { border-color: var(--accent); }
+.quiz-grade.is-picked, #quizHeard .chat-starter.is-picked { background: var(--accent); border-color: var(--accent); color: #fff; }
+.quiz-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.quiz-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.quiz-actions .btn-primary, .quiz-actions .btn-ghost { width: auto; }
+@media (max-width: 420px) { .quiz-grades { grid-template-columns: repeat(4, 1fr); } }

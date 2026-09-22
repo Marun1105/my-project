@@ -141,3 +141,25 @@ def test_the_rules_come_in_the_students_language(monkeypatch):
     _ask(h, lang="bg")
     assert "Какво знаеш за този ученик" in seen["system"]
     assert "Чакащи задачи" in seen["system"]
+
+
+def test_the_tutor_speaks_to_the_grade(monkeypatch):
+    uid, h = _login("grade@example.com")
+    client.patch("/account/profile", json={"grade": 10}, headers=h)
+    seen = _capture(monkeypatch)
+    _ask(h, context=False)
+    assert "grade 10" in seen["system"] and "capable young adult" in seen["system"]
+
+    client.patch("/account/profile", json={"grade": 2}, headers=h)
+    _ask(h, context=False)
+    assert "grade 2" in seen["system"] and "short sentences" in seen["system"]
+    assert "capable young adult" not in seen["system"]
+
+
+def test_without_a_grade_the_tutor_is_told_nothing_about_age(monkeypatch):
+    _, h = _login("nograde@example.com")
+    seen = _capture(monkeypatch)
+    _ask(h, context=False)
+    assert "The student is in grade" not in seen["system"]
+    _ask(None, context=False)   # a guest
+    assert "The student is in grade" not in seen["system"]

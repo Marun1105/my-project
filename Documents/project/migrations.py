@@ -522,6 +522,12 @@ def run() -> list:
         if _tolerantly("users.heard_from",
                        lambda: _add_nullable_column("users", "heard_from", "VARCHAR")):
             applied.append("users.heard_from")
+        if _tolerantly("users.grade",
+                       lambda: _add_nullable_column("users", "grade", "INTEGER")):
+            applied.append("users.grade")
+        if _tolerantly("users.city",
+                       lambda: _add_nullable_column("users", "city", "VARCHAR")):
+            applied.append("users.city")
         # Всички заварени акаунти тръгват от версия 0 — числото важи само спрямо
         # само себе си, така че стойността по подразбиране не ощетява никого.
         # Акаунт през Google няма парола — колоната трябва да приема NULL.

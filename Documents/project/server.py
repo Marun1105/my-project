@@ -467,6 +467,42 @@ STUDENT_CONTEXT = {
         "не го изброявай без повод, никога не мъмри за срокове):\n{block}"
     ),
 }
+# Who the tutor is talking to. A first-grader and a tenth-grader can ask the
+# same question and need different answers — not a dumber one and a smarter
+# one, but different vocabulary, different length, a different amount of
+# rigour. Without this the tutor spoke to everyone as if they were about ten.
+GRADE_REGISTER = {
+    "en": {
+        (1, 4):  "The student is in grade {g} (age about {age}). Use short sentences and everyday words, one idea at a time, "
+                 "concrete examples they can picture. Never a formula where a picture will do.",
+        (5, 8):  "The student is in grade {g} (age about {age}). Be clear and concrete; name the rule and show it working; "
+                 "define a term the first time you use it. Keep the tone friendly but don't talk down.",
+        (9, 12): "The student is in grade {g} (age about {age}). Speak as you would to a capable young adult: precise "
+                 "terminology, proper notation, the actual reasoning and the facts behind it, no simplification that "
+                 "would be wrong at exam level. Assume they can follow a real argument.",
+    },
+    "bg": {
+        (1, 4):  "Ученикът е в {g}. клас (около {age} г.). Кратки изречения, всекидневни думи, по една идея наведнъж, "
+                 "примери, които може да си представи. Никога формула там, където стига картинка.",
+        (5, 8):  "Ученикът е в {g}. клас (около {age} г.). Ясно и конкретно: назови правилото и го покажи в действие; "
+                 "обясни термина първия път, когато го използваш. Приятелски тон, но без снизхождение.",
+        (9, 12): "Ученикът е в {g}. клас (около {age} г.). Говори както на способен млад човек: точна терминология, "
+                 "правилен запис, истинското разсъждение и фактите зад него, без опростяване, което би било грешно на "
+                 "изпит. Приеми, че може да следва истинска аргументация.",
+    },
+}
+
+
+def _grade_register(user, lang: str) -> str:
+    g = getattr(user, "grade", None) if user else None
+    if not g:
+        return ""
+    for (lo, hi), text_ in GRADE_REGISTER.get(lang, GRADE_REGISTER["en"]).items():
+        if lo <= g <= hi:
+            return "\n\n" + text_.format(g=g, age=g + 6)
+    return ""
+
+
 CONTEXT_MAX_TASKS = 10
 CONTEXT_MAX_QUESTIONS = 6
 
@@ -521,6 +557,7 @@ def ask(
     # но качен от компютър файл спокойно може да е PNG и тогава "image/jpeg" е лъжа.
     messages = _build_messages(body.images, body.history, body.question)
     system = SYSTEM[lang] + (FULL_SOLUTIONS[lang] if body.mode == "full" else "")
+    system += _grade_register(user, lang)       # every answer, photo or chat
     if body.context and user:
         system += _student_context(db, user, lang)
     try:

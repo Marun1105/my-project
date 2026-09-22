@@ -212,3 +212,30 @@ def test_a_google_only_account_deletes_by_typing_the_word():
     assert client.request("DELETE", "/account", json={"confirm": "delete me"}, headers=h).status_code == 400
     assert client.request("DELETE", "/account", json={"confirm": "DELETE"}, headers=h).status_code == 200
     assert _count_everything(uid)["user"] == 0
+
+
+# --------------------------------------------------------------------------
+# profile
+# --------------------------------------------------------------------------
+
+def test_the_first_sign_in_answers_are_saved_and_come_back_with_the_user():
+    _, h = _login("prof@example.com")
+    res = client.patch("/account/profile", json={"grade": 7, "city": "  Plovdiv  ", "heard_from": "teacher"}, headers=h)
+    assert res.status_code == 200
+    assert res.json()["grade"] == 7 and res.json()["city"] == "Plovdiv" and res.json()["heard_from"] == "teacher"
+    me = client.get("/auth/me", headers=h).json()
+    assert me["grade"] == 7 and me["city"] == "Plovdiv"
+
+
+def test_a_grade_outside_school_is_refused():
+    _, h = _login("prof2@example.com")
+    assert client.patch("/account/profile", json={"grade": 0}, headers=h).status_code == 422
+    assert client.patch("/account/profile", json={"grade": 13}, headers=h).status_code == 422
+
+
+def test_a_field_left_out_is_left_alone():
+    _, h = _login("prof3@example.com")
+    client.patch("/account/profile", json={"grade": 4, "city": "Varna"}, headers=h)
+    client.patch("/account/profile", json={"heard_from": "friend"}, headers=h)
+    me = client.get("/auth/me", headers=h).json()
+    assert me["grade"] == 4 and me["city"] == "Varna" and me["heard_from"] == "friend"
