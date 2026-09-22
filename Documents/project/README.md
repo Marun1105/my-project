@@ -84,7 +84,7 @@ cd frontend && python -m http.server 8001      # frontend, on :8001
 
 Then open `http://localhost:8001`. The backend address picks itself: opened from localhost, the app talks to localhost. Nothing to configure by hand.
 
-Environment variables: `ANTHROPIC_API_KEY` and `JWT_SECRET` are required. Optional: `DATABASE_URL` (otherwise SQLite), `RESEND_API_KEY` and `RESEND_FROM` (email), `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (Google sign-in), `TWILIO_*` (SMS), `PAPERS_CACHE_DIR`.
+Environment variables: `ANTHROPIC_API_KEY` and `JWT_SECRET` are required. Optional: `DATABASE_URL` (otherwise SQLite), `RESEND_API_KEY` and `RESEND_FROM` (email), `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (Google sign-in), `TWILIO_*` (SMS), `PAPERS_CACHE_DIR`, `AI_DAILY_TOKEN_CAP` (the whole app's daily AI budget in tokens; default 3,000,000, 0 for none).
 
 ### Tests
 

@@ -36,7 +36,8 @@ import activity
 import rate_limit
 import scans
 import tasks
-from db import Base, engine, get_db
+import usage
+from db import Base, SessionLocal, engine, get_db
 from models import ScanHistory, Task, User
 from schemas import image_media_type
 
@@ -406,7 +407,9 @@ def healthz():
     # Email is reported but does NOT change the status code. A mail outage is
     # real and worth seeing, yet the app still works without it — waking someone
     # at night for it would teach them to ignore the alarm that matters.
-    return {"status": "ok", "db": "ok", "email": email_service.delivery_status()["state"]}
+    with SessionLocal() as db_session:
+        ai_today = usage.today(db_session)
+    return {"status": "ok", "db": "ok", "ai_today": ai_today, "email": email_service.delivery_status()["state"]}
 
 
 @app.get("/")
@@ -517,6 +520,7 @@ def ask(
     system = SYSTEM[lang] + (FULL_SOLUTIONS[lang] if body.mode == "full" else "")
     if body.context and user:
         system += _student_context(db, user, lang)
+    usage.check(db, lang)   # the day's budget, for everyone together
     try:
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",
@@ -526,6 +530,7 @@ def ask(
         )
     except APIError:
         raise HTTPException(502, ASK_ERROR_MESSAGE[lang])
+    usage.record(db, resp)
     answer = "".join(b.text for b in resp.content if b.type == "text")
 
     if user:

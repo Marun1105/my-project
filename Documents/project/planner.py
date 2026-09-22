@@ -7,8 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 import rate_limit
+import usage
 from auth import get_current_user_optional
+from db import get_db
 from models import User
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/plan", tags=["plan"])
 client = Anthropic()  # чете ANTHROPIC_API_KEY от средата
@@ -91,7 +94,8 @@ class SplitRequest(BaseModel):
 
 @router.post("")
 def plan(body: PlanRequest, request: Request,
-         user: Optional[User] = Depends(get_current_user_optional)):
+         user: Optional[User] = Depends(get_current_user_optional),
+         db: Session = Depends(get_db)):
     lang = body.lang if body.lang in SYSTEM else "en"
 
     if not body.tasks:
@@ -110,6 +114,7 @@ def plan(body: PlanRequest, request: Request,
         lines.append("- " + ", ".join(parts))
     tasks_text = "\n".join(lines)
 
+    usage.check(db, lang)
     try:
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",
@@ -119,13 +124,15 @@ def plan(body: PlanRequest, request: Request,
         )
     except APIError:
         raise HTTPException(502, PLAN_ERROR_MESSAGE[lang])
+    usage.record(db, resp)
     advice = "".join(b.text for b in resp.content if b.type == "text")
     return {"advice": advice}
 
 
 @router.post("/split")
 def split(body: SplitRequest, request: Request,
-          user: Optional[User] = Depends(get_current_user_optional)):
+          user: Optional[User] = Depends(get_current_user_optional),
+          db: Session = Depends(get_db)):
     lang = body.lang if body.lang in SPLIT_SYSTEM else "en"
     text = body.text.strip()
     if not text:
@@ -135,6 +142,7 @@ def split(body: SplitRequest, request: Request,
                        message=RATE_LIMIT_MESSAGE[lang], user=user)
 
     prompt = text if not body.subject else f"{text} (subject: {body.subject})"
+    usage.check(db, lang)
     try:
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",
@@ -144,6 +152,7 @@ def split(body: SplitRequest, request: Request,
         )
     except APIError:
         raise HTTPException(502, SPLIT_ERROR_MESSAGE[lang])
+    usage.record(db, resp)
 
     raw = "".join(b.text for b in resp.content if b.type == "text").strip()
     # моделът понякога обгражда JSON-а с ```json ... ``` въпреки инструкцията
