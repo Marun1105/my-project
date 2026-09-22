@@ -102,7 +102,7 @@ const Chat = (() => {
         // only; the server ignores it for guests.
         body: JSON.stringify({ images: [], question: text, lang: I18n.get(), history,
                                mode: window.Prefs ? Prefs.get('tutor') : 'hints',
-                               context: !!token }),
+                               context: !!token, surface: 'chat' }),
       });
       const data = await res.json().catch(() => ({}));
       theirs.classList.remove('chat-thinking');

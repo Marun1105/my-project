@@ -52,8 +52,10 @@ def _capture(monkeypatch):
     return seen
 
 
-def _ask(headers=None, context=True, lang="en"):
+def _ask(headers=None, context=True, lang="en", surface=None):
     body = {"images": [], "question": "What should I start with?", "lang": lang, "context": context}
+    if surface:
+        body["surface"] = surface
     return client.post("/ask", json=body, headers=headers or {})
 
 
@@ -163,3 +165,75 @@ def test_without_a_grade_the_tutor_is_told_nothing_about_age(monkeypatch):
     assert "The student is in grade" not in seen["system"]
     _ask(None, context=False)   # a guest
     assert "The student is in grade" not in seen["system"]
+
+
+# ---------------------------------------------------------------------------
+# What the tutor knows about the app it is standing in. It used to know none of
+# it: it could not say where Settings was, it invented buttons when asked, and
+# the chat offered to look at photographs that have no way of reaching it.
+# ---------------------------------------------------------------------------
+
+
+def test_the_chat_is_told_it_cannot_see_photographs(monkeypatch):
+    seen = _capture(monkeypatch)
+    assert _ask(surface="chat").status_code == 200
+    system = seen["system"]
+    assert "CANNOT see photographs" in system
+    assert "photograph it on the ClimbAI screen" in system
+    # and it must not also be carrying the photo-reading instructions
+    assert "parts of the same problem" not in system
+
+
+def test_the_photo_screen_is_told_the_photographs_may_be_there(monkeypatch):
+    seen = _capture(monkeypatch)
+    assert _ask(surface="tutor").status_code == 200
+    system = seen["system"]
+    assert "parts of the same problem" in system
+    assert "CANNOT see photographs" not in system
+
+
+def test_a_request_that_names_no_screen_is_treated_as_the_photo_screen(monkeypatch):
+    """Old clients, and anything else posting to /ask, keep the behaviour they
+    had before the field existed."""
+    seen = _capture(monkeypatch)
+    assert _ask().status_code == 200
+    assert "parts of the same problem" in seen["system"]
+
+
+def test_a_made_up_screen_is_refused(monkeypatch):
+    _capture(monkeypatch)
+    body = {"images": [], "question": "hi", "lang": "en", "surface": "kitchen"}
+    assert client.post("/ask", json=body).status_code == 422
+
+
+def test_the_tutor_is_told_what_a_route_is(monkeypatch):
+    """_student_context has been handing it the phrase "their Route" since the
+    context feature shipped, with nothing anywhere defining the word."""
+    seen = _capture(monkeypatch)
+    assert _ask().status_code == 200
+    system = seen["system"]
+    assert "The Route — the student's task list" in system
+    assert "Summited" in system and "Ascent" in system and "Rope Team" in system
+
+
+def test_the_tutor_is_told_not_to_invent_buttons(monkeypatch):
+    """It is now a help desk, so the failure mode is a confident wrong answer
+    about the app. The way out has to be in the prompt."""
+    seen = _capture(monkeypatch)
+    assert _ask().status_code == 200
+    assert "Never invent a button" in seen["system"]
+
+
+def test_both_languages_carry_the_map(monkeypatch):
+    seen = _capture(monkeypatch)
+    assert _ask(lang="bg").status_code == 200
+    system = seen["system"]
+    assert "Къде се намираш" in system
+    assert "Маршрутът (The Route)" in system
+    assert "не измисляй бутон" in system
+
+
+def test_the_bulgarian_chat_is_told_it_has_no_photographs(monkeypatch):
+    seen = _capture(monkeypatch)
+    assert _ask(lang="bg", surface="chat").status_code == 200
+    assert "ТУК НЕ ВИЖДАШ снимки" in seen["system"]

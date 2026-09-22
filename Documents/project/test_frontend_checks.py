@@ -674,3 +674,56 @@ def test_a_remembered_window_fits_the_screen_it_returns_to():
     remembered = js[js.index("function rememberedBounds()"):js.index("function createWindow()")]
     assert "Math.min(b.width, area.width)" in remembered
     assert "Math.min(b.height, area.height)" in remembered
+
+
+def test_both_screens_say_which_one_they_are():
+    """The chat and the photo tutor post to the same endpoint. Without this the
+    server cannot tell them apart, and the chat inherits the photo rules."""
+    assert "surface: 'chat'" in _read("chat.js")
+    assert "surface: 'tutor'" in _read("tutor.js")
+
+
+def test_the_tutor_knows_every_screen_the_app_has():
+    """The prompt describes the app to the student, so it has to keep up with
+    the app. Add or rename a screen and this fails until the map learns it.
+
+    Each language is checked on its own. Searching the whole map at once let a
+    rename pass unnoticed: the Bulgarian lines carry the English name in
+    brackets — "Изкачени (Summited)" — so dropping Summited from the English
+    half still found it in the Bulgarian one. Keeping them separate also
+    enforces something worth having: the Bulgarian map names every screen in
+    English too, so a student who switches language is still understood.
+
+    The check is on the name, not the wording: the paragraph may be rewritten
+    freely, but a screen cannot quietly stop existing in it."""
+    html = _read("index.html")
+    i18n = _read("i18n.js")
+    path = os.path.join(os.path.dirname(__file__), "server.py")
+    with open(path, encoding="utf-8") as f:
+        server_src = f.read()
+    app_map = server_src[server_src.index("APP_MAP = {"):server_src.index("SURFACE = {")]
+    halves = {
+        "en": app_map[app_map.index('"en": """'):app_map.index('"bg": """')],
+        "bg": app_map[app_map.index('"bg": """'):],
+    }
+    assert len(halves["en"]) > 500 and len(halves["bg"]) > 500, "a language lost its map"
+
+    # both dictionaries live in one file and Bulgarian comes first, so the
+    # English names have to be looked for after the English one opens
+    english = i18n[i18n.index("en: {"):]
+    views = set(re.findall(r'id="view-([a-z]+)"', html))
+    assert views, "no screens found in index.html"
+    checked = 0
+    for view in sorted(views):
+        m = re.search(r"'nav\." + view + r"':\s*'([^']+)'", english)
+        if not m:
+            continue        # a screen with no menu entry of its own
+        name = m.group(1)
+        for lang, half in halves.items():
+            assert name in half, (
+                f"the {lang} half of APP_MAP in server.py has never heard of the "
+                f"{name!r} screen — a student on that screen will be told about a "
+                f"different app than the one they are looking at"
+            )
+        checked += 1
+    assert checked >= 5, f"only {checked} screens were checked — the lookup is finding nothing"

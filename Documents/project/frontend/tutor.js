@@ -112,7 +112,8 @@ const Tutor = (() => {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ images: scannedImages, question, lang: I18n.get(), history,
-                               mode: window.Prefs ? Prefs.get('tutor') : 'hints' }),
+                               mode: window.Prefs ? Prefs.get('tutor') : 'hints',
+                               surface: 'tutor' }),
       });
       const data = await res.json().catch(() => ({}));
       target.classList.remove('thinking');
