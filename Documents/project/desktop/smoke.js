@@ -16,6 +16,7 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const exe = process.argv[2] || path.join(__dirname, 'dist', 'win-unpacked', 'Climby.exe');
 const PORT = 9333;
@@ -27,8 +28,12 @@ async function main() {
   if (!fs.existsSync(exe)) throw new Error(`no app at ${exe} — build first (npm run dist)`);
   const { chromium } = require('playwright-core');
 
-  const app = spawn(exe, [`--remote-debugging-port=${PORT}`], { stdio: 'ignore', detached: false });
-  const stop = () => { try { app.kill(); } catch {} };
+  const profile = path.join(os.tmpdir(), 'climby-smoke-' + process.pid);
+  const app = spawn(exe, [`--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`], { stdio: 'ignore', detached: false });
+  const stop = () => {
+    try { app.kill(); } catch {}
+    try { fs.rmSync(profile, { recursive: true, force: true }); } catch {}
+  };
   process.on('exit', stop);
 
   // the port opens a second or two after the process does
