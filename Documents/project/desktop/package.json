@@ -1,7 +1,7 @@
 {
   "name": "climby",
   "productName": "Climby",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Climby — climb your way to success",
   "author": "Martin Hristov",
   "license": "UNLICENSED",
@@ -13,11 +13,13 @@
     "pack": "electron-builder --win --dir",
     "release": "electron-builder --win --publish always",
     "dist:store": "electron-builder --win appx",
-    "dist:linux": "electron-builder --linux"
+    "dist:linux": "electron-builder --linux",
+    "smoke": "node smoke.js"
   },
   "devDependencies": {
     "electron": "^43.4.0",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.3",
+    "playwright-core": "^1.47.0"
   },
   "build": {
     "appId": "com.martinhristov.climby",

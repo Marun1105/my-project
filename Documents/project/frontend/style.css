@@ -637,7 +637,10 @@ body {
   color: var(--text-dim);
 }
 .settings-card h2 + .settings-row { border-top: none; }
-.settings-close { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; font-size: var(--fs-meta); }
+/* The card scrolls now, so the close button sticks to its top edge instead of
+   riding away with the content — a ✕ you have to scroll back up to find is
+   not a ✕. Floated so the heading beside it still flows. */
+.settings-close { position: sticky; top: -10px; float: right; margin: -10px -8px 0 0; width: 30px; height: 30px; font-size: var(--fs-meta); z-index: 1; }
 
 /* ---------- simplified "why login" panels (checklist/history when not logged in) ---------- */
 .auth-gate-simple { width: 100%; }

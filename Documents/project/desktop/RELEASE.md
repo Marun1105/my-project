@@ -29,6 +29,7 @@ automatic. A ready-to-paste message for them is at the bottom.
 ```
 cd desktop
 npm run dist            # Windows: installer + portable
+npm run smoke           # then: boot the built app and walk every screen (see below)
 npm run dist:linux      # Linux: AppImage — Linux/macOS only; on Windows use the workflow (§6)
 npm run dist:store      # Microsoft Store package (see §5)
 ```
@@ -44,6 +45,17 @@ npm run dist:store      # Microsoft Store package (see §5)
 | `Climby-X.Y.Z.AppImage` | Linux; runs on any distribution, updates itself |
 | `latest-linux.yml` | where the Linux app looks for the newest version |
 | `Climby-X.Y.Z-store.appx` | for the Microsoft Store only; not for GitHub Releases |
+
+### Before uploading: `npm run smoke`
+
+The test suite never launches the built app and never sees a real camera —
+which is how a focus session could throw on every frame for weeks with every
+test green. `smoke.js` starts `dist/win-unpacked/Climby.exe`, opens every
+screen in both themes, the chat, Settings, and (with a camera) runs a
+twelve-second focus session, failing on the first page error. Set
+`SMOKE_EMAIL` and `SMOKE_PASSWORD` to sign into a real account first;
+without them it walks with whatever session the app already has. Do not
+publish a build it doesn't pass.
 
 ## 3. Uploading to GitHub Releases
 
