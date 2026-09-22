@@ -72,6 +72,11 @@ class User(Base):
     # е останало отворено на училищния компютър и после си смени паролата вкъщи,
     # има право да очаква, че оттам нататък никой не му чете домашните.
     token_version = Column(Integer, nullable=False, default=0, server_default="0")
+
+    @property
+    def has_password(self) -> bool:
+        """Read by UserOut. An account made with Google has none until it sets one."""
+        return bool(self.password_hash)
     created_at = Column(DateTime(timezone=True), default=_now)
 
     tasks = relationship("Task", back_populates="owner", cascade="all, delete-orphan")

@@ -31,6 +31,7 @@ import migrations
 import email_service
 import oauth
 import papers
+import account
 import activity
 import rate_limit
 import scans
@@ -63,6 +64,7 @@ app.include_router(family.router)
 app.include_router(classes.router)
 app.include_router(devices.router)
 app.include_router(activity.router)
+app.include_router(account.router)
 app.include_router(oauth.router)
 app.include_router(papers.router)
 
@@ -148,6 +150,9 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    # The export names its file in this header; without exposing it the app
+    # cannot read it across origins and falls back to a generic name.
+    expose_headers=["Content-Disposition"],
 )
 
 # "Всички предмети, с малки изключения" — учителят не се ограничава само до математика.

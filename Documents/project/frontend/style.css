@@ -610,7 +610,13 @@ body {
 .settings-card {
   position: relative;
   width: 100%;
-  max-width: 340px;
+  max-width: 400px;
+  /* The card grew a row at a time and never learned to scroll: on a 900px
+     screen the bottom rows were simply unreachable, and because the overlay
+     centres it, so was the top. It scrolls inside itself now. */
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -3284,3 +3290,22 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 .recent-asked-q { color: var(--text); min-width: 0; }
 .recent-asked-when { color: var(--text-faint); font-size: 12.5px; white-space: nowrap; }
 .recent-asked.offstage { display: none; }
+
+/* ---------- the account rows in Settings (account.js) ---------- */
+.account-form { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.account-form input {
+  flex: 1 1 180px; min-width: 0;
+  font: inherit; font-size: 14px; color: var(--text);
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.account-form input:focus { outline: none; border-color: var(--accent); }
+.account-form button { flex: 0 0 auto; }
+.settings-note.is-error { color: #f87171; }
+.account-danger { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 14px; }
+.btn-danger {
+  font: inherit; font-weight: 600; font-size: 14px;
+  padding: 10px 16px; border-radius: var(--radius);
+  background: #7f1d1d; color: #fff; border: 1px solid #991b1b; cursor: pointer;
+}
+.btn-danger:hover { background: #991b1b; }
