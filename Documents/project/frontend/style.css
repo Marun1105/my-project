@@ -3448,11 +3448,12 @@ body.is-dragging-file #view-tutor:not(.hidden) .entry-paste-hint { color: var(--
 .task-edit-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
 .task-edit-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .task-edit-actions .btn-primary, .task-edit-actions .btn-ghost { width: auto; min-height: 36px; padding: 0 14px; font-size: 13px; }
+.task-edit-error { margin: 0; font-size: 12.5px; color: var(--danger); }
 .task.is-editing .task-delete { display: none; }
 
-/* ---------- copy an answer (copy.js) — beside the read-aloud button ---------- */
+/* ---------- copy an answer (copy.js) ---------- */
 .copy-btn {
-  position: absolute; top: 12px; right: 54px;
+  position: absolute; top: 12px; right: 12px;
   flex: none; padding: 0;
   width: 36px; height: 36px; border-radius: 50%;
   border: 1px solid var(--border); background: var(--bg-elevated, var(--bg)); color: var(--text-dim);
@@ -3461,8 +3462,18 @@ body.is-dragging-file #view-tutor:not(.hidden) .entry-paste-hint { color: var(--
 .copy-btn svg { width: 16px; height: 16px; }
 .copy-btn:hover { color: var(--text); border-color: var(--accent); }
 .copy-btn.is-done { color: var(--accent); border-color: var(--accent); }
-/* no read-aloud button (no voice for the language): copy takes its place */
-.copy-btn:first-child:last-of-type, .card.answer > .copy-btn:not(.speak-btn ~ .copy-btn) { right: 54px; }
+/* sharing the corner with the read-aloud button: copy steps to its left, and
+   the card makes room for two instead of one */
+.answer:has(.speak-btn) .copy-btn { right: 54px; }
+.answer:has(.copy-btn):has(.speak-btn) { padding-right: 104px; }
+
+/* In a chat bubble everything is smaller, and the bubble reserves its own
+   right-hand strip. Without these the button landed on the first line of text
+   in every answer the tutor gave. */
+.chat-ai .copy-btn { top: 6px; right: 6px; width: 30px; height: 30px; }
+.chat-ai .copy-btn svg { width: 15px; height: 15px; }
+.chat-ai:has(.speak-btn) .copy-btn { right: 40px; }
+.chat-ai:has(.copy-btn):has(.speak-btn) { padding-right: 78px; }
 
 /* ---------- a line at the bottom, with a way back (toast.js) ---------- */
 .toast-host {
@@ -3501,6 +3512,11 @@ body.is-dragging-file #view-tutor:not(.hidden) .entry-paste-hint { color: var(--
   background: var(--danger); color: #fff;
 }
 .offline-bar.hidden { display: none; }
+body.is-offline .app-shell { padding-top: 35px; }
+body.is-offline .entry-gate { padding-top: 35px; }
+/* a message about the connection should not be hidden under the bar saying
+   there isn't one */
+body.is-offline .toast-host { bottom: 24px; }
 
 /* ---------- the chat box grows with the question (chat.js) ---------- */
 #chatInput { resize: none; overflow-y: auto; max-height: 160px; }

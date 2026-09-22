@@ -196,7 +196,15 @@ const Checklist = (() => {
         await editTask(t.id, { text: next, subject: subject.value.trim() || null, deadline: deadline.value || null });
       } catch (err) {
         save.disabled = false;
-        showListError(err);
+        let note = form.querySelector('.task-edit-error');
+        if (!note) {
+          note = document.createElement('p');
+          note.className = 'task-edit-error';
+          note.setAttribute('role', 'alert');
+          form.insertBefore(note, actions);
+        }
+        note.textContent = err.message || window.t('checklist.errSave');
+        text.focus();
       }
       // render() follows climby:tasks-changed and rebuilds the row
     });

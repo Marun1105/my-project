@@ -51,11 +51,22 @@ function rememberedBounds() {
   try {
     const b = JSON.parse(fs.readFileSync(boundsFile(), 'utf8'));
     const { screen } = require('electron');
-    const onScreen = screen.getAllDisplays().some(d => {
+    const display = screen.getAllDisplays().find(d => {
       const a = d.workArea;
       return b.x >= a.x - 50 && b.y >= a.y - 50 && b.x < a.x + a.width - 100 && b.y < a.y + a.height - 100;
     });
-    if (onScreen && b.width >= 380 && b.height >= 560) return b;
+    if (!display || b.width < 380 || b.height < 560) return null;
+    const area = display.workArea;
+    const width = Math.min(b.width, area.width);
+    const height = Math.min(b.height, area.height);
+    return {
+      width,
+      height,
+      // and if shrinking it pushed the far edge off the screen, pull it back on
+      x: Math.min(Math.max(b.x, area.x), area.x + area.width - width),
+      y: Math.min(Math.max(b.y, area.y), area.y + area.height - height),
+      maximized: !!b.maximized,
+    };
   } catch { /* first run, or the file is gone — the defaults are fine */ }
   return null;
 }

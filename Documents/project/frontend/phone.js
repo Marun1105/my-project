@@ -251,7 +251,7 @@ const Phone = (() => {
     renderQueue();
     // Само ако наистина сме другаде: излишното превключване вдига
     // climby:view-shown и с това още едно ненужно питане към сървъра.
-    if (!tutorIsShowing()) Nav.activate('tutor');
+    if (!tutorIsShowing()) Nav.activate('tutor', 'replace');
     Scanner.acceptPhoto(dataUrl);
   }
 

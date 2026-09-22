@@ -20,7 +20,9 @@
       bar.setAttribute('role', 'status');
       document.body.appendChild(bar);
     }
-    bar.textContent = window.t ? t('net.offline') : 'No internet connection.';
+    bar.textContent = window.t
+      ? t(window.matchMedia('(max-width: 860px)').matches ? 'net.offlineShort' : 'net.offline')
+      : 'No internet connection.';
     bar.classList.remove('hidden');
     document.body.classList.add('is-offline');
   }

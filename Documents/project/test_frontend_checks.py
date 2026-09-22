@@ -589,3 +589,88 @@ def test_the_settings_panel_says_what_it_is():
     card = card[:card.index("</h2>")]
     assert 'role="dialog"' in card
     assert 'aria-labelledby="settingsTitle"' in card and 'id="settingsTitle"' in card
+
+
+# ---------------------------------------------------------------------------
+# What the review of d3306ae found. Each of these shipped and had to be undone.
+# ---------------------------------------------------------------------------
+
+
+def test_the_copied_answer_keeps_its_line_breaks():
+    """innerText on a detached clone is not the rendered text — the node was
+    never laid out, so it falls back to textContent and a stepped answer pastes
+    as one run-on line wearing the HTML source's indentation."""
+    js = _read("copy.js")
+    assert ".innerText" not in js, "innerText on a detached node does not do what it looks like"
+    assert "textContent" in js and "BLOCKS" in js
+    assert "querySelectorAll('li')" in js, "a list without its markers reads as loose sentences"
+
+
+def test_the_copy_button_makes_room_for_itself():
+    """It shares the corner with the read-aloud button, which Speak.attach
+    declines to add when the system has no voice for the language. Which of the
+    two cases it is has to be asked of the element, not assumed."""
+    css = _read("style.css")
+    assert ".answer:has(.speak-btn) .copy-btn" in css
+    assert ".chat-ai .copy-btn" in css, "a chat bubble reserves a smaller strip than a card"
+    assert ".chat-ai:has(.copy-btn):has(.speak-btn)" in css, "two buttons need more padding than one"
+
+
+def test_a_restored_answer_has_both_buttons():
+    """Otherwise the top half of a reopened thread looks unlike the bottom
+    half, and the read-every-answer preference has nothing to bind to."""
+    js = _read("chat.js")
+    restore = js[js.index("function restore()"):]
+    restore = restore[:restore.index("\n  }")]
+    assert "Speak.attach" in restore and "Copy.attach" in restore
+
+
+def test_only_a_file_drop_is_cancelled():
+    """A preventDefault on every drop at document level also cancelled dragging
+    selected text into the chat box: the drop landed nowhere."""
+    js = _read("scanner.js")
+    drop = js[js.index("document.addEventListener('drop'"):]
+    drop = drop[:drop.index("});")]
+    assert "includes('Files')" in drop
+    assert drop.index("includes('Files')") < drop.index("e.preventDefault()")
+
+
+def test_a_failed_task_edit_keeps_the_form_standing():
+    """showListError empties the whole list, which would take the open editor
+    with it — and with it the text just retyped."""
+    js = _read("checklist.js")
+    editor = js[js.index("function openEditor"):js.index("function buildTaskItem")]
+    assert "showListError" not in editor, "the editor must report its own failure, in place"
+    assert "task-edit-error" in editor
+
+
+def test_the_app_moving_itself_does_not_fill_the_back_button():
+    """The tour walks six screens on its own. Back afterwards should return the
+    person to where they were, not replay the tour backwards."""
+    nav = _read("nav.js")
+    assert "record = 'push'" in nav and "record === 'replace'" in nav
+    for name in ("tour.js", "phone.js"):
+        js = _read(name)
+        for line in js.splitlines():
+            if "Nav.activate(" in line:
+                assert "'replace'" in line, f"{name}: {line.strip()} records a history entry nobody asked for"
+
+
+def test_the_offline_bar_makes_room_for_itself():
+    """It is fixed at the top. On a phone the one thing up there is .mobile-bar,
+    which holds the only way into the navigation."""
+    css = _read("style.css")
+    assert "body.is-offline .app-shell" in css, "nothing moved aside for the bar"
+    assert "body.is-offline .entry-gate" in css
+
+
+def test_a_remembered_window_fits_the_screen_it_returns_to():
+    """Remembered at 2560x1400 on an external monitor and reopened on a laptop,
+    the window came back larger than the display with its bottom edge off the
+    end of it."""
+    path = os.path.join(os.path.dirname(__file__), "desktop", "main.js")
+    with open(path, encoding="utf-8") as f:
+        js = f.read()
+    remembered = js[js.index("function rememberedBounds()"):js.index("function createWindow()")]
+    assert "Math.min(b.width, area.width)" in remembered
+    assert "Math.min(b.height, area.height)" in remembered

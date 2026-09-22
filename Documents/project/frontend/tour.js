@@ -143,7 +143,7 @@ const Tour = (() => {
     dir = dir || 1;
     index = i;
     const stop = stops[index];
-    if (window.Nav && stop.view) Nav.activate(stop.view);
+    if (window.Nav && stop.view) Nav.activate(stop.view, 'replace');
     settleSidebar(document.querySelector(stop.target));
     const mine = ++pending;
     setTimeout(() => {
@@ -177,7 +177,7 @@ const Tour = (() => {
         return;
       }
       const s = STOPS[n];
-      if (window.Nav && s.view) Nav.activate(s.view);
+      if (window.Nav && s.view) Nav.activate(s.view, 'replace');
       const el = document.querySelector(s.target);
       settleSidebar(el);
       setTimeout(() => {
@@ -194,7 +194,7 @@ const Tour = (() => {
     document.body.classList.remove('tour-open');
     if (onResize) { window.removeEventListener('resize', onResize); onResize = null; }
     index = -1;
-    if (window.Nav) { Nav.closeSidebar(); Nav.activate('tutor'); }
+    if (window.Nav) { Nav.closeSidebar(); Nav.activate('tutor', 'replace'); }
   }
 
   function seen() {

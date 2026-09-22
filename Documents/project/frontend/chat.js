@@ -38,7 +38,11 @@ const Chat = (() => {
     for (const turn of history) {
       const el = bubble(turn.role === 'user' ? 'user' : 'ai');
       if (turn.role === 'user') el.textContent = turn.text;
-      else { render(turn.text, el); if (window.Copy) Copy.attach(el); }
+      else {
+        render(turn.text, el);
+        if (window.Speak) Speak.attach(el);
+        if (window.Copy) Copy.attach(el);
+      }
     }
     scrollToEnd();
   }

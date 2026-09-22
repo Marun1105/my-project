@@ -808,7 +808,15 @@ const Scanner = (() => {
     document.addEventListener('dragenter', handleDragEnter);
     document.addEventListener('dragleave', handleDragLeave);
     document.addEventListener('dragover', e => { if ([...(e.dataTransfer.types || [])].includes('Files')) e.preventDefault(); });
-    document.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; handleDrop(e); });
+    document.addEventListener('drop', e => {
+      dragDepth = 0;
+      if (![...(e.dataTransfer.types || [])].includes('Files')) {
+        document.body.classList.remove('is-dragging-file');
+        return;   // dragged text belongs to whatever it was dropped on
+      }
+      e.preventDefault();
+      handleDrop(e);
+    });
     $('noCameraUploadBtn').addEventListener('click', () => $('uploadInput').click());
 
     makeDraggable('cornerTL', 'tl');

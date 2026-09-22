@@ -10,10 +10,10 @@ const Nav = (() => {
   // адрес. Всеки екран оставя следа, така че назад връща на предишния екран, а
   // не изхвърля човека от приложението. Стрелката се пише в адреса (#route),
   // което прави и презареждането честно: връщаш се там, където си бил.
-  function activate(view, fromHistory) {
-    if (!fromHistory) {
+  function activate(view, record = 'push') {
+    if (record !== 'none') {
       const at = history.state && history.state.view;
-      if (at === view) history.replaceState({ view }, '', '#' + view);
+      if (record === 'replace' || at === view) history.replaceState({ view }, '', '#' + view);
       else history.pushState({ view }, '', '#' + view);
     }
     document.querySelectorAll('.view').forEach(el => {
@@ -61,7 +61,7 @@ const Nav = (() => {
     const fromUrl = (location.hash || '').replace(/^#/, '');
     const start = knownView(fromUrl) ? fromUrl : currentView();
     history.replaceState({ view: start }, '', '#' + start);
-    if (start !== currentView()) activate(start, true);
+    if (start !== currentView()) activate(start, 'none');
 
     window.addEventListener('popstate', e => {
       // Отвореното странично меню е "над" екрана: назад първо затваря него.
@@ -72,7 +72,7 @@ const Nav = (() => {
         return;
       }
       const view = (e.state && e.state.view) || 'tutor';
-      if (knownView(view)) activate(view, true);
+      if (knownView(view)) activate(view, 'none');
     });
   }
 
