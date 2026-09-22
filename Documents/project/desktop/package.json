@@ -1,7 +1,7 @@
 {
   "name": "climby",
   "productName": "Climby",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "Climby — climb your way to success",
   "author": "Martin Hristov",
   "license": "UNLICENSED",
@@ -14,7 +14,8 @@
     "release": "electron-builder --win --publish always",
     "dist:store": "electron-builder --win appx",
     "dist:linux": "electron-builder --linux",
-    "smoke": "node smoke.js"
+    "smoke": "node smoke.js",
+    "pagecheck": "node pagecheck.js"
   },
   "devDependencies": {
     "electron": "^43.4.0",

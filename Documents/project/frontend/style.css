@@ -3406,3 +3406,101 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 .quiz-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 .quiz-actions .btn-primary, .quiz-actions .btn-ghost { width: auto; }
 @media (max-width: 420px) { .quiz-grades { grid-template-columns: repeat(4, 1fr); } }
+
+/* ---------- paste / drop a picture (scanner.js) ---------- */
+.entry-paste-hint { width: 100%; margin: 12px 0 0; font-size: 12.5px; color: var(--text-faint); }
+/* the whole ClimbAI view lights up while a file is being dragged over the app */
+body.is-dragging-file #view-tutor:not(.hidden) .entry-choices { outline: 2px dashed var(--accent); outline-offset: 10px; border-radius: var(--radius-lg); }
+body.is-dragging-file #view-tutor:not(.hidden) .entry-paste-hint { color: var(--accent); }
+
+/* ---------- show/hide password (password-eye.js) ---------- */
+.has-eye { position: relative; }
+.has-eye input[type="password"], .has-eye input[type="text"] { padding-right: 44px; }
+.password-eye {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  flex: none; padding: 0;   /* the global button rule would leave no room for the icon */
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 0; background: transparent; color: var(--text-dim); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.password-eye svg { width: 18px; height: 18px; }
+.password-eye:hover { color: var(--text); background: var(--accent-soft); }
+.password-eye:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* the floating label in .field must not sit under the eye */
+.field.has-eye label { right: 44px; }
+
+/* ---------- editing a task in place (checklist.js) ---------- */
+.task-text { cursor: text; }
+.task-edit-btn {
+  margin-left: 8px; flex: none; padding: 0;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 0; background: transparent; color: var(--text-faint); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+}
+.task-edit-btn svg { width: 15px; height: 15px; }
+.task-edit-btn:hover { color: var(--text); background: var(--accent-soft); }
+.task-edit { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 2px 0; }
+.task-edit input {
+  width: 100%; font: inherit; font-size: 14px; color: var(--text);
+  background: var(--bg-sunken); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 11px;
+}
+.task-edit input:focus { outline: none; border-color: var(--accent); }
+.task-edit-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.task-edit-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.task-edit-actions .btn-primary, .task-edit-actions .btn-ghost { width: auto; min-height: 36px; padding: 0 14px; font-size: 13px; }
+.task.is-editing .task-delete { display: none; }
+
+/* ---------- copy an answer (copy.js) — beside the read-aloud button ---------- */
+.copy-btn {
+  position: absolute; top: 12px; right: 54px;
+  flex: none; padding: 0;
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--bg-elevated, var(--bg)); color: var(--text-dim);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.copy-btn svg { width: 16px; height: 16px; }
+.copy-btn:hover { color: var(--text); border-color: var(--accent); }
+.copy-btn.is-done { color: var(--accent); border-color: var(--accent); }
+/* no read-aloud button (no voice for the language): copy takes its place */
+.copy-btn:first-child:last-of-type, .card.answer > .copy-btn:not(.speak-btn ~ .copy-btn) { right: 54px; }
+
+/* ---------- a line at the bottom, with a way back (toast.js) ---------- */
+.toast-host {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  z-index: 3000; display: flex; flex-direction: column; gap: 8px; align-items: center;
+  pointer-events: none; width: min(440px, calc(100vw - 32px));
+}
+.toast {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  padding: 12px 14px 12px 16px;
+  background: var(--bg-elevated, var(--bg)); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-lg, 14px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .28);
+  font-size: 14px;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity .2s ease, transform .2s ease;
+}
+.toast.is-in { opacity: 1; transform: translateY(0); }
+.toast.is-going { opacity: 0; transform: translateY(10px); }
+.toast-text { flex: 1; min-width: 0; }
+.toast-action {
+  flex: none; border: 0; background: transparent; color: var(--accent);
+  font: inherit; font-weight: 600; cursor: pointer; padding: 4px 6px; border-radius: 8px;
+}
+.toast-action:hover { background: var(--accent-soft); }
+.toast-good .toast-text { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  .toast { transition: none; opacity: 1; transform: none; }
+}
+
+/* ---------- no connection (offline.js) ---------- */
+.offline-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 3100;
+  padding: 9px 16px; text-align: center; font-size: 13px; font-weight: 500;
+  background: var(--danger); color: #fff;
+}
+.offline-bar.hidden { display: none; }
+
+/* ---------- the chat box grows with the question (chat.js) ---------- */
+#chatInput { resize: none; overflow-y: auto; max-height: 160px; }

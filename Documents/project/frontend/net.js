@@ -95,6 +95,12 @@ const Net = (() => {
   // Ключът се маха, преди да стигне до fetch — той не го разбира.
   async function request(url, options = {}) {
     const { timeout = ATTEMPT_TIMEOUT_MS, ...init } = options;
+    // Устройството само знае, че няма мрежа. Без тази проверка заявката влизаше
+    // в пътя "сървърът спи" и чакаше цяла минута, за да каже накрая същото,
+    // което браузърът е знаел от първата секунда.
+    if (navigator.onLine === false) {
+      throw new Error(window.t ? window.t('net.offlineShort') : 'No internet connection.');
+    }
     let res;
     try {
       res = await _fetch(url, init, timeout);

@@ -146,6 +146,67 @@ const Checklist = (() => {
     return { text: t('checklist.dueIn', { n: d, days: plural(d) }), overdue: false, soon: false };
   }
 
+  function editTask(id, fields) {
+    return api(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(fields) }).then(_announceChange);
+  }
+
+  // Editing in place. A task you can only add, tick or delete is a task you
+  // retype when the page number was wrong — which is every other task. Click
+  // the text (or the pencil): the body becomes a small form; Enter saves,
+  // Escape puts it back exactly as it was.
+  function openEditor(t, li, body) {
+    if (li.classList.contains('is-editing')) return;
+    li.classList.add('is-editing');
+    const form = document.createElement('form');
+    form.className = 'task-edit';
+    form.noValidate = true;
+
+    const text = document.createElement('input');
+    text.type = 'text'; text.value = t.text; text.maxLength = 2000; text.required = true;
+    text.setAttribute('aria-label', window.t('checklist.taskLabel'));
+    const subject = document.createElement('input');
+    subject.type = 'text'; subject.value = t.subject || ''; subject.maxLength = 100;
+    subject.placeholder = window.t('checklist.subjectPlaceholder');
+    subject.setAttribute('aria-label', window.t('checklist.subjectLabel'));
+    const deadline = document.createElement('input');
+    deadline.type = 'date'; deadline.value = t.deadline || '';
+    deadline.setAttribute('aria-label', window.t('checklist.deadlineLabel'));
+
+    const row = document.createElement('div');
+    row.className = 'task-edit-row';
+    row.append(subject, deadline);
+    const actions = document.createElement('div');
+    actions.className = 'task-edit-actions';
+    const save = document.createElement('button');
+    save.type = 'submit'; save.className = 'btn-primary'; save.textContent = window.t('checklist.saveEdit');
+    const cancel = document.createElement('button');
+    cancel.type = 'button'; cancel.className = 'btn-ghost'; cancel.textContent = window.t('checklist.cancelEdit');
+    actions.append(cancel, save);
+    form.append(text, row, actions);
+
+    const close = () => { form.remove(); body.classList.remove('hidden'); li.classList.remove('is-editing'); };
+    cancel.addEventListener('click', close);
+    form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); close(); } });
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const next = text.value.trim();
+      if (!next) { text.focus(); return; }
+      save.disabled = true;
+      try {
+        await editTask(t.id, { text: next, subject: subject.value.trim() || null, deadline: deadline.value || null });
+      } catch (err) {
+        save.disabled = false;
+        showListError(err);
+      }
+      // render() follows climby:tasks-changed and rebuilds the row
+    });
+
+    body.classList.add('hidden');
+    li.insertBefore(form, body);
+    text.focus();
+    text.setSelectionRange(text.value.length, text.value.length);
+  }
+
   function buildTaskItem(t) {
     const dl = deadlineLabel(t.deadline);
     const li = document.createElement('li');
@@ -172,6 +233,8 @@ const Checklist = (() => {
     const textEl = document.createElement('div');
     textEl.className = 'task-text';
     textEl.textContent = t.text;
+    textEl.title = window.t('checklist.editHint');
+    textEl.addEventListener('click', () => { if (!t.done) openEditor(t, li, body); });
     const meta = document.createElement('div');
     meta.className = 'task-meta';
     if (t.subject) {
@@ -198,13 +261,36 @@ const Checklist = (() => {
     split.addEventListener('click', () => splitTask(t, split));
     body.appendChild(split);
 
+    if (!t.done) {
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'task-edit-btn';
+      edit.setAttribute('aria-label', window.t('checklist.editAria'));
+      edit.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+      edit.addEventListener('click', () => openEditor(t, li, body));
+      body.appendChild(edit);
+    }
+
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'task-delete';
     del.setAttribute('aria-label', window.t('checklist.deleteAria'));
     del.textContent = '✕';
     del.addEventListener('click', () => {
-      removeTask(t.id).catch(showListError);
+      // A task deleted by a mis-click used to be gone for good — nothing asked,
+      // nothing to press. A confirmation box on every ✕ is worse: it slows down
+      // the deletes that were meant. So the delete happens, and for a few
+      // seconds there is a way back. The task returns with a new id, which
+      // nothing in the list depends on.
+      removeTask(t.id).then(() => {
+        if (!window.Toast) return;
+        Toast.show(window.t('checklist.deleted'), {
+          action: {
+            label: window.t('checklist.undo'),
+            onClick: () => addTask(t.text, t.subject, t.deadline).catch(showListError),
+          },
+        });
+      }).catch(showListError);
     });
 
     li.appendChild(check);

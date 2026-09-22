@@ -6,6 +6,7 @@
 // телефон, и от компютър и да вижда същия чеклист.
 const { app, BrowserWindow, Menu, dialog, protocol, net, session, shell, ipcMain } = require('electron');
 const path = require('node:path');
+const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 const { initAutoUpdate, checkForUpdatesManually } = require('./updater');
 
@@ -40,10 +41,31 @@ function _resolveInsideFrontend(urlPath) {
   return target;
 }
 
+// Where the window was last time. Every app remembers this; one that opens at
+// the same default size in the same default place every morning feels like it
+// forgot you. Kept in userData as a small JSON file, written when the window
+// closes, ignored if the screen it was on is no longer there.
+const boundsFile = () => path.join(app.getPath('userData'), 'window-bounds.json');
+
+function rememberedBounds() {
+  try {
+    const b = JSON.parse(fs.readFileSync(boundsFile(), 'utf8'));
+    const { screen } = require('electron');
+    const onScreen = screen.getAllDisplays().some(d => {
+      const a = d.workArea;
+      return b.x >= a.x - 50 && b.y >= a.y - 50 && b.x < a.x + a.width - 100 && b.y < a.y + a.height - 100;
+    });
+    if (onScreen && b.width >= 380 && b.height >= 560) return b;
+  } catch { /* first run, or the file is gone — the defaults are fine */ }
+  return null;
+}
+
 function createWindow() {
+  const remembered = rememberedBounds();
   const win = new BrowserWindow({
     width: 1100,
     height: 820,
+    ...(remembered ? { x: remembered.x, y: remembered.y, width: remembered.width, height: remembered.height } : {}),
     minWidth: 380,
     minHeight: 560,
     // Същият почти черен фон като на тъмната тема — иначе прозорецът мига в бяло,
@@ -57,6 +79,39 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
     },
+  });
+
+  if (remembered && remembered.maximized) win.maximize();
+
+  win.on('close', () => {
+    try {
+      const b = win.isMaximized() ? { ...win.getNormalBounds(), maximized: true } : { ...win.getBounds(), maximized: false };
+      fs.writeFileSync(boundsFile(), JSON.stringify(b));
+    } catch { /* not remembering is not an error */ }
+  });
+
+  // A right-click menu. Electron ships without one, so until now no field in
+  // the app could be pasted into with the mouse — the single most-noticed
+  // thing missing from an app that isn't a browser.
+  win.webContents.on('context-menu', (_event, params) => {
+    const items = [];
+    const editable = params.isEditable;
+    if (editable && params.misspelledWord) {
+      for (const word of params.dictionarySuggestions.slice(0, 4)) {
+        items.push({ label: word, click: () => win.webContents.replaceMisspelling(word) });
+      }
+      if (items.length) items.push({ type: 'separator' });
+    }
+    if (editable) {
+      items.push({ role: 'undo' }, { role: 'redo' }, { type: 'separator' },
+                 { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' });
+    } else if (params.selectionText.trim()) {
+      items.push({ role: 'copy' });
+    }
+    if (params.linkURL) {
+      items.push({ type: 'separator' }, { label: 'Copy link', click: () => require('electron').clipboard.writeText(params.linkURL) });
+    }
+    if (items.length) Menu.buildFromTemplate(items).popup({ window: win });
   });
 
   win.loadURL('app://climby/index.html');

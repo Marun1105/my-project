@@ -72,7 +72,7 @@
     <form novalidate id="loginForm" class="auth-form">
       <div class="field">
         <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
-        <input id="loginEmail" type="email" placeholder=" " autocomplete="email">
+        <input id="loginEmail" type="email" placeholder=" " autocomplete="email" autofocus>
         <label for="loginEmail" data-i18n="auth.email">Имейл</label>
       </div>
       <div class="field">
@@ -253,10 +253,10 @@
   </div>
 </div>
 
-<div id="settingsOverlay" class="settings-overlay hidden">
+<div id="settingsOverlay" class="settings-overlay hidden" role="dialog" aria-labelledby="settingsTitle">
   <div class="settings-card">
     <button id="settingsClose" class="entry-gate-close settings-close" type="button" data-i18n-aria="settings.closeAria" aria-label="Затвори настройките">✕</button>
-    <h2 data-i18n="settings.title">Настройки</h2>
+    <h2 id="settingsTitle" data-i18n="settings.title">Настройки</h2>
     <!-- Език и тема са един и същ вид избор: две-три възможности, всички видими
          наведнъж. Затова изглеждат еднакво. Дотук езикът беше единствената
          системна контрола в иначе изцяло начертан интерфейс и си личеше. -->
@@ -546,6 +546,7 @@
       <span class="entry-choice-hint" data-i18n="entry.paperHint">НВО и матура от предишни години, вече снимани.</span>
     </button>
   </div>
+  <p class="entry-paste-hint" data-i18n="entry.pasteHint">Or paste a picture (Ctrl+V), or drop one here.</p>
 
 <!-- Снимка от телефона: лаптопът рядко има камера, годна за страница от учебник,
      а телефонът в джоба винаги има. Свързва се веднъж и остава свързан. -->
@@ -1118,20 +1119,25 @@
 <script src="config.js"></script>
 <script src="prefs.js"></script>
 <script src="i18n.js"></script>
+<script src="toast.js"></script>
 <script src="net.js"></script>
+<script src="offline.js"></script>
 <script src="theme.js"></script>
 <script src="settings.js"></script>
 <script src="account.js"></script>
 <script src="profile.js"></script>
 <script src="nav.js"></script>
+<script src="dialog.js"></script>
 <script src="help.js"></script>
 <script src="scanner.js"></script>
 <script src="phone.js"></script>
 <script src="papers.js"></script>
 <script src="chat.js"></script>
 <script src="speak.js"></script>
+<script src="copy.js"></script>
 <script src="tutor.js"></script>
 <script src="auth.js"></script>
+<script src="password-eye.js"></script>
 <script src="checklist.js"></script>
 <script src="subjects.js"></script>
 <script src="ai-planner.js"></script>

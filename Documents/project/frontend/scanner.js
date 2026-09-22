@@ -421,6 +421,48 @@ const Scanner = (() => {
     e.target.value = '';
   }
 
+  // A picture can also arrive by paste (Ctrl+V anywhere on the ClimbAI
+  // screen) or by dropping a file on it — the two ways every app accepts an
+  // image, and the ones a person tries first with a screenshot. Same door as
+  // the file picker; a screen that is busy cropping simply ignores it.
+  function acceptImageFile(file) {
+    if (!file || !file.type || !file.type.startsWith('image/')) return false;
+    if (!isIdle()) return false;
+    if (!window.Nav || Nav.currentView() !== 'tutor') return false;
+    const reader = new FileReader();
+    reader.onload = () => loadIntoAdjust(reader.result);
+    reader.readAsDataURL(file);
+    return true;
+  }
+
+  function handlePaste(e) {
+    // typing in the chat or a form field: the paste is theirs, not ours
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
+    const items = (e.clipboardData && e.clipboardData.files) || [];
+    for (const file of items) {
+      if (acceptImageFile(file)) { e.preventDefault(); return; }
+    }
+  }
+
+  function handleDrop(e) {
+    const files = (e.dataTransfer && e.dataTransfer.files) || [];
+    for (const file of files) {
+      if (acceptImageFile(file)) { e.preventDefault(); break; }
+    }
+    document.body.classList.remove('is-dragging-file');
+  }
+
+  let dragDepth = 0;
+  function handleDragEnter(e) {
+    if (![...(e.dataTransfer.types || [])].includes('Files')) return;
+    dragDepth++;
+    document.body.classList.add('is-dragging-file');
+  }
+  function handleDragLeave() {
+    if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('is-dragging-file'); }
+  }
+
   // Свободен ли е скенерът точно сега. Снимка от телефона не бива да блъсне
   // настрани страница, която човекът в момента кадрира — тя изчаква реда си.
   function isIdle() {
@@ -762,6 +804,11 @@ const Scanner = (() => {
   function init() {
     $('shootBtn').addEventListener('click', capture);
     $('uploadInput').addEventListener('change', handleFileUpload);
+    document.addEventListener('paste', handlePaste);
+    document.addEventListener('dragenter', handleDragEnter);
+    document.addEventListener('dragleave', handleDragLeave);
+    document.addEventListener('dragover', e => { if ([...(e.dataTransfer.types || [])].includes('Files')) e.preventDefault(); });
+    document.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; handleDrop(e); });
     $('noCameraUploadBtn').addEventListener('click', () => $('uploadInput').click());
 
     makeDraggable('cornerTL', 'tl');

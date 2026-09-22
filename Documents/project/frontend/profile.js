@@ -112,6 +112,7 @@ const Profile = (() => {
     document.querySelectorAll('#quizHeard .chat-starter').forEach(b => b.addEventListener('click', () => { picked.heard_from = b.dataset.value; paint(); }));
     $('quizSave').addEventListener('click', save);
     $('quizLater').addEventListener('click', later);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('profileQuiz').classList.contains('hidden')) later(); });
     const btn = $('settingsProfileBtn');
     if (btn) btn.addEventListener('click', () => { $('settingsOverlay').classList.add('hidden'); open(); });
     window.addEventListener('climby:auth-changed', e => { if (e.detail && e.detail.loggedIn) setTimeout(maybeAsk, 400); else summary(); });

@@ -478,3 +478,114 @@ def test_preferences_are_applied_before_first_paint():
     assert html.index('<script src="prefs.js">') < html.index('<script src="i18n.js">')
     js = _read("prefs.js")
     assert "root.setAttribute('data-' + k, read(k))" in js
+
+
+# ---------------------------------------------------------------------------
+# The things every app has. Each of these was missing once, and each one broke
+# quietly — the kind of gap nobody files a bug for, they just stop using it.
+# ---------------------------------------------------------------------------
+
+
+def test_every_new_script_is_cached_by_the_service_worker():
+    """A script in index.html but not in sw.js is a script the app loses the
+    moment it opens offline — the failure is invisible until there is no
+    connection, which is precisely when it matters."""
+    html = _read("index.html")
+    sw = _read("sw.js")
+    in_page = set(re.findall(r'<script src="([^":/]+\.js)"', html))
+    for name in in_page:
+        assert f"'./{name}'" in sw, f"{name} is loaded but not cached by the service worker"
+
+
+def test_the_offline_bar_and_the_fast_failure_agree():
+    """The bar tells the person; net.js stops the request. One without the
+    other is either a lie on screen or a minute of silent waiting."""
+    assert "navigator.onLine" in _read("offline.js")
+    assert "navigator.onLine === false" in _read("net.js")
+
+
+def test_connection_strings_exist_in_both_languages():
+    source = _read("i18n.js")
+    for key in ("net.offline", "net.offlineShort", "net.backOnline",
+                "checklist.deleted", "checklist.undo",
+                "answer.copy", "answer.copied",
+                "auth.showPassword", "auth.hidePassword",
+                "checklist.editHint", "checklist.saveEdit", "entry.pasteHint"):
+        assert source.count(f"'{key}'") >= 2, f"{key} is missing from a language"
+
+
+def test_deleting_a_task_offers_a_way_back():
+    """No confirmation box, but no silent loss either: the toast carries the
+    task's own text, subject and deadline, so Undo restores the same task."""
+    js = _read("checklist.js")
+    assert "Toast.show(window.t('checklist.deleted')" in js
+    assert "addTask(t.text, t.subject, t.deadline)" in js
+
+
+def test_the_chat_thread_is_kept_per_account():
+    """A shared computer must not hand the next student the last one's
+    conversation, so what is stored records whose it is and is checked on the
+    way back in."""
+    js = _read("chat.js")
+    assert "saved.who !== owner()" in js
+    assert "who: owner()" in js
+
+
+def test_only_the_new_chat_button_throws_the_thread_away():
+    """Signing in and out swaps whose thread is shown. If that path called
+    reset(), it would delete the thread of the account that just arrived."""
+    js = _read("chat.js")
+    reset = js[js.index("function reset()"):]
+    reset = reset[:reset.index("\n  }")]
+    assert "removeItem(THREAD_KEY)" in reset
+    clear = js[js.index("function clearView()"):]
+    clear = clear[:clear.index("\n  }")]
+    assert "THREAD_KEY" not in clear
+
+
+def test_back_goes_to_the_previous_screen():
+    """Every view leaves a history entry, and popstate puts the one behind it
+    back — otherwise the back button/gesture drops out of the app entirely."""
+    js = _read("nav.js")
+    assert "history.pushState({ view }" in js
+    assert "'popstate'" in js
+    # a view that no longer exists must not open a blank screen
+    assert "knownView(view)" in js
+
+
+def test_a_picture_can_arrive_by_paste_or_by_drop():
+    js = _read("scanner.js")
+    for wiring in ("'paste'", "'drop'", "'dragenter'"):
+        assert wiring in js, f"{wiring} is not wired"
+    # typing in a field must keep its own paste
+    assert "TEXTAREA" in js
+
+
+def test_the_window_remembers_where_it_was():
+    path = os.path.join(os.path.dirname(__file__), "desktop", "main.js")
+    with open(path, encoding="utf-8") as f:
+        js = f.read()
+    assert "window-bounds.json" in js
+    # a window restored onto a screen that is gone is a window you cannot find
+    assert "getAllDisplays" in js
+    # and Windows has no paste without a right-click menu
+    assert "'context-menu'" in js
+
+
+def test_open_panels_keep_the_keyboard_inside_them():
+    """Tab used to walk out of Settings and down the page behind it. The trap
+    loops at both ends, and closing hands focus back to whatever opened it —
+    never to document.body, which is the same drop under another name."""
+    js = _read("dialog.js")
+    assert "e.shiftKey" in js and "last.focus()" in js and "first.focus()" in js
+    assert "back !== document.body" in js
+    # the panels are found by the one thing they all do: drop the hidden class
+    assert "MutationObserver" in js and "attributeFilter: ['class']" in js
+
+
+def test_the_settings_panel_says_what_it_is():
+    html = _read("index.html")
+    card = html[html.index('id="settingsOverlay"'):]
+    card = card[:card.index("</h2>")]
+    assert 'role="dialog"' in card
+    assert 'aria-labelledby="settingsTitle"' in card and 'id="settingsTitle"' in card

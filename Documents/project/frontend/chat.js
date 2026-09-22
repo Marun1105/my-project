@@ -11,6 +11,37 @@ const Chat = (() => {
   const $ = id => document.getElementById(id);
   const BACKEND = window.CLIMBY_BACKEND;
   let history = [];
+  // The thread used to live only in memory: close the app mid-conversation and
+  // it was gone, the way no messaging app loses a conversation. The last one is
+  // kept on this device (not the account — it is a scratchpad, not history;
+  // Summited has the questions and answers properly) and put back on open.
+  const THREAD_KEY = 'climby-chat-thread';
+  const THREAD_MAX = 12;   // the same cap the server accepts per request
+
+  // Whose thread it is. A school computer has more than one student on it, and
+  // a conversation left on screen for the next one is the wrong kind of memory.
+  const owner = () => {
+    const u = window.Auth && Auth.getUser();
+    return (u && u.id) ? String(u.id) : 'guest';
+  };
+
+  function persist() {
+    try { localStorage.setItem(THREAD_KEY, JSON.stringify({ who: owner(), turns: history.slice(-THREAD_MAX) })); } catch {}
+  }
+
+  function restore() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(THREAD_KEY) || 'null'); } catch { saved = null; }
+    if (!saved || saved.who !== owner() || !Array.isArray(saved.turns) || !saved.turns.length) return;
+    history = saved.turns.slice(-THREAD_MAX);
+    $('chatEmpty').classList.add('hidden');
+    for (const turn of history) {
+      const el = bubble(turn.role === 'user' ? 'user' : 'ai');
+      if (turn.role === 'user') el.textContent = turn.text;
+      else { render(turn.text, el); if (window.Copy) Copy.attach(el); }
+    }
+    scrollToEnd();
+  }
   let busy = false;
   let open = false;
 
@@ -47,6 +78,7 @@ const Chat = (() => {
     const text = box.value.trim();
     if (!text || busy) return;
     box.value = '';
+    window.dispatchEvent(new CustomEvent('climby:chat-sent'));
     $('chatEmpty').classList.add('hidden');
     const mine = bubble('user');
     mine.textContent = text;
@@ -77,8 +109,10 @@ const Chat = (() => {
       }
       render(data.answer, theirs);
       if (window.Speak) Speak.attach(theirs);
+      if (window.Copy) Copy.attach(theirs);
       window.dispatchEvent(new CustomEvent('climby:activity'));
       history.push({ role: 'user', text }, { role: 'assistant', text: data.answer });
+      persist();
     } catch (err) {
       theirs.classList.remove('chat-thinking');
       theirs.classList.add('chat-error');
@@ -90,11 +124,18 @@ const Chat = (() => {
     }
   }
 
-  function reset() {
+  // Empty the panel without touching what is stored. Signing in and out swaps
+  // whose thread is on screen; only the "new chat" button throws one away.
+  function clearView() {
     history = [];
     $('chatLog').innerHTML = '';
     $('chatEmpty').classList.remove('hidden');
     if (window.Speak) Speak.stop();
+  }
+
+  function reset() {
+    try { localStorage.removeItem(THREAD_KEY); } catch {}
+    clearView();
   }
 
   function setOpen(next) {
@@ -123,13 +164,28 @@ const Chat = (() => {
       if (route) route.classList.toggle('hidden', !on);
     };
     syncContext();
-    window.addEventListener('climby:auth-changed', syncContext);
+    window.addEventListener('climby:auth-changed', () => {
+      syncContext();
+      clearView();
+      restore();
+    });
     document.querySelectorAll('.chat-starter').forEach(btn => {
       btn.addEventListener('click', () => {
         $('chatInput').value = btn.textContent;
         send();
       });
     });
+    restore();
+    // A one-line box for a five-line question hides everything but the last
+    // line while it is being written. It grows now, up to a point.
+    const box = $('chatInput');
+    const grow = () => {
+      box.style.height = 'auto';
+      box.style.height = Math.min(box.scrollHeight, 160) + 'px';
+    };
+    box.addEventListener('input', grow);
+    window.addEventListener('climby:chat-sent', grow);
+    grow();
     $('chatInput').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
     });

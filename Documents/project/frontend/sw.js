@@ -17,7 +17,7 @@
 // ТРЯБВА да се вдигне — инак хората продължават да виждат старата, а на диска
 // стои новата. Точно това се случи при смяната на знака на ClimbAI: файлът беше
 // нов, екранът показваше стария и нищо не подсказваше защо.
-const CACHE = 'climby-shell-v26';
+const CACHE = 'climby-shell-v27';
 
 // Файлове, чието съдържание не се променя под същото име. Само за тях кешът изпреварва
 // мрежата; всичко останало от нашия произход тръгва по мрежата.
@@ -30,7 +30,9 @@ const SHELL = [
   './config.js',
   './prefs.js',
   './i18n.js',
+  './toast.js',
   './net.js',
+  './offline.js',
   './classes.js',
   './subjects.js',
   './subjects.css',
@@ -49,6 +51,7 @@ const SHELL = [
   './account.js',
   './profile.js',
   './nav.js',
+  './dialog.js',
   './help.js',
   './scanner.js',
   './phone.js',
@@ -56,8 +59,10 @@ const SHELL = [
   './papers.js',
   './chat.js',
   './speak.js',
+  './copy.js',
   './tutor.js',
   './auth.js',
+  './password-eye.js',
   './checklist.js',
   './ai-planner.js',
   './history.js',
