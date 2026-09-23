@@ -683,56 +683,90 @@ def test_both_screens_say_which_one_they_are():
     assert "surface: 'tutor'" in _read("tutor.js")
 
 
-def test_the_tutor_knows_every_screen_the_app_has():
-    """The prompt describes the app to the student, so it has to keep up with
-    the app. Add or rename a screen and this fails until the map learns it.
+# Everything the tutor is told the app contains. The map is prose, but it
+# quotes the app's own labels verbatim, which is what makes it checkable — and
+# is also better for the student, who is then told the exact words on screen.
+_MAP_MUST_NAME = [
+    # the screens
+    "nav.tutor", "nav.checklist", "nav.history", "nav.focus", "nav.classes", "nav.family",
+    # the ways into ClimbAI
+    "entry.cameraTitle", "entry.phoneTitle", "entry.paperTitle",
+    # every row of Settings
+    "settings.secAppearance", "settings.language", "settings.theme", "settings.text",
+    "settings.reading", "settings.secTutor", "settings.tutorMode", "settings.autoread",
+    "settings.voice", "settings.secApp", "settings.tour", "settings.version",
+    "settings.checkUpdates", "settings.devicesTitle", "settings.secAccount",
+    "settings.profileTitle", "account.passwordTitle", "account.exportTitle",
+    "account.deleteTitle",
+]
 
-    Each language is checked on its own. Searching the whole map at once let a
-    rename pass unnoticed: the Bulgarian lines carry the English name in
-    brackets — "Изкачени (Summited)" — so dropping Summited from the English
-    half still found it in the Bulgarian one. Keeping them separate also
-    enforces something worth having: the Bulgarian map names every screen in
-    English too, so a student who switches language is still understood.
 
-    The check is on the name, not the wording: the paragraph may be rewritten
-    freely, but a screen cannot quietly stop existing in it."""
-    html = _read("index.html")
-    i18n = _read("i18n.js")
+def _app_map_halves():
     path = os.path.join(os.path.dirname(__file__), "server.py")
     with open(path, encoding="utf-8") as f:
         server_src = f.read()
     app_map = server_src[server_src.index("APP_MAP = {"):server_src.index("SURFACE = {")]
-    halves = {
+    return {
         "en": app_map[app_map.index('"en": """'):app_map.index('"bg": """')],
         "bg": app_map[app_map.index('"bg": """'):],
     }
+
+
+def _dict_block(i18n_src, lang):
+    return i18n_src[i18n_src.index(f"{lang}: {{"):]
+
+
+def test_the_tutor_knows_every_screen_and_setting_the_app_has():
+    """A map written by hand goes stale the moment the app moves, and it did:
+    within one day it still described a Motion setting that had been deleted,
+    still counted four ways into ClimbAI after one was removed, and had never
+    heard of the Voice picker added an hour earlier. A tutor confidently naming
+    a menu row that does not exist is worse than one that says it doesn't know.
+
+    Each language is checked separately. Searching the whole map at once let a
+    rename pass unnoticed, because the Bulgarian lines carry English names in
+    brackets and satisfied the search on their own."""
+    i18n = _read("i18n.js")
+    halves = _app_map_halves()
     assert len(halves["en"]) > 500 and len(halves["bg"]) > 500, "a language lost its map"
 
-    # both dictionaries live in one file and Bulgarian comes first, so the
-    # English names have to be looked for after the English one opens
-    english = i18n[i18n.index("en: {"):]
-    views = set(re.findall(r'id="view-([a-z]+)"', html))
-    assert views, "no screens found in index.html"
-    checked = 0
-    for view in sorted(views):
-        m = re.search(r"'nav\." + view + r"':\s*'([^']+)'", english)
-        if not m:
-            continue        # a screen with no menu entry of its own
-        name = m.group(1)
-        for lang, half in halves.items():
-            assert name in half, (
-                f"the {lang} half of APP_MAP in server.py has never heard of the "
-                f"{name!r} screen — a student on that screen will be told about a "
-                f"different app than the one they are looking at"
+    for lang in ("en", "bg"):
+        block = _dict_block(i18n, lang)
+        for key in _MAP_MUST_NAME:
+            m = re.search(r"'" + re.escape(key) + r"':\s*'([^']+)'", block)
+            assert m, f"{key} is missing from the {lang} dictionary"
+            label = m.group(1)
+            assert label in halves[lang], (
+                f"the {lang} half of APP_MAP in server.py never names {label!r} ({key}). "
+                f"APP_MAP is generated from these strings — if the app changed, the map has "
+                f"to be regenerated, or the tutor will describe an app that no longer exists."
             )
-        checked += 1
-    assert checked >= 5, f"only {checked} screens were checked — the lookup is finding nothing"
 
 
-# ---------------------------------------------------------------------------
-# Settings, after the rebuild: full screen, dropdowns, a voice you can hear
-# before you pick it, and a delete button that looks like what it does.
-# ---------------------------------------------------------------------------
+def test_the_map_names_no_setting_the_app_has_dropped():
+    """The other direction. Motion was deleted from the app and stayed in the
+    prompt, so the tutor would have told a student to go and change it."""
+    halves = _app_map_halves()
+    i18n = _read("i18n.js")
+    for gone in ("Motion", "Движение", "Спокойно"):
+        for lang in ("en", "bg"):
+            assert gone not in halves[lang], f"{gone!r} is in the {lang} map but gone from the app"
+        assert gone not in i18n, f"{gone!r} is still in i18n.js"
+
+
+def test_every_screen_in_the_html_is_on_the_list_the_map_is_checked_against():
+    """_MAP_MUST_NAME is hand-kept, so it needs its own guard: add a screen to
+    index.html and this fails until the list — and through it the map — knows."""
+    html = _read("index.html")
+    views = set(re.findall(r'id="view-([a-z]+)"', html))
+    i18n = _read("i18n.js")
+    for view in sorted(views):
+        if not re.search(r"'nav\." + view + r"':", i18n):
+            continue        # a screen with no menu entry of its own
+        assert f"nav.{view}" in _MAP_MUST_NAME, (
+            f"the {view} screen exists but nothing checks that the tutor knows about it — "
+            f"add 'nav.{view}' to _MAP_MUST_NAME"
+        )
 
 
 def test_a_chosen_preference_is_visible_as_well_as_announced():

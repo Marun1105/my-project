@@ -212,7 +212,7 @@ def test_the_tutor_is_told_what_a_route_is(monkeypatch):
     seen = _capture(monkeypatch)
     assert _ask().status_code == 200
     system = seen["system"]
-    assert "The Route — the student's task list" in system
+    assert '"The Route"' in system and "task list" in system
     assert "Summited" in system and "Ascent" in system and "Rope Team" in system
 
 
@@ -229,7 +229,7 @@ def test_both_languages_carry_the_map(monkeypatch):
     assert _ask(lang="bg").status_code == 200
     system = seen["system"]
     assert "Къде се намираш" in system
-    assert "Маршрутът (The Route)" in system
+    assert "Маршрут" in system and "Глас" in system
     assert "не измисляй бутон" in system
 
 
