@@ -495,7 +495,22 @@ const Checklist = (() => {
     updateBadge(tasks);
   }
 
-  return { init, getPendingTasks, syncBadge };
+  // Undo, for a task that was just created elsewhere and whose id the caller
+  // never saw. The newest row with this exact text is the one added a second
+  // ago; if the text does not match anything, nothing is removed, which is the
+  // right way to be wrong here.
+  async function removeNewestMatching(text) {
+    const wanted = (text || '').trim();
+    if (!wanted) return false;
+    const tasks = await api('/tasks');
+    const mine = tasks.filter(t => (t.text || '').trim() === wanted);
+    if (!mine.length) return false;
+    const newest = mine.reduce((a, b) => (b.id > a.id ? b : a));
+    await removeTask(newest.id);
+    return true;
+  }
+
+  return { init, getPendingTasks, syncBadge, addTask, removeNewestMatching };
 })();
 
 window.Checklist = Checklist;

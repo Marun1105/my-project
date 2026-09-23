@@ -81,6 +81,25 @@ const Chat = (() => {
     const box = $('chatInput');
     const text = box.value.trim();
     if (!text || busy) return;
+
+    // An offer is on screen and the reply is "yes". That is an answer to the
+    // button, not a question for the tutor: it is matched here and costs no
+    // call. Anything else goes to the tutor as usual and the card stays up.
+    if (window.Suggest && Suggest.hasPending() && Suggest.looksLikeYes(text)) {
+      box.value = '';
+      window.dispatchEvent(new CustomEvent('climby:chat-sent'));
+      $('chatEmpty').classList.add('hidden');
+      const mineYes = bubble('user');
+      mineYes.textContent = text;
+      const n = await Suggest.acceptPending();
+      const note = bubble('ai');
+      note.textContent = n
+        ? t(n === 1 ? 'suggest.confirmOne' : 'suggest.confirmMany', { n })
+        : t('suggest.failed');
+      scrollToEnd();
+      box.focus();
+      return;
+    }
     box.value = '';
     window.dispatchEvent(new CustomEvent('climby:chat-sent'));
     $('chatEmpty').classList.add('hidden');
@@ -114,6 +133,9 @@ const Chat = (() => {
       render(data.answer, theirs);
       if (window.Speak) Speak.attach(theirs);
       if (window.Copy) Copy.attach(theirs);
+      // Homework the tutor heard in the message, offered as a card with one
+      // button. Nothing reaches the Route until it is pressed.
+      if (window.Suggest) Suggest.render(data.suggestions, theirs);
       window.dispatchEvent(new CustomEvent('climby:activity'));
       history.push({ role: 'user', text }, { role: 'assistant', text: data.answer });
       persist();
@@ -132,6 +154,7 @@ const Chat = (() => {
   // whose thread is on screen; only the "new chat" button throws one away.
   function clearView() {
     history = [];
+    if (window.Suggest) Suggest.clearPending();
     $('chatLog').innerHTML = '';
     $('chatEmpty').classList.remove('hidden');
     if (window.Speak) Speak.stop();

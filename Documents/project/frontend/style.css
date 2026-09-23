@@ -3722,3 +3722,43 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
   .settings-control { justify-self: stretch; }
   .settings-select { width: 100%; min-width: 0; }
 }
+
+/* ---------- the tutor offering a task (suggest.js) ---------- */
+.suggest-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.suggest-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+}
+.suggest-icon { color: var(--accent); display: block; }
+.suggest-icon svg { width: 20px; height: 20px; display: block; }
+.suggest-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.suggest-title { font-weight: 600; font-size: 14px; line-height: 1.4; }
+.suggest-meta { font-size: 12px; color: var(--text-faint); }
+.suggest-action { grid-column: 2; justify-self: start; }
+.suggest-add {
+  /* the global button rule is written for full-width buttons; without this
+     its padding and flex: 1 would stretch this one across the bubble */
+  flex: none; width: auto;
+  padding: 8px 14px;
+  font-size: 13px; font-weight: 600;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: 0; border-radius: var(--radius-sm, 10px);
+  cursor: pointer;
+}
+.suggest-add:hover { background: var(--accent-strong, var(--accent)); }
+.suggest-add:disabled { opacity: 0.6; cursor: default; }
+.suggest-card.is-added { border-color: var(--accent); background: var(--accent-soft); }
+.suggest-done {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600; color: var(--accent);
+}
+.suggest-done svg { width: 15px; height: 15px; }
+/* in a chat bubble the card must not push past the bubble's own padding */
+.chat-ai .suggest-card { padding: 10px 12px; }

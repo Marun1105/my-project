@@ -9,6 +9,9 @@ load_dotenv()  # трябва да е преди другите импорти, 
 
 import base64
 import binascii
+import json
+import re
+from datetime import date, timedelta
 from pathlib import Path
 from typing import List, Optional, Literal
 
@@ -553,6 +556,126 @@ something that does not exist trusts you less about the mathematics too.""",
 }
 
 
+# Homework mentioned in passing, offered to the Route.
+#
+# "I've got maths for tomorrow" is a task the student is about to write down by
+# hand, in an app that is already holding the list. The tutor ends its answer
+# with a fenced block the student never sees; the server lifts it out and hands
+# it back separately, and the chat offers a button.
+#
+# Asked for only when it could be acted on — the chat, signed in, with context —
+# but STRIPPED ALWAYS, from every answer on every screen. A model that emits the
+# block unprompted must never have it end up on screen, and the cheapest way to
+# guarantee that is to never make the stripping conditional.
+TASK_OFFER = {
+    "en": """
+
+Adding to the Route. When the student mentions schoolwork they have to do — an
+exercise, a reading, a test to revise for, with or without a day attached — you may
+offer to put it on their Route. Say so in one short sentence at the end of your
+answer, in your own words, and then, on the very last line, append a block exactly
+like this and nothing after it:
+
+```climby-task
+[{{"text": "Maths — exercises 4-6, p. 32", "subject": "Maths", "deadline": "{today}"}}]
+```
+
+Rules for the block:
+- Only when actual work was named. "Maths is hard" or "I have a lot of homework" is
+  not work you can write down; a question you are answering is not homework to add.
+- text: what the student would write on their own list — specific, under 12 words,
+  in {language}. Never your advice, never a step of the solution.
+- subject: the school subject if it is clear, otherwise leave it out.
+- deadline: YYYY-MM-DD, only if they said when. Today is {today}. "tomorrow" is
+  {tomorrow}. If no day was mentioned, leave it out — do not guess one.
+- At most 3 tasks, and only things they said, never things you think they should do.
+- If there is nothing to add, write no block at all. Most answers have no block.
+The student sees none of this; they see a button.""",
+    "bg": """
+
+Добавяне в Маршрута. Когато ученикът спомене училищна работа, която трябва да свърши —
+упражнение, четиво, контролно за подготовка, със или без посочен ден — можеш да
+предложиш да я добавиш в Маршрута му. Кажи го с едно кратко изречение в края на
+отговора, със свои думи, и чак на последния ред добави блок точно такъв и нищо след
+него:
+
+```climby-task
+[{{"text": "Математика — задачи 4-6, стр. 32", "subject": "Математика", "deadline": "{today}"}}]
+```
+
+Правила за блока:
+- Само когато е назована истинска работа. „Математиката е трудна" или „имам много
+  домашни" не е работа, която може да се запише; въпросът, на който отговаряш, не е
+  домашно за добавяне.
+- text: каквото ученикът сам би си написал в списъка — конкретно, до 12 думи, на
+  {language}. Никога твой съвет и никога стъпка от решението.
+- subject: учебният предмет, ако е ясен, иначе го пропусни.
+- deadline: ГГГГ-ММ-ДД, само ако е казал кога. Днес е {today}. „утре" е {tomorrow}.
+  Ако не е споменат ден, пропусни го — не отгатвай.
+- Най-много 3 задачи и само неща, които той е казал, никога неща, които ти мислиш, че
+  трябва да направи.
+- Ако няма какво да се добави, не пиши блок изобщо. Повечето отговори нямат блок.
+Ученикът не вижда нищо от това; той вижда бутон.""",
+}
+
+# The fence, as the model was asked to write it — and as it sometimes writes it
+# anyway: with or without a language tag it invented, and occasionally unclosed
+# because the answer ran into the token ceiling mid-block.
+_TASK_BLOCK = re.compile(
+    r"\n?```[ \t]*climby-task[ \t]*\r?\n(?P<body>.*?)(?:```|\Z)",
+    re.DOTALL | re.IGNORECASE,
+)
+
+TASK_LANGUAGE = {"en": "English", "bg": "български"}
+MAX_SUGGESTED_TASKS = 3
+
+
+def _strip_task_block(answer: str):
+    """Take the block out of the answer. Returns (clean answer, raw block or None).
+
+    Always called, for every answer. Whether we then read the block is a
+    separate decision — but an answer carrying a fenced lump of JSON must never
+    reach a student, however it got there.
+    """
+    match = _TASK_BLOCK.search(answer)
+    if not match:
+        return answer.strip(), None
+    clean = (answer[:match.start()] + answer[match.end():]).strip()
+    return clean, match.group("body")
+
+
+def _parse_task_block(raw: str, lang: str):
+    """The tasks in the block, or [] if it is not usable. Never raises."""
+    if not raw:
+        return []
+    try:
+        items = json.loads(raw.strip())
+    except (json.JSONDecodeError, ValueError):
+        return []
+    if isinstance(items, dict):        # one task, unwrapped
+        items = [items]
+    if not isinstance(items, list):
+        return []
+
+    out = []
+    for item in items[:MAX_SUGGESTED_TASKS]:
+        if not isinstance(item, dict):
+            continue
+        text = str(item.get("text") or "").strip()[:500]
+        if not text:
+            continue
+        subject = str(item.get("subject") or "").strip()[:100] or None
+        deadline = str(item.get("deadline") or "").strip()[:32] or None
+        if deadline:
+            # a date the Route cannot store is worse than no date
+            try:
+                date.fromisoformat(deadline)
+            except ValueError:
+                deadline = None
+        out.append({"text": text, "subject": subject, "deadline": deadline})
+    return out
+
+
 # Which of the two places this question came from. They are genuinely different
 # rooms: one can see photographs and the other cannot, and a tutor that does not
 # know which room it is in will answer "let me look at your photo" to someone
@@ -698,6 +821,17 @@ def ask(
     system += _grade_register(user, lang)       # every answer, photo or chat
     if body.context and user:
         system += _student_context(db, user, lang)
+    # Offered only where it could be acted on: the chat, signed in. A guest has
+    # no Route to add to, and the photo screen is one problem rather than an
+    # assignment. The block is stripped below regardless of this.
+    offering_tasks = bool(user and body.context and body.surface == "chat")
+    if offering_tasks:
+        today = date.today()
+        system += TASK_OFFER[lang].format(
+            today=today.isoformat(),
+            tomorrow=(today + timedelta(days=1)).isoformat(),
+            language=TASK_LANGUAGE.get(lang, "English"),
+        )
     try:
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",
@@ -709,6 +843,10 @@ def ask(
         raise HTTPException(502, ASK_ERROR_MESSAGE[lang])
     usage.record(db, resp)
     answer = "".join(b.text for b in resp.content if b.type == "text")
+    # Unconditionally: whatever the model put in the answer, the student reads
+    # the answer and not the machinery.
+    answer, raw_block = _strip_task_block(answer)
+    suggestions = _parse_task_block(raw_block, lang) if offering_tasks else []
 
     if user:
         # Пазим само текста на въпроса/отговора за историята — снимките, стигнали дотук, не се записват.
@@ -721,4 +859,4 @@ def ask(
             db.rollback()
             print(f"[ask] could not save to history: {err!r}", flush=True)
 
-    return {"answer": answer}
+    return {"answer": answer, "suggestions": suggestions}

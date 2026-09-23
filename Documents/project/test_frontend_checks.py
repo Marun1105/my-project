@@ -876,3 +876,80 @@ def test_the_file_card_is_gone_but_the_file_input_stays():
     assert 'id="entryFileBtn"' not in html
     assert 'id="uploadInput"' in html
     assert "entryFileBtn" not in _read("scanner.js"), "a listener on a button that is gone"
+
+
+# ---------------------------------------------------------------------------
+# The tutor offering homework to the Route.
+# ---------------------------------------------------------------------------
+
+
+def test_the_offer_is_a_suggestion_until_it_is_pressed():
+    """Nothing may reach the Route on the tutor's say-so alone."""
+    js = _read("suggest.js")
+    render = js[js.index("function render("):js.index("const YES")]
+    assert "Checklist.addTask(" not in render, "render must draw the card, not act on it"
+    accept = js[js.index("async function accept("):js.index("async function undo(")]
+    assert "Checklist.addTask(" in accept, "pressing the button is what adds it"
+
+
+def test_adding_from_the_chat_can_be_undone():
+    js = _read("suggest.js")
+    assert "removeNewestMatching" in js
+    assert "Toast.show" in js and "checklist.undo" in js
+    # and the Route actually offers that door
+    checklist = _read("checklist.js")
+    assert "removeNewestMatching" in checklist
+    assert "return { init, getPendingTasks, syncBadge, addTask, removeNewestMatching };" in checklist
+
+
+def test_a_typed_yes_costs_no_ai_call():
+    """The tutor already asked the question; sending "yes" back would buy an
+    answer that says "done"."""
+    chat = _read("chat.js")
+    send = chat[chat.index("async function send()"):chat.index("function clearView()")]
+    yes_branch = send[:send.index("busy = true")]
+    assert "Suggest.looksLikeYes(text)" in yes_branch
+    assert "Suggest.acceptPending()" in yes_branch
+    assert "return;" in yes_branch, "the yes path must not fall through to the tutor"
+
+
+def test_a_yes_only_counts_while_something_is_on_offer():
+    """Otherwise "ok" as a reply to an explanation would be swallowed instead
+    of answered."""
+    assert "Suggest.hasPending() && Suggest.looksLikeYes(text)" in _read("chat.js")
+
+
+def test_yes_is_recognised_in_both_languages():
+    js = _read("suggest.js")
+    yes = js[js.index("const YES ="):js.index("function looksLikeYes")]
+    for word in ("yes", "ok", "sure", "\u0434\u0430", "\u0434\u043e\u0431\u0440\u0435", "\u0434\u0430\u0432\u0430\u0439"):
+        assert word in yes, f"{word!r} is not accepted as yes"
+
+
+def test_a_new_chat_drops_any_standing_offer():
+    js = _read("chat.js")
+    clear = js[js.index("function clearView()"):js.index("function reset()")]
+    assert "Suggest.clearPending()" in clear
+
+
+def test_the_offer_strings_exist_in_both_languages():
+    source = _read("i18n.js")
+    for key in ("suggest.add", "suggest.added", "suggest.addedToast", "suggest.failed",
+                "suggest.confirmOne", "suggest.confirmMany", "suggest.today", "suggest.tomorrow"):
+        assert source.count(f"'{key}'") >= 2, f"{key} is missing from a language"
+
+
+def test_the_add_button_escapes_the_global_button_rule():
+    """`button { flex: 1; padding: 15px 18px }` is written for full-width
+    buttons. An icon or inline button that does not reset it comes out stretched
+    — or, as the password eye did, with a content box of zero width."""
+    css = _read("style.css")
+    rule = css[css.index(".suggest-add {"):css.index(".suggest-add:hover")]
+    assert "flex: none" in rule and "width: auto" in rule and "padding:" in rule
+
+
+def test_the_task_text_is_never_treated_as_markup():
+    """It comes from the model, by way of the server. It is text."""
+    js = _read("suggest.js")
+    assert "title.textContent = task.text" in js
+    assert "innerHTML = task" not in js

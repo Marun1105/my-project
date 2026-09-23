@@ -172,6 +172,75 @@ function findChromium() {
     problems.push('closing Settings dropped focus instead of handing it back');
   }
 
+  // The tutor offering homework to the Route, with the Route and the tutor
+  // both faked — this is about the wiring, not the network. Worth having here
+  // because every part of it is a place a student would see the failure: a
+  // card that never appears, a button that adds nothing, an Undo that leaves
+  // the task behind, or a "yes" that quietly buys another answer.
+  await page.evaluate(() => {
+    window.__route = [];
+    window.__asks = 0;
+    window.Checklist.addTask = (text, subject, deadline) => {
+      window.__route.push({ text, subject, deadline });
+      return Promise.resolve();
+    };
+    window.Checklist.removeNewestMatching = (text) => {
+      const i = window.__route.map(t => t.text).lastIndexOf(text);
+      if (i >= 0) window.__route.splice(i, 1);
+      return Promise.resolve(i >= 0);
+    };
+    window.Auth.getToken = () => 'fake-token';
+    window.fetch = () => {
+      window.__asks++;
+      return Promise.resolve({
+        ok: true, status: 200,
+        json: () => Promise.resolve({
+          answer: 'Maths first, then. Shall I put it on your Route?',
+          suggestions: [{ text: 'Maths — exercises 4-6', subject: 'Maths', deadline: '2030-05-20' }],
+        }),
+      });
+    };
+    document.getElementById('aiFab').click();
+  });
+  await page.waitForTimeout(300);
+
+  await page.fill('#chatInput', 'I have maths for tomorrow');
+  await page.click('#chatSend');
+  await page.waitForTimeout(600);
+  if (!(await page.locator('.suggest-card').count())) problems.push('the tutor offered no task card');
+  if (/climby-task|```/.test(await page.locator('#chatLog').innerText())) {
+    problems.push('the task block leaked into the chat');
+  }
+
+  await page.click('.suggest-add');
+  await page.waitForTimeout(400);
+  if ((await page.evaluate(() => window.__route.length)) !== 1) problems.push('Add put nothing on the Route');
+  if (!(await page.locator('.toast-action').count())) problems.push('adding offered no Undo');
+
+  await page.click('.toast-action');
+  await page.waitForTimeout(400);
+  if ((await page.evaluate(() => window.__route.length)) !== 0) problems.push('Undo left the task on the Route');
+
+  // a typed yes takes the offer without buying an answer to say "done"
+  await page.fill('#chatInput', 'and history reading');
+  await page.click('#chatSend');
+  await page.waitForTimeout(600);
+  const asksBefore = await page.evaluate(() => window.__asks);
+  await page.fill('#chatInput', 'yes');
+  await page.click('#chatSend');
+  await page.waitForTimeout(500);
+  if ((await page.evaluate(() => window.__asks)) !== asksBefore) problems.push('"yes" cost an AI call');
+  if ((await page.evaluate(() => window.__route.length)) !== 1) problems.push('"yes" added nothing');
+
+  // and an ordinary question still reaches the tutor
+  const asksNow = await page.evaluate(() => window.__asks);
+  await page.fill('#chatInput', 'what is a prime number?');
+  await page.click('#chatSend');
+  await page.waitForTimeout(500);
+  if ((await page.evaluate(() => window.__asks)) !== asksNow + 1) {
+    problems.push('an ordinary question stopped reaching the tutor');
+  }
+
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT, fullPage: false });
   await browser.close();
   server.close();
