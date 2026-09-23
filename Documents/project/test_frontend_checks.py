@@ -953,3 +953,36 @@ def test_the_task_text_is_never_treated_as_markup():
     js = _read("suggest.js")
     assert "title.textContent = task.text" in js
     assert "innerHTML = task" not in js
+
+
+def test_the_scan_keeps_enough_quality_for_pencil():
+    """Pencil on paper is a thin, low-contrast edge — the first thing JPEG
+    spends its error budget on. Measured at 1568px on a real photo: 121 KB at
+    0.82 against 187 KB at 0.92, with a 1.4 MB ceiling per image."""
+    js = _read("scanner.js")
+    m = re.search(r"const UPLOAD_QUALITY = ([0-9.]+);", js)
+    assert m, "the upload quality is not where it was"
+    assert float(m.group(1)) >= 0.9, "faint handwriting will not survive this"
+    assert "const MAX_UPLOAD_DIM = 1568;" in js, "1568 is what the model resizes to anyway"
+
+
+def test_the_task_card_is_neither_read_aloud_nor_copied():
+    """Both extractors read the live bubble when the button is pressed, and by
+    then the suggestion card is inside it. The card is interface, not answer:
+    without this the voice read "Add to my Route" aloud, in the tutor's voice,
+    and the clipboard took the task title and its date line along with it."""
+    for name in ("speak.js", "copy.js"):
+        js = _read(name)
+        strip = js[js.index("querySelectorAll('"):]
+        strip = strip[:strip.index("')")]
+        assert ".suggest-list" in strip, f"{name} still reads the task card as content"
+    # and each keeps the other's button out of its own output
+    assert ".copy-btn" in _read("speak.js")
+
+
+def test_a_chat_answer_gets_its_speaker_once_the_voices_arrive():
+    """The re-scan only ever looked at .answer, the card on the ClimbAI screen.
+    A chat answer that arrived before the system's voices had loaded never got
+    a speaker button at all."""
+    js = _read("speak.js")
+    assert ".answer:not(.hidden), .chat-ai" in js

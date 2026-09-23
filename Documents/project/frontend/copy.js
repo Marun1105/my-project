@@ -20,7 +20,7 @@ const Copy = (() => {
 
   function textOf(el) {
     const clone = el.cloneNode(true);
-    clone.querySelectorAll('button, .katex-mathml, .ai-badge').forEach(n => n.remove());
+    clone.querySelectorAll('button, .katex-mathml, .ai-badge, .suggest-list').forEach(n => n.remove());
     // a marker no answer can contain, swapped for newlines once flattened
     clone.querySelectorAll(BLOCKS).forEach(n => n.insertAdjacentText('beforebegin', '\u0000'));
     clone.querySelectorAll('li').forEach(n => n.insertAdjacentText('afterbegin', '\u2022 '));

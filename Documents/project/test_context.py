@@ -34,7 +34,13 @@ def _login(email):
 
 
 def _capture(monkeypatch):
-    """Stub Anthropic and hand back whatever system prompt it was given."""
+    """Stub Anthropic and hand back whatever system prompt it was given.
+
+    Also clears the rate limiter: a guest gets 12 asks an hour by IP, and every
+    test here shares one address, so without this the file fails on its
+    thirteenth test for a reason none of them is about.
+    """
+    rate_limit._hits.clear()
     seen = {}
 
     class _Block:
@@ -237,3 +243,52 @@ def test_the_bulgarian_chat_is_told_it_has_no_photographs(monkeypatch):
     seen = _capture(monkeypatch)
     assert _ask(lang="bg", surface="chat").status_code == 200
     assert "ТУК НЕ ВИЖДАШ снимки" in seen["system"]
+
+
+# ---------------------------------------------------------------------------
+# Reading a Bulgarian exercise book.
+#
+# A photographed page of geometry came back with "I cannot find the
+# measurements, please type them out" — and they were on the page: S_AON = 8
+# см², S_ABC = 24 см². What it could not read was the shorthand around them.
+# ---------------------------------------------------------------------------
+
+
+def test_the_tutor_is_taught_the_shorthand(monkeypatch):
+    seen = _capture(monkeypatch)
+    assert _ask().status_code == 200
+    system = seen["system"]
+    assert "midpoint of BC" in system
+    assert "S_ABC is the area" in system
+    # and the mistake it actually made is named
+    assert "Never tell a student the" in system
+
+
+def test_the_shorthand_travels_in_bulgarian_too(monkeypatch):
+    seen = _capture(monkeypatch)
+    assert _ask(lang="bg").status_code == 200
+    assert "средата на BC" in seen["system"]
+    assert "липсват" in seen["system"]
+
+
+def test_the_shorthand_reaches_the_chat_as_well(monkeypatch):
+    """A student can type the same notation as easily as photograph it."""
+    seen = _capture(monkeypatch)
+    assert _ask(surface="chat").status_code == 200
+    assert "midpoint of BC" in seen["system"]
+
+
+def test_a_page_of_several_problems_is_asked_about_not_guessed(monkeypatch):
+    seen = _capture(monkeypatch)
+    assert _ask(surface="tutor").status_code == 200
+    system = seen["system"]
+    assert "SEVERAL numbered problems" in system
+    assert "which one" in system
+    assert "Never" in system and "type out a problem you can mostly see" in system
+
+
+def test_the_chat_is_not_told_about_photographs_of_pages(monkeypatch):
+    """It cannot see them, so the page instructions would be noise at best."""
+    seen = _capture(monkeypatch)
+    assert _ask(surface="chat").status_code == 200
+    assert "SEVERAL numbered problems" not in seen["system"]

@@ -452,6 +452,53 @@ def _build_messages(images: list, history: list, question: str) -> list:
 # short on purpose: every token here is paid on every turn of every chat. The
 # rules matter as much as the data — a tutor that opens with "I see you have
 # three overdue tasks" is a nag, not a tutor.
+# The shorthand a Bulgarian exercise book is written in.
+#
+# A photographed page of geometry homework came back with "I cannot find the
+# measurements, please type them out" — and the measurements were right there:
+# S_AON = 8 см², S_ABC = 24 см². What the tutor could not read was the notation
+# around them. "ср. на BC" is not a smudge, it is "средата на BC", the midpoint;
+# "отс." is a segment; "т." is a point. Told none of this, it read the numbers
+# as decoration and asked the student to retype a page it had already seen.
+#
+# This travels with every question, typed or photographed, in both languages: a
+# Bulgarian notebook gets photographed with the app in English too.
+NOTATION = {
+    "en": """
+
+Reading Bulgarian school notation. Homework here is written in a shorthand that is
+standard in Bulgarian exercise books and is not a typo or a smudge:
+- "ср. на BC" / "среда на BC" — the midpoint of BC. "т. M - ср. на AB" means M is the
+  midpoint of AB.
+- "отс. AB" — the segment AB. "т." — point. "ъгъл" — angle. "окр." — circle.
+- S with letters after it is an area: S_ABC is the area of triangle ABC, S_AON the
+  area of AON. "S_ABC = ?" is the question. "см²" is cm².
+- "дели AB в отношение 3:2, считано от A" — divides AB in the ratio 3:2, measured
+  from A.
+- "медиана", "височина", "ъглополовяща", "симетрала" — median, altitude, angle
+  bisector, perpendicular bisector. Primed letters (A', B₁) are the usual names for
+  the feet of these.
+- "лице", "периметър", "обиколка" — area, perimeter, circumference.
+So a line like "A₁ дели отс. BC в отношение 3:2, считано от B. S_BCB₁ = 12,
+S_ABC = ?" is a complete problem with all its numbers. Never tell a student the
+measurements are missing when they are written this way.""",
+    "bg": """
+
+Записът в българска работна тетрадка. Домашните тук са написани със съкращения, които
+са обичайни и не са грешка или петно:
+- „ср. на BC" — средата на BC. „т. M - ср. на AB" значи, че M е средата на AB.
+- „отс. AB" — отсечката AB. „т." — точка. „окр." — окръжност.
+- S с букви след него е лице: S_ABC е лицето на триъгълник ABC. „S_ABC = ?" е
+  въпросът. „см²" е квадратни сантиметри.
+- „дели AB в отношение 3:2, считано от A" — дели AB в отношение 3:2, мерено от A.
+- „медиана", „височина", „ъглополовяща", „симетрала"; щрихованите букви (A', B₁) са
+  обичайните имена на петите им.
+Затова ред като „A₁ дели отс. BC в отношение 3:2, считано от B. S_BCB₁ = 12,
+S_ABC = ?" е пълна задача с всичките ѝ числа. Никога не казвай на ученика, че липсват
+данни, когато са записани така.""",
+}
+
+
 # Where ClimbAI actually is. Without this the tutor knew the subject and nothing
 # about the app around it: it could not say where Settings lives, it invented
 # buttons when asked, and — worst — _student_context below has been handing it
@@ -702,14 +749,35 @@ This message came from the ClimbAI screen. There may be one or more photos of te
 subject), or photos of a solution the student wrote themselves. When there's more than one photo
 they are usually parts of the same problem (e.g. text continuing onto the next page) — read them
 together unless they clearly look unrelated. With no photo the student is simply asking a
-question — answer it the same way, by the same rules.""",
+question — answer it the same way, by the same rules.
+
+A photograph of a whole page often holds SEVERAL numbered problems. Do not try to solve them all
+and do not give up. Say which ones you can see, by their numbers — "I can see 21 to 24; which one
+are we doing?" — and wait. If the student already named one, or only one is legible, just do that
+one.
+
+If part of a photo is genuinely unreadable, say what you DID read and ask only about the gap:
+"I have S_ABC = 24, but the second line under the triangle is too faint — what does it say?" Never
+ask a student to type out a problem you can mostly see; a photograph that has to be retyped is a
+photograph that was not worth taking. If the page is too faint throughout, the useful thing to ask
+for is one more photo of that single problem, closer, rather than the text of it.""",
         "bg": """
 
 Този въпрос идва от екрана ClimbAI. Може да има една или няколко снимки на страници от учебник (по
 всеки предмет), или снимки на решение, което ученикът е написал сам. Ако снимките са повече от
 една, обикновено са части от един и същ проблем (напр. продължение на текста на следваща страница)
 — гледай ги заедно, освен ако не изглеждат явно несвързани. Без снимка ученикът просто задава
-въпрос — отговаряй по същия начин, със същите правила.""",
+въпрос — отговаряй по същия начин, със същите правила.
+
+Снимката на цяла страница често съдържа НЯКОЛКО номерирани задачи. Не се опитвай да ги решиш
+всичките и не се отказвай. Кажи кои виждаш, по номера — „Виждам 21 до 24; коя решаваме?" — и
+изчакай. Ако ученикът вече е казал коя, или само една се чете, направи нея.
+
+Ако част от снимката наистина не се чете, кажи какво СИ прочел и питай само за липсващото:
+„Виждам S_ABC = 24, но вторият ред под триъгълника е много блед — какво пише там?" Никога не карай
+ученика да преписва задача, която в общи линии виждаш; снимка, която трябва да се преписва, е
+снимка, която не си е струвала. Ако цялата страница е твърде бледа, полезното е да поискаш още
+една снимка само на тази задача, отблизо — не текста ѝ.""",
     },
 }
 
@@ -816,6 +884,7 @@ def ask(
     # но качен от компютър файл спокойно може да е PNG и тогава "image/jpeg" е лъжа.
     messages = _build_messages(body.images, body.history, body.question)
     system = SYSTEM[lang] + (FULL_SOLUTIONS[lang] if body.mode == "full" else "")
+    system += NOTATION[lang]                    # how a Bulgarian exercise book is written
     system += APP_MAP[lang]                     # what the app around it is
     system += SURFACE[body.surface][lang]       # and which room this is
     system += _grade_register(user, lang)       # every answer, photo or chat

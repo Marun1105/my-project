@@ -32,13 +32,15 @@ const Speak = (() => {
 
   // What gets read. Not innerText: KaTeX renders every formula twice — a hidden
   // MathML copy for assistive tech and the visible one — so innerText would
-  // speak each equation twice. The badge is a logo, not content. Formulas
+  // speak each equation twice. The buttons and the task card that sit inside
+  // the answer are interface, not answer: without excluding them the voice
+  // read "Add to my Route" aloud, in the tutor's voice, to a seven-year-old. The badge is a logo, not content. Formulas
   // come out as their symbols: "x = 2" reads well, a stacked fraction reads
   // as its numbers in order. Honest limit; step-by-step playback is where to
   // do better than this.
   function textOf(el) {
     const copy = el.cloneNode(true);
-    copy.querySelectorAll('.katex-mathml, .ai-badge, .speak-btn').forEach(n => n.remove());
+    copy.querySelectorAll('.katex-mathml, .ai-badge, .speak-btn, .copy-btn, .suggest-list').forEach(n => n.remove());
     return (copy.textContent || '').replace(/\s+/g, ' ').trim();
   }
 
@@ -112,7 +114,7 @@ const Speak = (() => {
     // Voices arrive late; a button decided against before they load would be
     // wrong. Re-attach once they are known, if an answer is on screen.
     synth.addEventListener('voiceschanged', () => {
-      const cards = [...document.querySelectorAll('.answer:not(.hidden)')];
+      const cards = [...document.querySelectorAll('.answer:not(.hidden), .chat-ai')];
       const el = cards[cards.length - 1];
       if (el && !el.querySelector('.speak-btn')) attach(el);
     });
