@@ -6,13 +6,12 @@
 //
 //   text     small | normal | large        the type scale
 //   reading  normal | easy                 wider spacing and taller lines
-//   motion   auto | calm                   the app's own reduce-motion switch
 //   autoread off | on                      speak every answer as it arrives
 //   tutor    hints | full                  how much the tutor holds back
 const Prefs = (() => {
   const $ = id => document.getElementById(id);
   const root = document.documentElement;
-  const DEFAULTS = { text: 'normal', reading: 'normal', motion: 'auto', autoread: 'off', tutor: 'hints' };
+  const DEFAULTS = { text: 'normal', reading: 'normal', autoread: 'off', tutor: 'hints' };
 
   function read(key) {
     try { return localStorage.getItem('climby-pref-' + key) || DEFAULTS[key]; }
@@ -24,7 +23,10 @@ const Prefs = (() => {
     document.querySelectorAll(`[data-pref="${key}"]`).forEach(btn => {
       const active = btn.dataset.value === value;
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      btn.classList.toggle('active', active);
     });
+    // a dropdown shows its own value, but only once it is told
+    document.querySelectorAll(`select[data-pref="${key}"]`).forEach(sel => { sel.value = value; });
   }
 
   function set(key, value) {
@@ -39,8 +41,11 @@ const Prefs = (() => {
   Object.keys(DEFAULTS).forEach(k => root.setAttribute('data-' + k, read(k)));
 
   function init() {
-    document.querySelectorAll('[data-pref]').forEach(btn => {
+    document.querySelectorAll('button[data-pref]').forEach(btn => {
       btn.addEventListener('click', () => set(btn.dataset.pref, btn.dataset.value));
+    });
+    document.querySelectorAll('select[data-pref]').forEach(sel => {
+      sel.addEventListener('change', () => set(sel.dataset.pref, sel.value));
     });
     Object.keys(DEFAULTS).forEach(k => apply(k, read(k)));
   }

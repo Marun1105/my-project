@@ -11,8 +11,17 @@
   function attach(input) {
     if (input.dataset.eye) return;
     input.dataset.eye = '1';
-    const wrap = input.parentElement;
+    let wrap = input.parentElement;
     if (!wrap) return;
+    const ownWrapper = wrap.classList.contains('field')
+      && wrap.querySelectorAll('input, textarea, select').length === 1;
+    if (!ownWrapper) {
+      const box = document.createElement('span');
+      box.className = 'eye-wrap';
+      input.insertAdjacentElement('beforebegin', box);
+      box.appendChild(input);
+      wrap = box;
+    }
     wrap.classList.add('has-eye');
     const btn = document.createElement('button');
     btn.type = 'button';

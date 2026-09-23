@@ -19,11 +19,14 @@ const Speak = (() => {
     return l === 'bg' ? 'bg-BG' : 'en-US';
   }
 
-  // A voice for the app's language, if this machine has one. Voices load
-  // asynchronously and the list can be empty on the first call.
+  // The voice the student picked for this language, or the best one going.
+  // voices.js owns that decision and remembers it; this is the fallback for
+  // when it has not loaded. Voices arrive asynchronously, so the list can be
+  // empty on the first call.
   function voiceFor(code) {
     if (!synth) return null;
     const prefix = code.slice(0, 2).toLowerCase();
+    if (window.Voices) return Voices.chosen(prefix);
     return synth.getVoices().find(v => (v.lang || '').toLowerCase().startsWith(prefix)) || null;
   }
 
@@ -114,6 +117,8 @@ const Speak = (() => {
       if (el && !el.querySelector('.speak-btn')) attach(el);
     });
     window.addEventListener('climby:view-shown', stop);
+    // a voice swapped mid-sentence would finish the old one in the old voice
+    window.addEventListener('climby:voice-changed', stop);
     window.addEventListener('climby:lang-changed', stop);
     document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
     window.addEventListener('pagehide', stop);

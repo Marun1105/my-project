@@ -466,7 +466,7 @@ def test_the_paper_picker_is_a_sibling_of_the_entry_stage():
 
 def test_preference_strings_exist_in_both_languages():
     source = _read("i18n.js")
-    for key in ("settings.text", "settings.reading", "settings.tutorMode", "settings.autoread", "settings.motion",
+    for key in ("settings.text", "settings.reading", "settings.tutorMode", "settings.autoread", "settings.voice",
                 "checklist.doneAll", "checklist.progress", "scanner.quickHint", "scanner.quickCheck"):
         assert source.count(f"'{key}'") >= 2, f"{key} is missing from a language"
 
@@ -727,3 +727,118 @@ def test_the_tutor_knows_every_screen_the_app_has():
             )
         checked += 1
     assert checked >= 5, f"only {checked} screens were checked — the lookup is finding nothing"
+
+
+# ---------------------------------------------------------------------------
+# Settings, after the rebuild: full screen, dropdowns, a voice you can hear
+# before you pick it, and a delete button that looks like what it does.
+# ---------------------------------------------------------------------------
+
+
+def test_a_chosen_preference_is_visible_as_well_as_announced():
+    """apply() set aria-pressed, which a screen reader hears, but never the
+    .active class, which is what the CSS highlights. So five rows never showed
+    their own value and pressing one looked like pressing a dead button."""
+    js = _read("prefs.js")
+    assert "classList.toggle('active', active)" in js
+    assert "select[data-pref]" in js, "a dropdown reports itself with change, not click"
+
+
+def test_the_quiz_marks_the_answer_you_picked():
+    """--accent is #ffffff in the dark theme, so `color: #fff` on it made the
+    picked grade a blank white tile."""
+    css = _read("style.css")
+    assert ".quiz-grade.is-picked, #quizHeard .chat-starter.is-picked { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }" in css
+
+
+def test_no_accent_surface_hardcodes_its_text_colour():
+    """The theme flips --accent between near-black and white, so any rule that
+    writes a literal light colour on an accent background is invisible in one
+    theme or the other."""
+    css = _read("style.css")
+    lines = css.split("\n")
+    for i, line in enumerate(lines):
+        if "background: var(--accent)" not in line:
+            continue
+        start = i
+        while start > 0 and "{" not in lines[start]:
+            start -= 1
+        end = i
+        while end < len(lines) - 1 and "}" not in lines[end]:
+            end += 1
+        block = "\n".join(lines[start:end + 1])
+        for colour in re.findall(r"(?<!-)color:\s*([^;]+);", block):
+            c = colour.strip().lower()
+            assert not (c.startswith("#f") or c == "white"), (
+                f"{lines[start].split('{')[0].strip()} writes {c} on the accent — "
+                f"use var(--on-accent), which flips with the theme"
+            )
+
+
+def test_every_password_field_gets_its_own_wrapper():
+    """The sign-in form gives each input a .field of its own; the Settings form
+    holds two inputs and a button in one <form>. Hanging the button on
+    input.parentElement put both eyes in the middle of that form."""
+    js = _read("password-eye.js")
+    assert "eye-wrap" in js
+    assert "querySelectorAll('input, textarea, select').length === 1" in js
+
+
+def test_a_voice_can_be_heard_before_it_is_chosen():
+    js = _read("voices.js")
+    assert "SpeechSynthesisUtterance" in js
+    assert "climby-voice-" in js, "the choice is kept per language"
+    assert "rank" in js, "with no choice made, the best voice should win, not the first"
+    # and speak.js must actually ask
+    assert "Voices.chosen(prefix)" in _read("speak.js")
+
+
+def test_a_language_with_no_voice_says_so():
+    """Bulgarian has no voice on a stock Windows. Before this the read-aloud
+    button simply never appeared and nothing anywhere explained why."""
+    js = _read("voices.js")
+    assert "voice.noneTitle" in js and "voice.noneBody" in js
+    source = _read("i18n.js")
+    for key in ("voice.noneTitle", "voice.noneBody", "voice.test", "settings.voice"):
+        assert source.count(f"'{key}'") >= 2, f"{key} is missing from a language"
+
+
+def test_the_delete_button_looks_like_what_it_does():
+    html = _read("index.html")
+    assert 'id="accountDeleteBtn" class="btn-danger-outline"' in html
+    i18n = _read("i18n.js")
+    assert "'account.deleteBtn': 'Delete my account'" in i18n, "the ellipsis should be gone"
+    assert "\u2026" not in i18n[i18n.index("'account.deleteBtn'"):i18n.index("'account.deleteBtn'") + 60]
+
+
+def test_deleting_the_account_still_asks_for_the_password():
+    """The red styling is a warning, not the safeguard. The safeguard is this."""
+    js = _read("account.js")
+    assert "accountDeletePw" in js
+    assert "password:" in js
+
+
+def test_settings_fills_the_screen():
+    css = _read("style.css")
+    assert "#settingsOverlay .settings-card" in css
+    assert "height: 100dvh" in css
+    # and the control sits beside its label, not under it
+    assert "#settingsOverlay .settings-row > .settings-control" in css
+    assert "grid-column: 2; grid-row: 1;" in css
+
+
+def test_the_motion_setting_is_gone_everywhere():
+    """Left half-removed it would be a row that reads a preference nothing
+    applies, or a preference applied by a row that no longer exists."""
+    assert "data-pref=\"motion\"" not in _read("index.html")
+    assert "motion:" not in _read("prefs.js")
+    assert "'settings.motion'" not in _read("i18n.js")
+
+
+def test_the_file_card_is_gone_but_the_file_input_stays():
+    """Paste, drag-and-drop and the no-camera fallback all reach a picture
+    through that input; removing it would stop three working things."""
+    html = _read("index.html")
+    assert 'id="entryFileBtn"' not in html
+    assert 'id="uploadInput"' in html
+    assert "entryFileBtn" not in _read("scanner.js"), "a listener on a button that is gone"

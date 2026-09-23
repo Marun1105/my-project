@@ -3389,7 +3389,7 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
   border: 1px solid var(--border); background: var(--bg-sunken); color: var(--text); cursor: pointer;
 }
 .quiz-grade:hover { border-color: var(--accent); }
-.quiz-grade.is-picked, #quizHeard .chat-starter.is-picked { background: var(--accent); border-color: var(--accent); color: #fff; }
+.quiz-grade.is-picked, #quizHeard .chat-starter.is-picked { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .quiz-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .quiz-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 .quiz-actions .btn-primary, .quiz-actions .btn-ghost { width: auto; }
@@ -3403,6 +3403,8 @@ body.is-dragging-file #view-tutor:not(.hidden) .entry-paste-hint { color: var(--
 
 /* ---------- show/hide password (password-eye.js) ---------- */
 .has-eye { position: relative; }
+/* the wrapper the script makes when a field has none of its own */
+.eye-wrap { display: block; width: 100%; }
 .has-eye input[type="password"], .has-eye input[type="text"] { padding-right: 44px; }
 .password-eye {
   position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
@@ -3508,3 +3510,215 @@ body.is-offline .toast-host { bottom: 24px; }
 
 /* ---------- the chat box grows with the question (chat.js) ---------- */
 #chatInput { resize: none; overflow-y: auto; max-height: 160px; }
+
+/* ---------- a button that admits it was pressed ---------- */
+/* Nothing in the app had an :active state. Pressing "Large" changed the text
+   but the button itself did not move or light up, so it read as broken — which
+   is most of what "half the buttons do nothing" turned out to be. */
+button, .entry-choice, .chat-starter, .quiz-grade, .task-delete, .nav-link {
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+              transform 0.08s ease, filter 0.15s ease;
+}
+button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
+.nav-link:active, .theme-switch-option:active {
+  transform: scale(0.97);
+}
+/* a card is big; scaling the whole thing looks like a bounce, so it presses in */
+.entry-choice:active { transform: scale(0.985); }
+@media (prefers-reduced-motion: reduce) {
+  button, .entry-choice, .chat-starter, .quiz-grade, .task-delete, .nav-link { transition: none; }
+  button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
+  .nav-link:active, .theme-switch-option:active { transform: none; }
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--text); }
+
+/* ============================================================================
+   Settings, full screen
+   ----------------------------------------------------------------------------
+   It was a floating card with its own scrollbar, and the rows inside it were a
+   column of segmented controls all of different widths, right-aligned, so the
+   left edge of the controls zig-zagged down the panel. Full screen gives the
+   rows room to line up on a grid, and the ones with more than two choices
+   became dropdowns, which are one width by definition.
+   ========================================================================= */
+.settings-overlay { padding: 0; }
+#settingsOverlay .settings-card {
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  height: 100dvh;
+  border-radius: 0;
+  border: 0;
+  padding: 0;
+  overflow-y: auto;
+  display: block;
+}
+/* the title bar stays put while the rows scroll under it */
+#settingsOverlay .settings-card > h2 {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0;
+  padding: 22px var(--gutter) 18px;
+  background: var(--bg-elevated, var(--bg));
+  border-bottom: 1px solid var(--border);
+}
+#settingsOverlay .settings-close {
+  position: fixed;
+  top: 18px;
+  right: var(--gutter);
+  z-index: 4;
+}
+/* everything below the title sits in one measured column, so a wide monitor
+   does not stretch a row of three words across 1900 pixels */
+#settingsOverlay .settings-section,
+#settingsOverlay .settings-row,
+#settingsOverlay #accountRows {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+#settingsOverlay #accountRows { max-width: none; }
+#settingsOverlay #accountRows .settings-section,
+#settingsOverlay #accountRows .settings-row { max-width: 720px; margin-left: auto; margin-right: auto; }
+#settingsOverlay .settings-section { padding: 0 var(--gutter); margin-top: 34px; }
+#settingsOverlay .settings-row { padding: 16px var(--gutter); }
+
+/* label on the left, control on the right, on one line and always the same
+   width — the thing the ragged pills could never do */
+#settingsOverlay .settings-row:not(.settings-row-stack) {
+  display: grid;
+  grid-template-columns: 1fr minmax(200px, max-content);
+  align-items: center;
+  gap: 18px;
+}
+#settingsOverlay .settings-row > .settings-control {
+  display: flex; justify-content: flex-end; min-width: 200px;
+  grid-column: 2; grid-row: 1; justify-self: end; margin: 0;
+}
+.settings-label { font-weight: 600; }
+#settingsOverlay .settings-row-stack { display: flex; flex-direction: column; align-items: stretch; }
+#settingsOverlay .settings-row-stack > span:first-child { font-weight: 600; }
+.settings-control { justify-self: end; }
+#settingsOverlay .settings-row .settings-note {
+  grid-column: 1 / -1;
+  margin: 6px 0 0;
+}
+
+/* ---------- the dropdowns ---------- */
+.settings-select {
+  appearance: none;
+  min-width: 190px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  background-color: var(--bg-sunken);
+  /* the chevron, drawn rather than fetched, in the text colour of the theme */
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 19px) calc(50% + 1px), calc(100% - 13px) calc(50% + 1px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 11px 38px 11px 14px;
+  cursor: pointer;
+}
+.settings-select:hover { border-color: var(--accent); }
+.settings-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* the popup list is drawn by the operating system, which does not read our
+   tokens — naming both colours keeps it legible in the dark theme */
+.settings-select option { background: var(--bg-elevated, var(--bg)); color: var(--text); }
+
+/* ---------- choosing a voice (voices.js) ---------- */
+.voice-picker { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; width: 100%; }
+.voice-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  cursor: pointer;
+}
+.voice-card:hover { border-color: var(--accent); }
+.voice-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.voice-card.is-picked { border-color: var(--accent); background: var(--accent-soft); }
+
+.voice-play {
+  flex: none; padding: 0;
+  position: relative;
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--bg-elevated, var(--bg));
+  color: var(--text);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.voice-play svg { width: 15px; height: 15px; margin-left: 1px; }
+.voice-card:hover .voice-play { border-color: var(--accent); }
+.voice-card.is-playing .voice-play { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+/* while it talks, the triangle gives way to three bars that move with it */
+.voice-card.is-playing .voice-play svg { display: none; }
+.voice-bars { display: none; align-items: flex-end; gap: 2px; height: 14px; }
+.voice-card.is-playing .voice-bars { display: inline-flex; }
+.voice-bars i {
+  width: 3px; border-radius: 1.5px; background: currentColor;
+  animation: voice-bar 0.9s ease-in-out infinite;
+}
+.voice-bars i:nth-child(1) { height: 6px;  animation-delay: 0s; }
+.voice-bars i:nth-child(2) { height: 13px; animation-delay: 0.15s; }
+.voice-bars i:nth-child(3) { height: 9px;  animation-delay: 0.3s; }
+@keyframes voice-bar { 0%, 100% { transform: scaleY(0.45); } 50% { transform: scaleY(1); } }
+
+.voice-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.voice-name { font-weight: 600; font-size: 14.5px; }
+.voice-meta { font-size: 12px; color: var(--text-faint); }
+.voice-tick { color: var(--accent); opacity: 0; }
+.voice-tick svg { width: 18px; height: 18px; display: block; }
+.voice-card.is-picked .voice-tick { opacity: 1; }
+
+.voice-none {
+  padding: 14px 16px;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+}
+.voice-none-title { margin: 0 0 4px; font-weight: 600; font-size: 14px; }
+.voice-none .settings-note { margin: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-bars i { animation: none; }
+}
+
+/* ---------- leaving, and meaning it ---------- */
+/* The button that opens this was grey, the same grey as "Download", and its
+   label ended in an ellipsis that read as an unfinished sentence rather than
+   as the convention it was meant to be. */
+.btn-danger-outline {
+  flex: none;
+  width: auto;
+  color: var(--danger);
+  background: transparent;
+  border: 1.5px solid var(--danger);
+  font-weight: 700;
+}
+.btn-danger-outline:hover { background: var(--danger); color: #fff; }
+.account-danger .settings-note { color: var(--danger); opacity: 0.95; }
+#settingsOverlay .account-danger {
+  border: 1.5px solid var(--danger);
+  border-radius: var(--radius-lg, 14px);
+  padding: 18px var(--gutter);
+  margin-top: 28px;
+  margin-bottom: 40px;
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
+}
+.account-danger > span:first-child { color: var(--danger); font-weight: 700; }
+
+@media (max-width: 860px) {
+  #settingsOverlay .settings-row:not(.settings-row-stack) { grid-template-columns: 1fr; gap: 10px; }
+  .settings-control { justify-self: stretch; }
+  .settings-select { width: 100%; min-width: 0; }
+}

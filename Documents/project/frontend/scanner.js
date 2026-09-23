@@ -844,7 +844,6 @@ const Scanner = (() => {
       showStage('cameraStage');
       start();
     });
-    $('entryFileBtn').addEventListener('click', () => $('uploadInput').click());
     $('entryPhoneBtn').addEventListener('click', () => {
       // Картата Е копчето за свързване — затова вика направо самото действие,
       // вместо да натиска второ копче някъде по-долу на екрана.

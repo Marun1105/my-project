@@ -276,44 +276,49 @@
         <button type="button" class="theme-switch-option" data-theme-mode="dark" aria-pressed="false" data-i18n="theme.dark">Тъмна</button>
       </div>
     </div>
-    <div class="settings-row settings-row-stack">
-      <span data-i18n="settings.text">Размер на текста</span>
-      <div class="theme-switch" role="group">
-        <button type="button" class="theme-switch-option" data-pref="text" data-value="small" aria-pressed="false" data-i18n="settings.textSmall">Малък</button>
-        <button type="button" class="theme-switch-option" data-pref="text" data-value="normal" aria-pressed="false" data-i18n="settings.textNormal">Обичаен</button>
-        <button type="button" class="theme-switch-option" data-pref="text" data-value="large" aria-pressed="false" data-i18n="settings.textLarge">Голям</button>
+    <div class="settings-row">
+      <span class="settings-label" data-i18n="settings.text">Text size</span>
+      <div class="settings-control">
+        <select class="settings-select" data-pref="text" data-i18n-aria-label="settings.text" aria-label="Text size">
+          <option value="small" data-i18n="settings.textSmall">Small</option>
+          <option value="normal" data-i18n="settings.textNormal">Normal</option>
+          <option value="large" data-i18n="settings.textLarge">Large</option>
+        </select>
       </div>
     </div>
-    <div class="settings-row settings-row-stack">
-      <span data-i18n="settings.reading">Четене</span>
-      <div class="theme-switch" role="group">
-        <button type="button" class="theme-switch-option" data-pref="reading" data-value="normal" aria-pressed="false" data-i18n="settings.readingNormal">Обичайно</button>
-        <button type="button" class="theme-switch-option" data-pref="reading" data-value="easy" aria-pressed="false" data-i18n="settings.readingEasy">По-широко</button>
+    <div class="settings-row">
+      <span class="settings-label" data-i18n="settings.reading">Reading</span>
+      <div class="settings-control">
+        <select class="settings-select" data-pref="reading" data-i18n-aria-label="settings.reading" aria-label="Reading">
+          <option value="normal" data-i18n="settings.readingNormal">Normal</option>
+          <option value="easy" data-i18n="settings.readingEasy">Wider</option>
+        </select>
       </div>
-      <p class="settings-note" data-i18n="settings.readingNote">По-широки букви и редове — по-лесно за очите, особено при дислексия.</p>
+      <p class="settings-note" data-i18n="settings.readingNote">Wider letters and taller lines — easier on the eyes, especially with dyslexia.</p>
     </div>
     <h3 class="settings-section" data-i18n="settings.secTutor">ClimbAI</h3>
-    <div class="settings-row settings-row-stack">
-      <span data-i18n="settings.tutorMode">Как обяснява ClimbAI</span>
-      <div class="theme-switch" role="group">
-        <button type="button" class="theme-switch-option" data-pref="tutor" data-value="hints" aria-pressed="false" data-i18n="settings.tutorHints">Подсказки първо</button>
-        <button type="button" class="theme-switch-option" data-pref="tutor" data-value="full" aria-pressed="false" data-i18n="settings.tutorFull">Цяло решение</button>
+    <div class="settings-row">
+      <span class="settings-label" data-i18n="settings.tutorMode">How ClimbAI explains</span>
+      <div class="settings-control">
+        <select class="settings-select" data-pref="tutor" data-i18n-aria-label="settings.tutorMode" aria-label="How ClimbAI explains">
+          <option value="hints" data-i18n="settings.tutorHints">Hints first</option>
+          <option value="full" data-i18n="settings.tutorFull">Full solutions</option>
+        </select>
       </div>
-      <p class="settings-note" data-i18n="settings.tutorNote">Подсказките учат повече; цялото решение е за вечерта преди контролно.</p>
+      <p class="settings-note" data-i18n="settings.tutorNote">Hints teach more; full solutions are for the night before a test.</p>
     </div>
-    <div class="settings-row settings-row-stack">
-      <span data-i18n="settings.autoread">Четене на глас</span>
-      <div class="theme-switch" role="group">
-        <button type="button" class="theme-switch-option" data-pref="autoread" data-value="off" aria-pressed="false" data-i18n="settings.autoreadOff">Само с бутона</button>
-        <button type="button" class="theme-switch-option" data-pref="autoread" data-value="on" aria-pressed="false" data-i18n="settings.autoreadOn">Всеки отговор</button>
+    <div class="settings-row">
+      <span class="settings-label" data-i18n="settings.autoread">Read aloud</span>
+      <div class="settings-control">
+        <select class="settings-select" data-pref="autoread" data-i18n-aria-label="settings.autoread" aria-label="Read aloud">
+          <option value="off" data-i18n="settings.autoreadOff">Only with the button</option>
+          <option value="on" data-i18n="settings.autoreadOn">Every answer</option>
+        </select>
       </div>
     </div>
-    <div class="settings-row settings-row-stack">
-      <span data-i18n="settings.motion">Движение</span>
-      <div class="theme-switch" role="group">
-        <button type="button" class="theme-switch-option" data-pref="motion" data-value="auto" aria-pressed="false" data-i18n="settings.motionAuto">Както е</button>
-        <button type="button" class="theme-switch-option" data-pref="motion" data-value="calm" aria-pressed="false" data-i18n="settings.motionCalm">Спокойно</button>
-      </div>
+    <div class="settings-row settings-row-stack" id="voiceRow">
+      <span class="settings-label" data-i18n="settings.voice">Voice</span>
+      <div id="voicePicker" class="voice-picker"></div>
     </div>
     <h3 class="settings-section" data-i18n="settings.secApp">The app</h3>
     <div class="settings-row">
@@ -357,7 +362,7 @@
       <div class="settings-row settings-row-stack account-danger">
         <span data-i18n="account.deleteTitle">Delete account</span>
         <p class="settings-note" data-i18n="account.deleteHint">Removes your account and everything in it — tasks, questions, sessions, links. Immediately, and for good.</p>
-        <button id="accountDeleteBtn" class="btn-secondary" type="button" data-i18n="account.deleteBtn">Delete my account…</button>
+        <button id="accountDeleteBtn" class="btn-danger-outline" type="button" data-i18n="account.deleteBtn">Delete my account</button>
         <form id="accountDeleteForm" class="account-form hidden" novalidate>
           <input id="accountDeletePw" type="password" autocomplete="current-password" data-i18n-placeholder="account.deletePw" placeholder="Your password, to confirm">
           <input id="accountDeleteWord" type="text" autocomplete="off" class="hidden" data-i18n-placeholder="account.deleteWord" placeholder="Type DELETE to confirm">
@@ -529,15 +534,6 @@
       <span class="entry-choice-hint" data-i18n="entry.phoneHint">По-добрата камера. Снимката идва тук сама.</span>
     </button>
 
-    <button id="entryFileBtn" class="entry-choice" type="button">
-      <span class="entry-choice-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="10" r="1.6"/><path d="m4 17 4.2-4.2a2 2 0 0 1 2.8 0L14 15.8"/><path d="m13.2 15 2.3-2.3a2 2 0 0 1 2.8 0L20 14.4"/>
-        </svg>
-      </span>
-      <span class="entry-choice-title" data-i18n="entry.fileTitle">Снимка отпреди</span>
-      <span class="entry-choice-hint" data-i18n="entry.fileHint">Такава, която вече е на този компютър.</span>
-    </button>
     <button id="entryPaperBtn" class="entry-choice" type="button">
       <span class="entry-choice-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h9l4 4V20a.5.5 0 0 1-.5.5h-12A.5.5 0 0 1 6 20z"/><path d="M15 3.5v4h4"/><path d="M9 12h6M9 15.5h6M9 8.5h2"/></svg>
@@ -1133,6 +1129,7 @@
 <script src="phone.js"></script>
 <script src="papers.js"></script>
 <script src="chat.js"></script>
+<script src="voices.js"></script>
 <script src="speak.js"></script>
 <script src="copy.js"></script>
 <script src="tutor.js"></script>
