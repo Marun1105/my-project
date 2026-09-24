@@ -296,6 +296,7 @@
       retryBtn: 'Опитай пак',
       waking: 'Сървърът се събужда…',
       sending: 'Изпращам…',
+      focusing: 'Снимам…',
       sent: 'Готово — виж компютъра.',
       offline: 'Няма връзка. Опитай пак.',
       failedOnce: 'Не се получи. Опитай пак.',
@@ -331,6 +332,7 @@
       retryBtn: 'Try again',
       waking: 'Waking the server…',
       sending: 'Sending…',
+      focusing: 'Taking the photo…',
       sent: 'Done — check your computer.',
       offline: 'No connection. Try again.',
       failedOnce: "That didn't work. Try again.",
@@ -531,7 +533,7 @@
   // 1568 пиксела по дългата страна, а на мобилни данни разликата между 400 KB и
   // 4 MB е разликата между "веднага" и "предаде се".
   var MAX_DIM = 1568;
-  var QUALITY = 0.82;
+  var QUALITY = 0.92;
 
   // Едно място, където кадърът става base64 — и визьорът, и файлът минават през
   // него. Две почти еднакви копия се разминават тихо: едното получава нов таван
@@ -692,6 +694,104 @@
     return canvas;
   }
 
+  // Колко ясен е кадърът, в едно число.
+  //
+  // Не е абсолютна мярка и не се сравнява с праг — прагът би зависел от апарата,
+  // от светлината и от това колко текст има на страницата, а такъв праг не може
+  // да се нагоди, без да се държи истински телефон в ръка. Числото служи само за
+  // сравнение между няколко кадъра от един и същи миг: по-голямото е по-ясното.
+  //
+  // Мери се разликата между съседни пиксели върху смалено сиво копие. Размазаната
+  // снимка няма резки ръбове, тоест съседите ѝ си приличат.
+  function sharpness(canvas) {
+    var w = 240;
+    var h = Math.max(1, Math.round(canvas.height * (w / canvas.width)));
+    var small = document.createElement('canvas');
+    small.width = w; small.height = h;
+    small.getContext('2d').drawImage(canvas, 0, 0, w, h);
+    var px;
+    try {
+      px = small.getContext('2d').getImageData(0, 0, w, h).data;
+    } catch (e) {
+      return 0;   // рисувано от чужд източник — по-добре без мярка, отколкото грешка
+    }
+    var total = 0, n = 0;
+    for (var y = 1; y < h - 1; y++) {
+      for (var x = 1; x < w - 1; x++) {
+        var i = (y * w + x) * 4;
+        var here = (px[i] + px[i + 1] + px[i + 2]) / 3;
+        var right = (px[i + 4] + px[i + 5] + px[i + 6]) / 3;
+        var below = (px[i + w * 4] + px[i + w * 4 + 1] + px[i + w * 4 + 2]) / 3;
+        var d = Math.abs(here - right) + Math.abs(here - below);
+        total += d * d;
+        n++;
+      }
+    }
+    return n ? total / n : 0;
+  }
+
+  // Истинска снимка, ако апаратът я умее.
+  //
+  // Визьорът дава кадър от видеопотока — без автофокуса, експонацията и
+  // обработката, които апаратът прави на истинската снимка. Затова страницата се
+  // четеше замазано, освен ако телефонът не беше държан неподвижно достатъчно
+  // дълго, докато непрекъснатият фокус се хване сам. takePhoto прави точно това,
+  // което прави камерата на телефона: заключва фокуса и връща готов кадър.
+  //
+  // Има го в Chrome на Android; в Safari го няма и пътят остава старият.
+  function takeRealPhoto() {
+    if (typeof ImageCapture === 'undefined' || !stream) return Promise.resolve(null);
+    var track = stream.getVideoTracks()[0];
+    if (!track) return Promise.resolve(null);
+    var shot;
+    try {
+      shot = new ImageCapture(track);
+    } catch (e) {
+      return Promise.resolve(null);
+    }
+    return shot.takePhoto()
+      .then(function (blob) { return blobToCanvas(blob); })
+      .catch(function () { return null; });   // апаратът обеща и не даде — има резервен път
+  }
+
+  function blobToCanvas(blob) {
+    return new Promise(function (resolve) {
+      var url = URL.createObjectURL(blob);
+      var img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        resolve(canvas);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
+
+  // Най-ясният от няколко кадъра за под секунда.
+  //
+  // Резервният път, когато апаратът не умее истинска снимка. Един кадър, взет в
+  // произволен миг, хваща автофокуса в движение. Няколко за кратко и се праща
+  // най-ясният — сравнение, не праг, затова не иска нагаждане по апарат.
+  function grabBestFrame() {
+    var best = null, bestScore = -1, taken = 0;
+    return new Promise(function (resolve) {
+      (function next() {
+        var canvas = grabFrame();
+        if (canvas) {
+          var score = sharpness(canvas);
+          if (score > bestScore) { bestScore = score; best = canvas; }
+        }
+        taken++;
+        if (taken >= 4) return resolve(best);
+        setTimeout(next, 220);
+      })();
+    });
+  }
+
   // ---------- пращане ----------
   var sending = false;
 
@@ -747,13 +847,21 @@
   }
 
   $('shutter').addEventListener('click', function () {
-    var canvas = grabFrame();
-    if (!canvas) { setStatus(t('failedOnce'), false); return; }
+    if (sending) return;
     var flash = $('flash');
     flash.classList.remove('on');
     void flash.offsetWidth;   // рестартира анимацията при бърза втора снимка
     flash.classList.add('on');
-    sendCanvas(canvas);
+    // Докато апаратът снима, копчето мълчи: двете секунди чакане иначе изглеждат
+    // като нищо не се е случило и човекът натиска пак.
+    setStatus(t('focusing'), true);
+    takeRealPhoto().then(function (canvas) {
+      if (canvas) return canvas;
+      return grabBestFrame();
+    }).then(function (canvas) {
+      if (!canvas) { setStatus(t('failedOnce'), false); return; }
+      sendCanvas(canvas);
+    });
   });
 
   // Камерата не бива да работи, докато екранът е скрит: телефонът отива в джоба

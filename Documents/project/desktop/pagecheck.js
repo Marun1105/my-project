@@ -241,6 +241,53 @@ function findChromium() {
     problems.push('an ordinary question stopped reaching the tutor');
   }
 
+  // The phone page's focus picking. It lives outside ../frontend and ships with
+  // the backend, but this is the only place its logic can actually be run: the
+  // functions sit inside an IIFE, so their real source is lifted out of the
+  // file and exercised here rather than a copy of it being tested.
+  const phoneSrc = fs.readFileSync(path.join(__dirname, '..', 'phone_page.html'), 'utf8');
+  const lift = (opening) => {
+    const at = phoneSrc.indexOf(opening);
+    if (at < 0) return null;
+    return phoneSrc.slice(at, phoneSrc.indexOf('\n  }', at) + 4);
+  };
+  const sharpnessSrc = lift('function sharpness(canvas) {');
+  const burstSrc = lift('function grabBestFrame() {');
+  if (!sharpnessSrc || !burstSrc) {
+    problems.push('the phone page no longer has sharpness()/grabBestFrame() where they were');
+  } else {
+    const phone = await page.evaluate(async ({ sharpnessSrc, burstSrc }) => {
+      eval(sharpnessSrc);
+      const draw = (blurPx, label) => {
+        const c = document.createElement('canvas');
+        c.width = 800; c.height = 500;
+        const x = c.getContext('2d');
+        x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+        x.filter = blurPx ? `blur(${blurPx}px)` : 'none';
+        x.fillStyle = '#111'; x.font = '24px serif';
+        for (let i = 0; i < 12; i++) x.fillText('S_ABC = 24 cm2 ' + label, 30, 40 + i * 36);
+        c.__label = label;
+        return c;
+      };
+      const crisp = sharpness(draw(0, 'x'));
+      const soft = sharpness(draw(6, 'y'));
+      // a camera that only settles on the third frame
+      const frames = [draw(7, 'a'), draw(5, 'b'), draw(0, 'SHARP'), draw(6, 'd')];
+      let i = 0;
+      function grabFrame() { return frames[i++] || null; }
+      eval(burstSrc);
+      const picked = await grabBestFrame();
+      return { crisp, soft, picked: picked && picked.__label };
+    }, { sharpnessSrc, burstSrc });
+
+    if (!(phone.crisp > phone.soft * 3)) {
+      problems.push(`sharpness cannot separate a crisp page from a blurred one (${Math.round(phone.crisp)} vs ${Math.round(phone.soft)})`);
+    }
+    if (phone.picked !== 'SHARP') {
+      problems.push(`the phone burst picked the ${phone.picked} frame, not the focused one`);
+    }
+  }
+
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT, fullPage: false });
   await browser.close();
   server.close();
