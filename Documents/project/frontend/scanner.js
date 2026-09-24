@@ -39,6 +39,10 @@ const Scanner = (() => {
   // и 6 MB за цялата поредица. Разликата е без значение, ползата — не.
   const MAX_UPLOAD_DIM = 1568;
   const UPLOAD_QUALITY = 0.92;
+  // Only for the picture shown during corner adjustment — never uploaded, so
+  // it answers to the screen and not to the size cap. Kept apart from
+  // UPLOAD_QUALITY so tuning one is not mistaken for tuning both.
+  const PREVIEW_QUALITY = 0.92;
 
   function toCompressedDataUrl(canvas) {
     const longest = Math.max(canvas.width, canvas.height);
@@ -562,7 +566,7 @@ const Scanner = (() => {
   function enterAdjustStage(rawCanvas) {
     rawW = rawCanvas.width;
     rawH = rawCanvas.height;
-    $('adjustImg').src = rawCanvas.toDataURL('image/jpeg', 0.92);
+    $('adjustImg').src = rawCanvas.toDataURL('image/jpeg', PREVIEW_QUALITY);
     showStage('adjustStage');
 
     requestAnimationFrame(() => {

@@ -20,6 +20,7 @@ const Copy = (() => {
 
   function textOf(el) {
     const clone = el.cloneNode(true);
+    // the same selector speak.js uses; an answer means the same thing to both
     clone.querySelectorAll('button, .katex-mathml, .ai-badge, .suggest-list').forEach(n => n.remove());
     // a marker no answer can contain, swapped for newlines once flattened
     clone.querySelectorAll(BLOCKS).forEach(n => n.insertAdjacentText('beforebegin', '\u0000'));

@@ -973,11 +973,16 @@ def test_the_task_card_is_neither_read_aloud_nor_copied():
     and the clipboard took the task title and its date line along with it."""
     for name in ("speak.js", "copy.js"):
         js = _read(name)
-        strip = js[js.index("querySelectorAll('"):]
-        strip = strip[:strip.index("')")]
-        assert ".suggest-list" in strip, f"{name} still reads the task card as content"
-    # and each keeps the other's button out of its own output
-    assert ".copy-btn" in _read("speak.js")
+        body = js[js.index("function textOf(el) {"):]
+        body = body[:body.index("\n  }")]
+        m = re.search(r"querySelectorAll\('([^']+)'\)[^\n]*\.remove\(\)", body)
+        assert m, f"{name}: textOf no longer strips anything by selector"
+        selector = m.group(1)
+        assert ".suggest-list" in selector, f"{name} still reads the task card as content"
+        assert "button" in selector, (
+            f"{name} names button classes one by one; the next button added to an "
+            f"answer would be read out. copy.js solved this generally — both should"
+        )
 
 
 def test_a_chat_answer_gets_its_speaker_once_the_voices_arrive():
@@ -986,3 +991,28 @@ def test_a_chat_answer_gets_its_speaker_once_the_voices_arrive():
     a speaker button at all."""
     js = _read("speak.js")
     assert ".answer:not(.hidden), .chat-ai" in js
+
+
+def test_the_voice_rescue_repairs_every_answer_not_the_last_one():
+    """It took cards[cards.length - 1]. #chatLog sits below #answer in the
+    document, so one chat bubble was enough to stop the ClimbAI card — the case
+    this handler was written for — being repaired at all. A restored thread
+    holds up to twelve bubbles and only one was ever fixed."""
+    js = _read("speak.js")
+    rescue = js[js.index("'voiceschanged'"):]
+    # the first "});" in the block closes attach(el, { silent: true });
+    # the listener's own close carries the indentation it was opened at
+    rescue = rescue[:rescue.index(chr(10) + "    });")]
+    assert "cards.length - 1" not in rescue, "still repairing only one"
+    assert "for (const el of" in rescue
+    # a spinner and an error bubble are not answers
+    assert "chat-thinking" in rescue and "chat-error" in rescue
+    # and repairing a button is not the moment to start talking
+    assert "{ silent: true }" in rescue
+
+
+def test_repairing_a_button_does_not_start_reading():
+    """With autoread on, the widened rescue would read last session's chat
+    answer aloud at page load, from a panel that is still closed."""
+    js = _read("speak.js")
+    assert "if (!(opts && opts.silent) && window.Prefs" in js

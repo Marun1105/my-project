@@ -292,3 +292,37 @@ def test_the_chat_is_not_told_about_photographs_of_pages(monkeypatch):
     seen = _capture(monkeypatch)
     assert _ask(surface="chat").status_code == 200
     assert "SEVERAL numbered problems" not in seen["system"]
+
+
+def test_every_prompt_dict_speaks_the_same_languages():
+    """ask() picks the language by asking SYSTEM, then indexes five more dicts
+    with it. They all happen to hold {'bg', 'en'} today, guarded by nothing:
+    add a third language to SYSTEM and the first request in it is a 500
+    KeyError at whichever dict was forgotten."""
+    per_language = {
+        "SYSTEM": server.SYSTEM,
+        "FULL_SOLUTIONS": server.FULL_SOLUTIONS,
+        "NOTATION": server.NOTATION,
+        "APP_MAP": server.APP_MAP,
+        "STUDENT_CONTEXT": server.STUDENT_CONTEXT,
+        "TASK_OFFER": server.TASK_OFFER,
+        "GRADE_REGISTER": server.GRADE_REGISTER,
+        "SURFACE['chat']": server.SURFACE["chat"],
+        "SURFACE['tutor']": server.SURFACE["tutor"],
+    }
+    languages = set(server.SYSTEM)
+    for name, d in per_language.items():
+        assert set(d) == languages, (
+            f"{name} covers {sorted(d)} while SYSTEM covers {sorted(languages)} — "
+            f"a request in a language SYSTEM accepts would fail here"
+        )
+
+
+def test_the_surface_dict_covers_every_surface_the_model_accepts():
+    """Same shape of hole one level over: `surface` is a Literal, and each of
+    its values indexes SURFACE."""
+    import typing
+    allowed = set(typing.get_args(server.Ask.model_fields["surface"].annotation))
+    assert set(server.SURFACE) == allowed, (
+        f"SURFACE covers {sorted(server.SURFACE)}, the field accepts {sorted(allowed)}"
+    )

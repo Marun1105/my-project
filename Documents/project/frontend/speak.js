@@ -32,15 +32,15 @@ const Speak = (() => {
 
   // What gets read. Not innerText: KaTeX renders every formula twice — a hidden
   // MathML copy for assistive tech and the visible one — so innerText would
-  // speak each equation twice. The buttons and the task card that sit inside
-  // the answer are interface, not answer: without excluding them the voice
-  // read "Add to my Route" aloud, in the tutor's voice, to a seven-year-old. The badge is a logo, not content. Formulas
-  // come out as their symbols: "x = 2" reads well, a stacked fraction reads
-  // as its numbers in order. Honest limit; step-by-step playback is where to
-  // do better than this.
+  // speak each equation twice. Buttons and the task card inside an answer are
+  // interface, not answer: before they were excluded the voice read "Add to my
+  // Route" aloud, in the tutor's voice, to the seven-year-olds this exists for.
+  // The badge is a logo, not content. Formulas come out as their symbols:
+  // "x = 2" reads well, a stacked fraction reads as its numbers in order.
+  // Honest limit; step-by-step playback is where to do better than this.
   function textOf(el) {
     const copy = el.cloneNode(true);
-    copy.querySelectorAll('.katex-mathml, .ai-badge, .speak-btn, .copy-btn, .suggest-list').forEach(n => n.remove());
+    copy.querySelectorAll('button, .katex-mathml, .ai-badge, .suggest-list').forEach(n => n.remove());
     return (copy.textContent || '').replace(/\s+/g, ' ').trim();
   }
 
@@ -86,7 +86,7 @@ const Speak = (() => {
   // Called by tutor.js after every render. The answer's HTML is rebuilt each
   // time, so the button is too; anything still speaking belongs to the old
   // answer and is cut off.
-  function attach(el) {
+  function attach(el, opts) {
     stop();
     if (!synth || !el) return;
     // No voice for this language on this machine: no button. A Bulgarian
@@ -106,7 +106,10 @@ const Speak = (() => {
     setSpeaking(false);
     // A choice in Settings: every answer is read as it arrives, for the student
     // who would otherwise press the button every time — or cannot find it.
-    if (window.Prefs && Prefs.get('autoread') === 'on') start(el);
+    // Not when we are only putting a missing button back on an old answer:
+    // that would have the app read out last session's chat on a fresh load,
+    // from a panel that is still closed.
+    if (!(opts && opts.silent) && window.Prefs && Prefs.get('autoread') === 'on') start(el);
   }
 
   function init() {
@@ -114,9 +117,12 @@ const Speak = (() => {
     // Voices arrive late; a button decided against before they load would be
     // wrong. Re-attach once they are known, if an answer is on screen.
     synth.addEventListener('voiceschanged', () => {
-      const cards = [...document.querySelectorAll('.answer:not(.hidden), .chat-ai')];
-      const el = cards[cards.length - 1];
-      if (el && !el.querySelector('.speak-btn')) attach(el);
+      const answers = [...document.querySelectorAll('.answer:not(.hidden), .chat-ai')];
+      for (const el of answers) {
+        if (el.classList.contains('chat-thinking') || el.classList.contains('chat-error')) continue;
+        if (el.querySelector('.speak-btn')) continue;
+        attach(el, { silent: true });
+      }
     });
     window.addEventListener('climby:view-shown', stop);
     // a voice swapped mid-sentence would finish the old one in the old voice

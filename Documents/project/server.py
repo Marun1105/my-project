@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import List, Optional, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from anthropic import Anthropic, APIError
@@ -234,14 +235,25 @@ Form:
 
 
 # Колко голяма е ЕДНА истинска снимка. frontend/scanner.js свива всяка страница до
-# 1568 пиксела по дългата страна и я кодира като JPEG с качество 0.82 — това дава
-# около 150-400 KB, т.е. под 550 000 знака base64 дори за гъсто напечатана страница.
-# 1 400 000 знака (≈1 MB JPEG) оставя двоен запас за друг клиент, който праща
-# по-малко смалена снимка, но спира "снимка" от 50 MB.
+# 1568 пиксела по дългата страна и я кодира като JPEG с качество 0.92 — молив
+# върху хартия е тънък ръб с нисък контраст и точно това JPEG жертва първо.
+# Мерено при 1568px: 121 KB при 0.82 срещу 187 KB при 0.92. Гъсто напечатана
+# страница стига към 600 KB, тоест под 850 000 знака base64.
+# 1 400 000 знака (≈1 MB JPEG) оставя запас за друг клиент, който праща по-малко
+# смалена снимка, но спира "снимка" от 50 MB.
 MAX_ASK_IMAGE_CHARS = 1_400_000
-# И осемте страници заедно: осем истински сканирания са около 3 MB base64.
-# Таванът важи за сбора, защото иначе 8 x 1.4 MB пак прави 11 MB на заявка.
-MAX_ASK_IMAGES_CHARS = 6_000_000
+# И осемте страници заедно. При 0.92 осем истински сканирания са около 4.5 MB
+# base64. Таванът важи за сбора, защото иначе 8 x 1.4 MB пак прави 11 MB на
+# заявка. Той трябва да стои ПОД MAX_BODY_BYTES: над него отказва
+# BodySizeLimitMiddleware с 413 и валидаторът така и не се обажда, тоест
+# ученикът не разбира, че проблемът е в броя страници. Пази го
+# test_the_aggregate_cap_can_actually_be_reached.
+MAX_ASK_IMAGES_CHARS = 7_000_000
+# Колко страници наведнъж. Осем е горе-долу една задача, разпъната на разтвор.
+MAX_ASK_IMAGES = 8
+TOO_MANY_IMAGES_MESSAGE = (
+    "Твърде много страници наведнъж — прати ги на части по осем."
+)
 
 # Разпознаването на формата по първите байтове живее в schemas.py: същата
 # проверка трябва да важи и за снимката, която идва от телефона през
@@ -259,7 +271,7 @@ class Ask(BaseModel):
     # Без таван един клиент в рамките на лимита може да прати десетки снимки в
     # пълен размер наведнъж — сметката при Anthropic е за негова сметка, но се
     # плаща от този сървър. Осем страници стигат за най-дългото домашно.
-    images: List[str] = Field(max_length=8)
+    images: List[str] = Field(default_factory=list)
     question: str = Field(min_length=1, max_length=2000)
     # Кратък езиков код; без таван и това поле е място, откъдето влиза мегабайт текст.
     lang: str = Field(default="en", max_length=16)
@@ -286,6 +298,8 @@ class Ask(BaseModel):
     @field_validator("images")
     @classmethod
     def _check_images(cls, images: List[str]) -> List[str]:
+        if len(images) > MAX_ASK_IMAGES:
+            raise ValueError(TOO_MANY_IMAGES_MESSAGE)
         # Редът е нарочен: първо евтините проверки за дължина, чак после декодиране —
         # оразмерена атака не бива да ни кара да разпакетираме мегабайти, за да я откажем.
         total = 0
@@ -407,6 +421,27 @@ def healthz():
     with SessionLocal() as db_session:
         ai_today = usage.today(db_session)
     return {"status": "ok", "db": "ok", "ai_today": ai_today, "email": email_service.delivery_status()["state"]}
+
+
+
+# Отказ, който не връща обратно това, което са качили.
+#
+# Стандартният обработчик на FastAPI слага стойността, която не е минала, в
+# тялото на 422-ката. За ученик на мобилни данни, който праща 6.4 MB снимки,
+# това значи 6.4 MB нагоре и същите 6.4 MB надолу, за да чуе "не" — измерено.
+# Пращаме само съобщението, и то като низ: фронтендът показва detail само
+# когато е низ, иначе казва "провери интернета си", което е и грешно, и
+# кара ученика да опита пак същото.
+@app.exception_handler(RequestValidationError)
+def _validation_error(request: Request, exc: RequestValidationError):
+    messages = []
+    for err in exc.errors():
+        msg = str(err.get("msg") or "").strip()
+        # Pydantic слага "Value error, " пред съобщението на валидатора
+        msg = msg.removeprefix("Value error, ")
+        if msg and msg not in messages:
+            messages.append(msg)
+    return JSONResponse(status_code=422, content={"detail": " ".join(messages) or "Invalid request."})
 
 
 @app.get("/")
@@ -902,6 +937,12 @@ def ask(
             language=TASK_LANGUAGE.get(lang, "English"),
         )
     try:
+        # Без prompt caching, и то нарочно: минималният кешируем префикс на
+        # Haiku 4.5 е 4096 токена, а най-дългият системен промпт тук (български,
+        # екранът със снимки) е около 3263. Под минимума cache_control не дава
+        # грешка — просто не кешира нищо и cache_read_input_tokens остава 0.
+        # Ако промптът някога мине 4096 токена, тогава си струва да се сложи
+        # cache_control на статичната част; дотогава е шум.
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=1500,
