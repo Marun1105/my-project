@@ -423,6 +423,8 @@ const I18n = (() => {
       // огледалото над картите в ClimbAI (mirror.js)
       'mirror.today': 'Днес досега: {parts}.',
       'mirror.yesterday': 'Вчера: {parts}.',
+      'mirror.solvedOne': '1 решена сама',
+      'mirror.solvedMany': '{n} решени сами',
       'mirror.qOne': '1 въпрос',
       'mirror.qMany': '{n} въпроса',
       'mirror.min': '{n} мин фокус',
@@ -942,6 +944,8 @@ const I18n = (() => {
       // the mirror line above the ClimbAI cards (mirror.js)
       'mirror.today': 'Today so far: {parts}.',
       'mirror.yesterday': 'Yesterday: {parts}.',
+      'mirror.solvedOne': '1 solved on your own',
+      'mirror.solvedMany': '{n} solved on your own',
       'mirror.qOne': '1 question',
       'mirror.qMany': '{n} questions',
       'mirror.min': '{n} min of focus',

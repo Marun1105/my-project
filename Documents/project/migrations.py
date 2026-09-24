@@ -536,6 +536,11 @@ def run() -> list:
         if _tolerantly("users.token_version",
                        lambda: _add_column("users", "token_version", "INTEGER", "0")):
             applied.append("users.token_version")
+        # FALSE, не 0: на SQLite двете са едно и също, а Postgres няма оператор
+        # boolean = integer и грешката излиза чак на живо.
+        if _tolerantly("scan_history.solved_unaided",
+                       lambda: _add_column("scan_history", "solved_unaided", "BOOLEAN", "FALSE")):
+            applied.append("scan_history.solved_unaided")
         if _tolerantly("users.phone:drop-unique", _drop_unique_phone_index):
             applied.append("users.phone:drop-unique")
         # Подреждане на заварените имейли към смъкнатия вид, с който работи auth.py.

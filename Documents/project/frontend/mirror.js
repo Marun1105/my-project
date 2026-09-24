@@ -57,7 +57,9 @@ const Mirror = (() => {
     const q = on.filter(e => e.kind === 'question').length;
     const secs = on.filter(e => e.kind === 'session').reduce((a, e) => a + (e.seconds || 0), 0);
     const done = on.filter(e => e.kind === 'task').length;
+    const solved = on.filter(e => e.kind === 'solved').length;
     const parts = [];
+    if (solved) parts.push(plural(solved, 'mirror.solvedOne', 'mirror.solvedMany'));
     if (q) parts.push(plural(q, 'mirror.qOne', 'mirror.qMany'));
     if (secs >= 60) parts.push(t('mirror.min', { n: Math.round(secs / 60) }));
     if (done) parts.push(plural(done, 'mirror.doneOne', 'mirror.doneMany'));

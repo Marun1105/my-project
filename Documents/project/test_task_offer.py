@@ -71,15 +71,15 @@ def _ask(headers=None, surface="chat", context=True, lang="en"):
 
 def test_the_block_never_reaches_the_student():
     answer = f"Let's start with the hard one.\n\n{FENCE}climby-task\n[{{\"text\": \"Maths\"}}]\n{FENCE}"
-    clean, raw = server._strip_task_block(answer)
+    clean, marks = server._strip_marked_blocks(answer)
     assert clean == "Let's start with the hard one."
     assert FENCE not in clean and "climby-task" not in clean
-    assert "Maths" in raw
+    assert "Maths" in marks["task"]
 
 
 def test_a_block_in_the_middle_leaves_the_words_around_it():
     answer = f"Before.\n{FENCE}climby-task\n[]\n{FENCE}\nAfter."
-    clean, raw = server._strip_task_block(answer)
+    clean, marks = server._strip_marked_blocks(answer)
     assert clean == "Before.\n\nAfter." or clean == "Before.\nAfter."
     assert FENCE not in clean
 
@@ -88,26 +88,26 @@ def test_an_unclosed_block_is_still_removed():
     """The answer can hit the token ceiling mid-block. Without the open-ended
     fallback the student would be left reading a half-written JSON array."""
     answer = f"Here you go.\n\n{FENCE}climby-task\n[{{\"text\": \"Maths\", \"subj"
-    clean, raw = server._strip_task_block(answer)
+    clean, marks = server._strip_marked_blocks(answer)
     assert clean == "Here you go."
     assert FENCE not in clean
 
 
 def test_an_answer_with_no_block_is_untouched():
     answer = "Just an explanation, with a code sample:\n\n```python\nprint(1)\n```"
-    clean, raw = server._strip_task_block(answer)
+    clean, marks = server._strip_marked_blocks(answer)
     assert clean == answer.strip(), "an ordinary fenced code block must survive"
-    assert raw is None
+    assert marks == {}
 
 
 def test_the_tag_may_be_written_in_any_case():
     answer = f"Sure.\n{FENCE}ClimbAI-Task\n[]\n{FENCE}"
-    # only the exact tag is ours; a near miss is left alone rather than eaten
-    clean, raw = server._strip_task_block(answer)
-    assert raw is None and clean == answer.strip()
+    # only the climby- prefix is ours; a near miss is left alone rather than eaten
+    clean, marks = server._strip_marked_blocks(answer)
+    assert marks == {} and clean == answer.strip()
     answer = f"Sure.\n{FENCE}CLIMBY-TASK\n[]\n{FENCE}"
-    clean, raw = server._strip_task_block(answer)
-    assert raw is not None and FENCE not in clean
+    clean, marks = server._strip_marked_blocks(answer)
+    assert "task" in marks and FENCE not in clean
 
 
 # --------------------------------------------------------------- the parse

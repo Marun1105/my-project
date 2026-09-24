@@ -32,7 +32,7 @@ MAX_EVENTS = 3000
 
 class ActivityEvent(BaseModel):
     at: datetime
-    kind: str            # "question" | "session" | "task"
+    kind: str            # "question" | "session" | "task" | "solved"
     seconds: int = 0     # sessions only
 
 
@@ -59,9 +59,13 @@ def activity(
     def utc(dt: datetime) -> datetime:
         return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
-    for row in (db.query(ScanHistory.created_at)
+    for row in (db.query(ScanHistory.created_at, ScanHistory.solved_unaided)
                 .filter(ScanHistory.user_id == user.id, ScanHistory.created_at >= since)):
         events.append(ActivityEvent(at=utc(row[0]), kind="question"))
+        # Отделно събитие, а не поле върху въпроса: началният екран го брои сам,
+        # а по-късно същият списък ще служи и за сравняване между съученици.
+        if row[1]:
+            events.append(ActivityEvent(at=utc(row[0]), kind="solved"))
 
     for row in (db.query(FocusSession.created_at, FocusSession.duration_seconds)
                 .filter(FocusSession.user_id == user.id,

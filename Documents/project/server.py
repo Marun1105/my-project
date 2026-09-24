@@ -703,8 +703,8 @@ The student sees none of this; they see a button.""",
 # The fence, as the model was asked to write it — and as it sometimes writes it
 # anyway: with or without a language tag it invented, and occasionally unclosed
 # because the answer ran into the token ceiling mid-block.
-_TASK_BLOCK = re.compile(
-    r"\n?```[ \t]*climby-task[ \t]*\r?\n(?P<body>.*?)(?:```|\Z)",
+_MARKED_BLOCK = re.compile(
+    r"\n?```[ \t]*climby-(?P<tag>[a-z-]+)[ \t]*\r?\n(?P<body>.*?)(?:```|\Z)",
     re.DOTALL | re.IGNORECASE,
 )
 
@@ -712,18 +712,23 @@ TASK_LANGUAGE = {"en": "English", "bg": "български"}
 MAX_SUGGESTED_TASKS = 3
 
 
-def _strip_task_block(answer: str):
-    """Take the block out of the answer. Returns (clean answer, raw block or None).
+def _strip_marked_blocks(answer: str):
+    """Take every climby- block out of the answer.
 
-    Always called, for every answer. Whether we then read the block is a
-    separate decision — but an answer carrying a fenced lump of JSON must never
-    reach a student, however it got there.
+    Returns (clean answer, {tag: raw body}). Always called, for every answer on
+    every screen. Whether any block is then read is a separate decision — but an
+    answer carrying a fenced lump of JSON must never reach a student, however it
+    got there, and that must not depend on remembering to add each new marker to
+    a list.
     """
-    match = _TASK_BLOCK.search(answer)
-    if not match:
-        return answer.strip(), None
-    clean = (answer[:match.start()] + answer[match.end():]).strip()
-    return clean, match.group("body")
+    found = {}
+
+    def take(match):
+        found.setdefault(match.group("tag").lower(), match.group("body"))
+        return ""
+
+    clean = _MARKED_BLOCK.sub(take, answer).strip()
+    return clean, found
 
 
 def _parse_task_block(raw: str, lang: str):
@@ -756,6 +761,50 @@ def _parse_task_block(raw: str, lang: str):
                 deadline = None
         out.append({"text": text, "subject": subject, "deadline": deadline})
     return out
+
+
+# The one number that goes up when the student needs less help.
+#
+# Everything else the app counts — questions asked, minutes sat, tasks ticked —
+# rises when a student leans on the tutor harder. That is the wrong way round
+# for a teaching app, and it would be actively harmful as a scoreboard: the way
+# to win would be to ask more. This marks the opposite: the moments the student
+# produced the step themselves and was right.
+#
+# The tutor judges it, at the end of the exchange where it happened. A student
+# cannot claim it, which is what makes it worth comparing.
+SOLVED_MARK = {
+    "en": """
+
+One more thing to record. When the student works out the next step, or the answer,
+THEMSELVES — you nudged, they did it, and they were right — end your reply with this
+on its own last line:
+
+```climby-solved
+{{"subject": "Maths"}}
+```
+
+Only then. Not when you gave the full solution and they agreed. Not on the first message
+of a problem, when there is nothing yet to have solved. Not for a guess you corrected.
+Not because they were pleased or said thank you. The subject is optional and only if it
+is clear. Most exchanges do not earn this, and that is what makes it worth something.
+The student never sees the block; they see that the number went up.""",
+    "bg": """
+
+Още едно нещо за отбелязване. Когато ученикът стигне САМ до следващата стъпка или до
+отговора — ти си побутнал, той го е направил и е вярно — завърши отговора си с това на
+отделен последен ред:
+
+```climby-solved
+{{"subject": "Математика"}}
+```
+
+Само тогава. Не когато ти си дал цялото решение и той се е съгласил. Не на първото
+съобщение по задача, когато още няма какво да е решено. Не за догадка, която си
+поправил. Не защото се е зарадвал или е благодарил. Предметът не е задължителен и се
+пише само ако е ясен. Повечето разговори не печелят това и точно затова то значи нещо.
+Ученикът не вижда блока; вижда, че числото се е вдигнало.""",
+}
 
 
 # Which of the two places this question came from. They are genuinely different
@@ -928,6 +977,11 @@ def ask(
     # Offered only where it could be acted on: the chat, signed in. A guest has
     # no Route to add to, and the photo screen is one problem rather than an
     # assignment. The block is stripped below regardless of this.
+    # Отбелязва се само за влязъл ученик: без акаунт няма къде да се брои.
+    # И на двата екрана — решена сама стъпка по снимана задача брои също.
+    marking_solves = bool(user)
+    if marking_solves:
+        system += SOLVED_MARK[lang]
     offering_tasks = bool(user and body.context and body.surface == "chat")
     if offering_tasks:
         today = date.today()
@@ -955,18 +1009,20 @@ def ask(
     answer = "".join(b.text for b in resp.content if b.type == "text")
     # Unconditionally: whatever the model put in the answer, the student reads
     # the answer and not the machinery.
-    answer, raw_block = _strip_task_block(answer)
-    suggestions = _parse_task_block(raw_block, lang) if offering_tasks else []
+    answer, marks = _strip_marked_blocks(answer)
+    suggestions = _parse_task_block(marks.get("task"), lang) if offering_tasks else []
+    solved = marking_solves and "solved" in marks
 
     if user:
         # Пазим само текста на въпроса/отговора за историята — снимките, стигнали дотук, не се записват.
         # Best effort, like the token count above it: the answer is already
         # bought, and a database hiccup here must not throw it away as a 500.
         try:
-            db.add(ScanHistory(user_id=user.id, question=body.question, answer=answer, lang=lang))
+            db.add(ScanHistory(user_id=user.id, question=body.question, answer=answer,
+                               lang=lang, solved_unaided=solved))
             db.commit()
         except Exception as err:  # noqa: BLE001
             db.rollback()
             print(f"[ask] could not save to history: {err!r}", flush=True)
 
-    return {"answer": answer, "suggestions": suggestions}
+    return {"answer": answer, "suggestions": suggestions, "solved": solved}

@@ -184,6 +184,12 @@ class ScanHistory(Base):
     question = Column(String, nullable=False)
     answer = Column(String, nullable=False)
     lang = Column(String, nullable=False, default="en")
+    # Ученикът е стигнал сам до стъпката или до отговора, а учителят само го е
+    # побутнал. Това е единственото число в приложението, което расте, когато
+    # ученикът се нуждае от помощ ПО-МАЛКО — всички останали броят активност и
+    # растат, когато се обляга повече. Преценката е на учителя; ученикът не може
+    # да си я присвои, затова числото става за сравняване.
+    solved_unaided = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), default=_now)
 
 
