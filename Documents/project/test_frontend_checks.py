@@ -1016,3 +1016,101 @@ def test_repairing_a_button_does_not_start_reading():
     answer aloud at page load, from a panel that is still closed."""
     js = _read("speak.js")
     assert "if (!(opts && opts.silent) && window.Prefs" in js
+
+
+# ---------------------------------------------------------------------------
+# A focus session that outlives the screen it was started on.
+# ---------------------------------------------------------------------------
+
+
+def test_leaving_the_screen_no_longer_throws_the_session_away():
+    """It called stopSession(true) — silent, which does not save. A student who
+    opened the Route mid-session lost everything worked up to that point, and
+    nothing anywhere said why."""
+    js = _read("focus.js")
+    handler = js[js.index("'climby:view-shown'"):]
+    handler = handler[:handler.index("\n    });")]
+    assert "stopSession" not in handler, "leaving the screen must not end the session"
+    assert "suspendCamera()" in handler and "resumeCamera()" in handler
+
+
+def test_the_camera_is_released_when_the_screen_is_not_showing():
+    """A camera filming on a screen where nothing can be seen is the thing that
+    would make a parent switch the whole feature off."""
+    js = _read("focus.js")
+    body = js[js.index("function suspendCamera()"):js.index("async function resumeCamera()")]
+    assert "dropMedia(stream)" in body and "stopTracking()" in body
+    assert "sessionStart" not in body, "the clock must keep running"
+
+
+def test_leaving_while_the_camera_is_still_opening_cancels_it():
+    """stream is null for the second or two getUserMedia takes. Returning early
+    on that left startId untouched, so the request finished, passed its own
+    staleness check and opened the camera on a screen showing something else."""
+    js = _read("focus.js")
+    body = js[js.index("function suspendCamera()"):js.index("async function resumeCamera()")]
+    bump = body.index("startId++")
+    guard = body.index("if (!stream) return")
+    assert bump < guard, (
+        "suspendCamera returns before cancelling the in-flight camera request — "
+        "navigating away mid-open leaves the camera running out of sight"
+    )
+
+
+def test_the_camera_is_asked_for_the_same_thing_in_both_places():
+    """Two copies of the constraints would drift."""
+    js = _read("focus.js")
+    assert js.count("getUserMedia(CAMERA)") == 2
+    assert "const CAMERA = {" in js
+
+
+def test_a_running_session_can_be_stopped_from_anywhere():
+    html = _read("index.html")
+    assert 'id="focusBadgeStop"' in html
+    assert 'id="focusBadgeTime"' in html
+    js = _read("focus.js")
+    assert "focusBadgeStop" in js and "stopSession(false)" in js, "stopping must save, not discard"
+
+
+def test_the_badge_clock_is_stopped_with_the_session():
+    """An interval left running after the session ends is a leak that paints a
+    clock for a session that is over."""
+    js = _read("focus.js")
+    assert "startBadgeClock()" in js and "stopBadgeClock()" in js
+    stop = js[js.index("function stopSession("):]
+    stop = stop[:stop.index("\n  }")]
+    assert "stopBadgeClock()" in stop
+
+
+def test_the_session_history_only_shows_what_is_really_stored():
+    """Sessions keep a duration, a focus percentage and a time. Anything else on
+    that screen would be invented, and a number a student cannot trust is worse
+    than no number."""
+    js = _read("sessions.js")
+    assert "focus_pct" in js and "duration_seconds" in js and "created_at" in js
+    # a session with the camera off says so rather than showing 0%
+    assert "sessions.noCamera" in js
+    assert "session.focus_pct === null" in js
+
+
+def test_the_session_strings_exist_in_both_languages():
+    source = _read("i18n.js")
+    for key in ("sessions.title", "sessions.started", "sessions.ended", "sessions.lasted",
+                "sessions.focus", "sessions.noCamera", "sessions.focusNote",
+                "sessions.min", "sessions.hour", "sessions.hourMin",
+                "sessions.today", "sessions.yesterday", "focus.stopAria"):
+        assert source.count(f"'{key}'") >= 2, f"{key} is missing from a language"
+
+
+def test_the_tutor_offers_more_than_exercises():
+    """The kinds were named in one sentence, but every example under them was an
+    exercise with a page number — and that is what the model anchored on."""
+    path = os.path.join(os.path.dirname(__file__), "server.py")
+    with open(path, encoding="utf-8") as f:
+        server_src = f.read()
+    offer = server_src[server_src.index("TASK_OFFER = {"):server_src.index("SOLVED_MARK = {")]
+    for kind in ("Revise for", "Read chapter", "Write the essay", "Learn the poem",
+                 "Bring squared paper", "Practise the piano"):
+        assert kind in offer, f"no example of {kind!r} — the model will keep offering only exercises"
+    for kind in ("\u0434\u0430 \u043f\u043e\u0432\u0442\u043e\u0440\u044f", "\u0421\u044a\u0447\u0438\u043d\u0435\u043d\u0438\u0435"):
+        assert kind.lower() in offer.lower(), "the Bulgarian half needs its own examples"

@@ -9,6 +9,16 @@ const Focus = (() => {
 
   let stream = null;
   let modelReady = false;
+  // Искаме от камерата едно и също на двете места, където се пуска — в началото
+  // на сесията и при връщане в раздела. Две копия биха се разминали.
+  const CAMERA = {
+    // Кадърът е малко по-едър, отколкото моделът ползва: наслагването се рисува
+    // в пикселите на видеото и на телефон с гъст екран тънките линии иначе
+    // излизат размити.
+    video: { width: { ideal: 320 }, height: { ideal: 240 } },
+    audio: false,
+  };
+
   let sessionStart = null;
   let focusedMs = 0;   // време, а не кадри
   let awayMs = 0;
@@ -166,10 +176,7 @@ const Focus = (() => {
       // Кадърът се иска малко по-едър от преди: моделът така или иначе смалява
       // входа си, но наслагването се рисува в пикселите на видеото и на телефон
       // с гъст екран тънките линии иначе излизат размити.
-      media = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 320 }, height: { ideal: 240 } },
-        audio: false,
-      });
+      media = await navigator.mediaDevices.getUserMedia(CAMERA);
     } catch {
       starting = false;
       setError(t('focus.errNoCamera'));
@@ -214,6 +221,7 @@ const Focus = (() => {
     awayMs = 0;
     showStage('Running');
     $('focusBadge').classList.remove('hidden');
+    startBadgeClock();
     startTracking();
   }
 
@@ -699,6 +707,33 @@ const Focus = (() => {
     if (rafId === null) rafId = requestAnimationFrame(tick);
   }
 
+  // Часовникът в страничното меню. Сесия, която върви на друг екран, трябва да
+  // се вижда, че върви, и да може да се спре оттам — иначе приложението държи
+  // започната сесия, без да го казва, и единственият изход е да се върнеш.
+  let badgeTimer = null;
+
+  function badgeText() {
+    const total = Math.max(0, Math.round((Date.now() - sessionStart) / 1000));
+    const mm = String(Math.floor(total / 60)).padStart(2, '0');
+    const ss = String(total % 60).padStart(2, '0');
+    return mm + ':' + ss;
+  }
+
+  function paintBadge() {
+    const el = document.getElementById('focusBadgeTime');
+    if (el && sessionStart) el.textContent = badgeText();
+  }
+
+  function startBadgeClock() {
+    stopBadgeClock();
+    paintBadge();
+    badgeTimer = setInterval(paintBadge, 1000);
+  }
+
+  function stopBadgeClock() {
+    if (badgeTimer !== null) { clearInterval(badgeTimer); badgeTimer = null; }
+  }
+
   function stopTracking() {
     sessionToken++;
     if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
@@ -711,10 +746,51 @@ const Focus = (() => {
     previewEl = null;
   }
 
+  // Излизане от раздела: камерата спира, часовникът не.
+  //
+  // Дотук излизането изхвърляше цялата сесия, при това мълчешком. Сега времето
+  // се брои нататък, защото ученик, който отива на Маршрута или пита ClimbAI,
+  // работи. Камерата обаче се пуска: камера, която снима на екран, където
+  // нищо не се вижда, е точно нещото, което би накарало един родител да
+  // изключи всичко. Общото време е стенен часовник и не страда от това, а
+  // процентът фокус се смята само върху наблюдаваните минути — тоест описва
+  // честно колко от времето ПРЕД камерата е било гледане в задачата.
+  function suspendCamera() {
+    startId++;             // всеки опит за пускане, който още тече, става ненужен
+    if (!stream) return;   // камерата още се отваря — горният ред я отказва
+    stopTracking();
+    dropMedia(stream);
+    stream = null;
+    const video = $('focusVideo');
+    if (video) video.srcObject = null;
+  }
+
+  async function resumeCamera() {
+    if (stream || starting || !sessionStart || !isEnabled()) return;
+    starting = true;
+    const attempt = ++startId;
+    showStage('Loading');
+    let media = null;
+    try {
+      media = await navigator.mediaDevices.getUserMedia(CAMERA);
+    } catch {
+      starting = false;
+      showStage('Running');   // сесията продължава; просто без камера
+      return;
+    }
+    if (attempt !== startId || !sessionStart) { dropMedia(media); starting = false; return; }
+    stream = media;
+    starting = false;
+    $('focusVideo').srcObject = stream;
+    showStage('Running');
+    startTracking();
+  }
+
   function stopSession(silent) {
     startId++;   // ако точно сега се отваря камера, тя вече е ненужна
     stopTracking();
     if (stream) { dropMedia(stream); stream = null; }
+    stopBadgeClock();
     $('focusBadge').classList.add('hidden');
 
     if (!sessionStart) {
@@ -782,12 +858,27 @@ const Focus = (() => {
     // Сесията се записва (silent=false би показал обобщението на екран, който вече
     // не се гледа), защото ученикът наистина е учил дотук.
     window.addEventListener('climby:view-shown', e => {
-      if (e.detail.view !== 'focus' && sessionLive()) stopSession(true);
-      // Серията се обновява при всяко влизане в раздела, а не само когато
-      // камерата е включена: тя описва какво вече е учено.
-      if (e.detail.view === 'focus') renderStreak();
+      if (e.detail.view === 'focus') {
+        // Обратно в раздела: ако сесията върви без камера, пускаме я пак.
+        if (sessionLive()) resumeCamera();
+        // Серията се обновява при всяко влизане в раздела, а не само когато
+        // камерата е включена: тя описва какво вече е учено.
+        renderStreak();
+      } else if (sessionLive()) {
+        suspendCamera();
+      }
     });
     window.addEventListener('climby:auth-changed', renderStreak);
+    // Спиране отвсякъде. Води и до раздела, защото там е обобщението — иначе
+    // сесията свършва и нищо не казва колко е станала.
+    const badgeStop = document.getElementById('focusBadgeStop');
+    if (badgeStop) {
+      badgeStop.addEventListener('click', () => {
+        if (!sessionLive()) return;
+        if (window.Nav) Nav.activate('focus');
+        stopSession(false);
+      });
+    }
     // Затваряне на таба е същото като излизане — иначе камерата остава заета,
     // докато браузърът не реши да освободи страницата.
     window.addEventListener('pagehide', () => { if (sessionLive()) stopSession(true); });

@@ -652,15 +652,23 @@ something that does not exist trusts you less about the mathematics too.""",
 TASK_OFFER = {
     "en": """
 
-Adding to the Route. When the student mentions schoolwork they have to do — an
-exercise, a reading, a test to revise for, with or without a day attached — you may
-offer to put it on their Route. Say so in one short sentence at the end of your
+Adding to the Route. When the student mentions ANY schoolwork they have to do, you
+may offer to put it on their Route. Say so in one short sentence at the end of your
 answer, in your own words, and then, on the very last line, append a block exactly
 like this and nothing after it:
 
 ```climby-task
 [{{"text": "Maths — exercises 4-6, p. 32", "subject": "Maths", "deadline": "{today}"}}]
 ```
+
+Every kind of work counts, not only exercises with a page number:
+- a test or an exam to revise for — "Revise for the biology test on cells"
+- something to read — "Read chapter 3 of the history book"
+- something to write — "Write the essay on Vazov, 2 pages"
+- something to learn by heart — "Learn the poem for recitation"
+- something to make or bring — "Finish the volcano model", "Bring squared paper"
+- something to practise — "Practise the piano piece for Thursday"
+- a form, a trip slip, anything school asks them to hand back
 
 Rules for the block:
 - Only when actual work was named. "Maths is hard" or "I have a lot of homework" is
@@ -675,15 +683,23 @@ Rules for the block:
 The student sees none of this; they see a button.""",
     "bg": """
 
-Добавяне в Маршрута. Когато ученикът спомене училищна работа, която трябва да свърши —
-упражнение, четиво, контролно за подготовка, със или без посочен ден — можеш да
-предложиш да я добавиш в Маршрута му. Кажи го с едно кратко изречение в края на
-отговора, със свои думи, и чак на последния ред добави блок точно такъв и нищо след
-него:
+Добавяне в Маршрута. Когато ученикът спомене КАКВАТО И ДА Е училищна работа, която
+трябва да свърши, можеш да предложиш да я добавиш в Маршрута му. Кажи го с едно кратко
+изречение в края на отговора, със свои думи, и чак на последния ред добави блок точно
+такъв и нищо след него:
 
 ```climby-task
 [{{"text": "Математика — задачи 4-6, стр. 32", "subject": "Математика", "deadline": "{today}"}}]
 ```
+
+Брои се всякаква работа, не само задачи с номер на страница:
+- контролно или изпит за подготовка — „Да повторя за контролното по биология"
+- нещо за четене — „Да прочета трета глава по история"
+- нещо за писане — „Съчинение по Вазов, 2 страници"
+- нещо за наизустяване — „Да науча стихотворението за рецитал"
+- нещо за правене или носене — „Да довърша макета на вулкана", „Да занеса тетрадка на квадратчета"
+- нещо за упражняване — „Да упражня пиесата за пиано за четвъртък"
+- бланка, декларация за екскурзия — всичко, което училището иска обратно
 
 Правила за блока:
 - Само когато е назована истинска работа. „Математиката е трудна" или „имам много

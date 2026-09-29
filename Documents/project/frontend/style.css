@@ -3762,3 +3762,82 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
 .suggest-done svg { width: 15px; height: 15px; }
 /* in a chat bubble the card must not push past the bubble's own padding */
 .chat-ai .suggest-card { padding: 10px 12px; }
+
+/* ---------- the running session, in the sidebar (focus.js) ---------- */
+/* A session now outlives the Ascent screen, so it needs somewhere permanent to
+   say so and somewhere to be stopped from. It sits directly above the account
+   row, which is where the eye already goes at the bottom of the menu. */
+.focus-badge {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 9px;
+  margin: 0 12px 8px;
+  padding: 9px 10px;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.focus-badge.hidden { display: none; }
+/* a dot that breathes: a still badge reads as a label, not as something live */
+.focus-badge-live {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent);
+  animation: focus-pulse 2s ease-in-out infinite;
+}
+@keyframes focus-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.focus-badge-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.focus-badge-text > span { color: var(--text-dim); font-weight: 500; font-size: 11.5px; }
+.focus-badge-time { font-size: 14px; font-variant-numeric: tabular-nums; }
+.focus-badge-stop {
+  flex: none; padding: 0;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 0; background: var(--accent); color: var(--on-accent);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.focus-badge-stop svg { width: 13px; height: 13px; }
+.focus-badge-stop:hover { filter: brightness(1.1); }
+@media (prefers-reduced-motion: reduce) { .focus-badge-live { animation: none; } }
+
+/* ---------- what the sessions actually were (sessions.js) ---------- */
+.session-history { width: 100%; margin-top: 34px; }
+.session-history.hidden { display: none; }
+.session-history-title {
+  font-family: var(--font-heading);
+  font-size: 15px; font-weight: 600; color: var(--text-dim);
+  margin: 0 0 10px;
+}
+.session-row { border-bottom: 1px solid var(--border); }
+.session-row:first-of-type { border-top: 1px solid var(--border); }
+.session-head {
+  flex: none; width: 100%;
+  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px;
+  padding: 13px 4px;
+  background: transparent; border: 0; border-radius: 0;
+  font: inherit; font-size: 14px; color: var(--text); text-align: left;
+  cursor: pointer;
+}
+.session-head:hover { background: var(--accent-soft); }
+.session-when { font-weight: 600; }
+.session-length { color: var(--text-dim); font-size: 13px; font-variant-numeric: tabular-nums; }
+.session-chevron { color: var(--text-faint); display: flex; }
+.session-chevron svg { width: 16px; height: 16px; transition: transform 0.15s ease; }
+.session-row.is-open .session-chevron svg { transform: rotate(180deg); }
+.session-detail { padding: 2px 4px 16px; }
+.session-detail.hidden { display: none; }
+.session-line {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 5px 0; font-size: 13px; color: var(--text-dim);
+}
+.session-line strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.session-dim { color: var(--text-faint) !important; font-weight: 500; }
+.session-bar {
+  height: 6px; margin-top: 8px; border-radius: 3px;
+  background: var(--bg-sunken); overflow: hidden;
+}
+.session-bar span { display: block; height: 100%; background: var(--accent); }
+.session-note { margin: 8px 0 0; font-size: 12px; color: var(--text-faint); }
+@media (prefers-reduced-motion: reduce) { .session-chevron svg { transition: none; } }

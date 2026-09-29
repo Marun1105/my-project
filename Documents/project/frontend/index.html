@@ -427,7 +427,16 @@
 
     <div class="sidebar-spacer"></div>
 
-    <span id="focusBadge" class="user-badge hidden sidebar-status"><svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6.5" width="12" height="11" rx="2.5"/><path d="m14.5 10.5 5-2.6v8.2l-5-2.6z"/></svg> <span data-i18n="focus.badge">Фокус сесия тече</span></span>
+    <div id="focusBadge" class="focus-badge hidden" role="status">
+      <span class="focus-badge-live" aria-hidden="true"></span>
+      <span class="focus-badge-text">
+        <span data-i18n="focus.badge">Фокус сесия тече</span>
+        <strong id="focusBadgeTime" class="focus-badge-time">00:00</strong>
+      </span>
+      <button id="focusBadgeStop" class="focus-badge-stop" type="button" data-i18n-aria="focus.stopAria" aria-label="Спри сесията">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>
+      </button>
+    </div>
 
     <div class="sidebar-account">
       <button id="accountBtn" class="account-btn" type="button" aria-haspopup="true" aria-expanded="false">
@@ -924,6 +933,11 @@
 
   <p id="focusError" class="auth-error hidden"></p>
 
+  <!-- Какви са били сесиите, не само че ги е имало. Екранът под брояча беше
+       празен, а записът — също: „3 дни подред" не казва дали дните са били по
+       дванайсет минути или по два часа. -->
+  <section id="sessionHistory" class="session-history hidden"></section>
+
 </main>
 
 <main id="view-family" class="view hidden">
@@ -1141,6 +1155,7 @@
 <script src="ai-planner.js"></script>
 <script src="history.js"></script>
 <script src="focus.js"></script>
+<script src="sessions.js"></script>
 <script src="mirror.js"></script>
 <script src="family.js"></script>
 <script src="classes.js"></script>
