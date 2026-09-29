@@ -1,363 +1,463 @@
 # Climby 2 — the plan
 
-Written 2026-09-29, after the decision to make competition the spine of the app
-rather than a feature hanging off it. Nothing here is built. This document
-exists to be argued with first.
+Written 2026-09-29. Nothing here is built. This document exists to be argued
+with first.
 
-Three things change at once, and they depend on each other in this order:
+**How to read it.** Every section separates three things, because you asked me
+not to put words in your mouth:
 
-1. **The tutor stops being bad at its job.** Nothing else matters if a student
-   photographs a page and is told to type it out.
-2. **The tutor starts knowing who it is talking to.** A tutor with memory is a
-   different product from one that forgets you every morning.
-3. **The app becomes a place other people are.** Competition, groups, presence.
-
-The order is not negotiable. A social layer on top of a tutor that cannot read
-a page of geometry is a nicer-looking disappointment.
+- **Decided** — you said it. Traceable to a message in the conversation.
+- **Proposed** — my idea. You have not agreed to it. Reject freely.
+- **Open** — nobody has decided. Listed at the end of each part.
 
 ---
 
-## Part 0 — who this is for
+## Part 0 — what this is now
 
-**12 to 18.** That is the realistic user, and it settles several arguments:
+**Decided.** Competition becomes the main thing, and everything else revolves
+around it. Your words: the biggest motivator is competition, proven by yourself
+and by other people. This is a change of direction from everything agreed
+before, and the rest of the app now gets arranged around it.
 
-- In Bulgaria a child can consent to an information-society service on their own
-  at **14**. Below that a parent must. So 12–13 needs a parent in the loop and
-  14+ does not — and Rope Team already exists as the mechanism.
-- A 15-year-old will not use something that looks like it was made for a
-  seven-year-old. The visual direction can grow up.
-- The grades 1–4 register in the tutor prompt stays, because a younger sibling
-  will use it, but it stops being the design centre.
+**Decided.** The audience is **12 to 18**. And a second audience that may turn
+out to matter as much: people who have a problem with concentration, who can be
+connected to other people with the same problem. They can make a group — not
+only a class.
 
-**And a second audience, which may turn out to be the real one:** people who
-struggle to concentrate, who want to be in a group with others who struggle the
-same way. That is not a class. It is a self-formed group, and it changes the
-safety design completely — see Part 4, which is the most important part of this
-document.
+**Decided.** Many things will need verification.
+
+**Decided.** Three other things you named as wrong or missing today:
+
+1. ClimbAI is, in your words, genuinely dumb — it cannot read a geometry page
+   that I can read.
+2. ClimbAI has no memory, and should have one, with permission, drawing on
+   every part of the app.
+3. The Settings menu is still ugly.
+
+**Proposed (order of work).** The tutor is fixed first, memory second, the
+social layer third. My reasoning: a competition layer sitting on a tutor that
+cannot read a photographed page is a better-looking version of the same
+disappointment. You have not agreed to this order and may want the social work
+first — it is your call, and it is the single biggest scheduling decision in
+this document.
 
 ---
 
-## Part 1 — a tutor that can read
+## Part 1 — the tutor
 
-### What is wrong now
+### The problem
 
-Every student-facing call runs on **Haiku 4.5** (`server.py:1017`,
-`planner.py:120`, `planner.py:148`). It is the smallest model in the family. The
-two things it is weakest at — reading faint handwriting, and multi-step
-reasoning — are exactly the two things a photographed geometry page demands.
+**Decided (observed).** Every student-facing call runs on Haiku 4.5:
+`server.py:1017`, `planner.py:120`, `planner.py:148`. It is the smallest model
+in the family. The two things it is weakest at — reading handwriting and
+multi-step reasoning — are the whole of a photographed geometry page.
 
-We already wrote a Bulgarian notation glossary and an app map to help it. Prompt
-work cannot make Haiku see what Opus sees.
+The notation glossary and app map we already wrote help it try. No prompt makes
+Haiku see what Opus sees.
 
-### The relay
+### What you asked for
 
-Opus reads the page **once**. Haiku carries the conversation, which is the part
-that repeats.
+**Decided.** Photos go to Opus, chat stays on Haiku. And specifically: an
+advanced system where **Opus reads everything and sends a very long description
+to Haiku, in a way Haiku will understand perfectly**. Haiku can **search the net
+if it is not sure** about its answer. And it should **look cool**.
 
-```
-photo ──▶ Opus 5 ──▶ a brief ──▶ stored ──▶ Haiku 4.5 ──▶ the student
-          (once)                             (every turn)
-```
+### How I would build that
 
-The brief is not a transcription. A transcription fixes reading and leaves Haiku
-to construct a proof it cannot construct. The brief carries the solution too:
+**Proposed.** The description Opus writes is produced once per photograph and
+stored. Every following turn is Haiku reading that description, so the expensive
+model runs once and the cheap model carries the conversation.
+
+**Proposed.** What goes in the description. You said "a very long description …
+that he will understand perfectly", so this is my reading of what that needs to
+contain:
 
 ```
 On the page:   problems 21–24, handwritten Bulgarian, pencil
 Problem 22:    AP:PC = 2:1 · M is the midpoint of BC · S_AON = 8 cm²
 Asked:         S_ABC
-Route:         area ratios through the centroid
-Answer:        24 cm²                        ← tutor's eyes only, never shown
-Trap:          students divide where they should multiply
-Legible:       21, 22, 23 clearly; 24 is cut off at the bottom
+Legible:       21, 22, 23 clear; 24 cut off at the bottom
 ```
 
-Haiku then runs a hint ladder **over a problem that is already solved**. That is
-a job it is good at. It never has to derive anything; it has to decide how much
-to give away, which is a conversation skill.
+**Proposed, and please decide separately.** Whether the description also
+contains **the worked solution**, which Haiku never shows but can steer by.
 
-### What this costs
+- With it: Haiku runs a hint ladder over a problem that is already solved. It
+  never has to derive anything — it only decides how much to give away, which
+  it is good at.
+- Without it: Haiku can read the page perfectly and still fail the proof,
+  because reading was only half the problem.
 
-| | input | output | when it runs |
+I recommend with. It is the difference between fixing the reading and fixing
+the failure. But it is a real choice and you did not make it.
+
+**Proposed.** If a student has had several turns on one problem with no
+progress, that answer is generated by Opus instead. Rare, bounded, and it
+rescues the cases that would otherwise make someone give up. Entirely my idea.
+
+### Searching the net
+
+**Decided.** Haiku can search when unsure.
+
+**Available.** Haiku 4.5 gets the basic `web_search_20250305` variant — the
+newer dynamic-filtering one needs Opus 4.6+ or Sonnet 4.6+. To be confirmed
+with one real call before depending on it.
+
+**Proposed, and I think important.** A student photographs *задача 22, стр. 32*
+from a standard textbook. Решебник sites exist for every Bulgarian textbook in
+print. An unsupervised search finds the answer key, and the hints-first design
+that the whole tutor is built on dies in one turn.
+
+So: search for **facts** — a formula, a date, a definition, a unit. Not for
+"the answer to this exercise". Plus a blocklist of the known answer-key sites.
+My addition; you asked for search, not for a fence.
+
+### "Make it look cool"
+
+**Decided.** You asked for this and I have not designed it. It needs to be
+decided visually, not in prose, and I would rather see your Bump references
+first than guess. Held for Part 6.
+
+### Costs
+
+| | input | output | runs |
 |---|---|---|---|
 | Opus 5 | $5/MTok | $25/MTok | once per photograph |
 | Haiku 4.5 | $1/MTok | $5/MTok | every turn |
 
-A photographed page is roughly 1.6k image tokens plus prompt. Say 5k in, 1k out
-on Opus ≈ **$0.05 per photo**. Fifty photos a day ≈ $2.50/day ≈ $75/month, and
-every follow-up turn after the first is Haiku at a tenth of that.
+Roughly **$0.05 per photograph**; every follow-up turn stays on Haiku. Current
+real usage is under 20k tokens a day across everything, so at today's volume
+this is pennies. The existing daily spend cap already guards a runaway.
 
-Current real usage is under 20k tokens a day across everything. At today's
-volume this is **pennies**. The existing daily spend cap already protects
-against a runaway.
+### Open in Part 1
 
-### Web search, and the fence it needs
-
-Haiku 4.5 gets the basic `web_search_20250305` variant (the newer
-dynamic-filtering one needs Opus 4.6+ / Sonnet 4.6+). To be verified with one
-real call before we depend on it.
-
-**The fence matters more than the feature.** A student photographs *задача 22,
-стр. 32* from a standard textbook. Решебник sites exist for every Bulgarian
-textbook in print. An unfenced search finds the answer key and the entire
-hints-first design dies in one turn.
-
-Rules:
-- Search is for **facts**: a formula, a date, a definition, a word, a unit.
-- Search is **never** for "the answer to this exercise", and the tutor is told
-  so explicitly.
-- Blocked domains for the known answer-key sites, as a second line.
-- If the brief already contains the answer, there is nothing to search for.
-
-### Escalation
-
-Some problems are beyond Haiku even with a brief. Rule: if the student has had
-three turns on the same problem without progress, the next answer is generated
-by Opus. Rare, bounded, and it rescues exactly the cases that would otherwise
-make a student give up.
+1. Does the description carry the solution, or only the reading?
+2. How many stuck turns before Opus takes over — or no escalation at all?
+3. Fenced search or open search?
 
 ---
 
 ## Part 2 — memory
 
-### Two levels, named by what they do
+### What you asked for
 
-**Remembers** — the default, and close to what exists today.
-What is on your Route, what you asked before, the briefs of problems you
-photographed, your grade and town. Continuity: *"the one like the triangle from
-Tuesday"* means something.
+**Decided.** ClimbAI should have a memory. It connects, **with the user's
+permission**, to every part of the app to get information: the focus sessions,
+the ClimbAI messages, the photo AI analysing. All of that information ends up
+in one file, the way the app map for Settings ended up in one place.
 
-**Learns you** — opt-in, and the serious one.
-How you explain things back. Where you get stuck, by topic. Which wording lands.
-How fast you move. What time of day you actually work. Whether you want the idea
-first or the example first.
+**Decided.** This is not a small step. It is **analysing a person** — how old
+he is, how he studies. You said it is very important.
 
-A profile that gets written after each session, in the tutor's own words, and
-read back into the system prompt on every request:
+**Decided.** Two levels:
+
+- **Low** — only basic things.
+- **Normal** — it gets information about you: how he talks to you, what the
+  best methods are for you, and other things of that kind.
+
+### How I would build that
+
+**Proposed.** One file per student, written by the tutor after sessions, read
+back into the system prompt on every request. Something like:
 
 ```
 Martin, 15, grade 9, Plovdiv.
-Works between 19:00 and 22:00, in 25-40 minute sessions.
-Strong: algebra, anything procedural. Fast once he sees the pattern.
-Struggles: geometry proofs — starts from the picture, not from what is given.
-Wants the idea before the example. Goes quiet rather than asking again
-  when he does not follow; a direct "does that make sense?" gets an
-  honest answer where an open question does not.
-Solves unaided most often in the second half of a session.
+Works 19:00–22:00, in 25–40 minute stretches.
+Strong on algebra and anything procedural; fast once he sees the pattern.
+Struggles with geometry proofs — starts from the picture, not from
+  what is given.
+Wants the idea before the example.
+Goes quiet rather than asking again when he does not follow; a direct
+  "does that make sense?" gets an honest answer where an open question
+  does not.
 ```
 
-That is the difference between a chatbot and a tutor who knows you.
+**Proposed.** What each level contains:
+
+| | Low | Normal |
+|---|---|---|
+| Grade, town | yes | yes |
+| What is on the Route | yes | yes |
+| What was asked before | yes | yes |
+| Problem descriptions from photos | yes | yes |
+| How you explain things back | no | yes |
+| Where you get stuck, by topic | no | yes |
+| Which wording works with you | no | yes |
+| When you actually work | no | yes |
+
+**Proposed, and the rule I would argue hardest for.** The student can **read
+their own file, in full, in the same words the tutor sees, and delete any line
+of it.** If we would be uncomfortable with them reading a line, it should not
+have been written. A file kept about a child that the child may not read is a
+different kind of object, and not one this app should hold.
 
 ### Consent
 
-- **14 and over** — the student consents for themselves, on a screen that says
-  in plain words what is kept and what it is for.
-- **Under 14** — a parent consents through Rope Team. Not a checkbox the child
-  ticks claiming to be a parent; a real prompt on the linked parent's side.
-- **Revocable** — one switch in Settings. Turning it off **deletes** the
-  profile, it does not hide it.
-- **Visible** — the student can read their own profile, in full, in the same
-  words the tutor sees. If a line in it is wrong or unkind, they can delete it.
-  A profile a student is not allowed to read is a file being kept on a child.
+**Decided.** It happens with the user's permission.
 
-That last rule is worth more than any policy text. It keeps the feature honest:
-if we would be embarrassed for the student to read a line, it should not be
-written.
+**Fact, not my preference.** In Bulgaria a child can consent to a service like
+this on their own from **14**. Below that a parent must. That interacts with
+parent mode in Part 3 but is not the same rule — parent mode is your design
+choice, this is law.
 
----
+### Open in Part 2
 
-## Part 3 — the arena
-
-### Base Camp becomes the place the app lives
-
-```
-┌─ BASE CAMP · 7б ───────────────────────────┐
-│  THIS WEEK                ▾ solved alone   │
-│                                            │
-│   1  Ivan       ▲ +12    🟢 studying now   │
-│   2  YOU        ▲ +9                       │
-│   3  Maria      ▲ +7     🔥 6 days         │
-│   4  Georgi     ▲ +3                       │
-│                                            │
-│  ────────────────────────────────────────  │
-│   Ivan started a focus session, 20m in     │
-│   Maria summited "Geometry — ex 4–6"       │
-│   Georgi solved 2 on his own today         │
-└────────────────────────────────────────────┘
-```
-
-### What is ranked
-
-**Solved on your own** — the signal built on 2026-09-24. It is the only number
-in the app that goes up when a student needs *less* help. Everything else
-(questions asked, minutes sat) rewards leaning on the tutor harder, and would
-teach students to farm the leaderboard by asking more.
-
-Default sort is **improvement on your own last week**, not raw totals. Raw
-totals rank the strongest student first every week forever, and tell the student
-who most needs the app that they are last at the thing they came here to fix.
-On improvement, everybody can be first, and the student climbing from 2 to 6
-beats the one who went from 14 to 14.
-
-Raw totals stay available as a second tab for those who want it.
-
-### Presence, not chat
-
-*"Ivan is in a focus session, 20 minutes in."*
-
-This is the Bump-like pull — knowing somebody else is there right now — and it
-is worth more here than music would be. Seeing a classmate working at 20:00 is a
-stronger nudge to open your books than seeing their playlist, and it costs no
-third-party integration.
-
-**Spotify: not now.** It is OAuth, a third party, a privacy surface, and it
-serves the vibe rather than the studying. Revisit when the core loop is working
-and there are users to delight.
-
-### Groups that are not classes
-
-A class needs a teacher and a code. The second audience — people who cannot
-concentrate, who want others like them — has no teacher. So:
-
-- **Class groups** — created by a teacher, joined by code. As today.
-- **Open groups** — created by anyone, joined by code or invite. "Матура 2027",
-  "Не мога да се концентрирам", a group of four friends.
-
-Same leaderboard, same presence, same rules. The difference is who vouches for
-the members, and that difference is the whole of Part 4.
+1. Is Low or Normal the default for a new account?
+2. Can a student read and delete lines of their own file? (my proposal — you
+   have not said)
+3. What happens to the file if memory is switched off — deleted, or kept and
+   ignored?
 
 ---
 
-## Part 4 — safety, which is the hard part
+## Part 3 — people
 
-This is the section to argue with hardest, because it is where a good idea
-becomes a bad one quietly.
+### Groups
 
-The moment the app lets a 12-year-old join a group of strangers who have
-self-identified as vulnerable ("I can't concentrate"), it has built the exact
-conditions that people who target children look for: minors, a shared
-vulnerability, and a private channel.
+**Decided.** Groups can be created by **anyone above 12**.
 
-### The position I would argue for
+**Decided.** A group is not only a class. Someone with a concentration problem
+can be connected with other people who have the same problem.
 
-**No free text between students. Anywhere. Ever.**
+**Decided.** Many things will need verification.
 
-Not in groups, not in profiles, not in direct messages — because there are no
-direct messages. What passes between students is:
+### Friends
 
-- numbers (solved, streak, minutes)
-- presence (studying now / not)
-- fixed, app-generated events ("summited Geometry — ex 4–6")
-- a reaction from a closed set (👏 🔥 💪) with no text
+**Decided.** Friends are added from a **search of users**, and from **friends of
+your friends**.
 
-You keep **all** of the motivation. Watching a classmate's number move is the
-thing that pulls. A chat box adds very little to that and adds every risk.
+**Decided.** It is a friend request; if he accepts, you are now friends.
 
-If chat is wanted later, it belongs inside a class with a named teacher who can
-see it — never in an open group.
+**Decided.** Once you are friends, you can add him to other groups.
 
-### Verification, in layers
+**Decided.** There will be **privacy settings**.
 
-| What | Why |
+### Chat
+
+**Decided.** Chat exists, and it is **between friends only** — you can chat with
+someone once you are friends with them.
+
+**Decided.** There will be protections.
+
+**Decided.** Messages do **not** persist forever.
+
+**Decided.** A parent does **not** see chat.
+
+**Proposed.** Ninety days, then deleted server-side. You said not forever; the
+number is mine.
+
+**Proposed, and it is a duty rather than a feature.** Chat between minors needs,
+at minimum: automated filtering, a report button, a block, a queue somebody
+actually reads, a retention policy, and an answer ready for the first time a
+parent telephones. This is ongoing work that does not finish when the feature
+ships. I have flagged it; I have not solved it, and it is the single largest
+unresolved risk in this plan.
+
+### Parent mode
+
+**Decided.** It works if the child is **under 16**. Recommended for **9–14**.
+And it must not be anything creepy.
+
+**Proposed.** My reading of "not creepy" — the parent sees shape, never content:
+
+| Parent sees | Parent never sees |
 |---|---|
-| Verified email, as today | a floor, not a wall |
-| A group has a named owner | somebody is accountable for it |
-| Open groups are invite/code only, never browsable | you cannot go shopping for children |
-| Display name + avatar initial only — no photos | the profile picture is the recruiting poster |
-| No free text anywhere, including display names beyond a first name | names are a channel too |
-| Report + leave on every group, one tap | the student can always get out |
-| A parent on Rope Team sees which groups their child is in | for under-14s, this is the consent anyway |
-| Rate limit on group creation and joins | slows down anyone farming |
+| minutes worked, which days | what the tasks say |
+| tasks done and outstanding | the questions asked |
+| solved-on-your-own count | any answer text |
+| which groups the child is in | **any message, ever** |
 
-### What I would not build
+**Proposed.** The child is told plainly which of those a parent can see. A child
+who finds out later that a parent was watching something they did not know
+about stops trusting the app, and is right to.
 
-- Public browsable groups or a directory
-- Profile photos
-- Any student-to-student free text
-- Location, school name as a searchable field, or anything that helps one
-  student find another in the physical world
+### Profiles
 
-### The honest trade
+**Decided.** There are profiles, and you can see them — for the class and for
+friends, and for other people.
 
-This makes Climby a weaker social network and a better place to leave a
-14-year-old. I think that is the right trade for this product, and I think the
-motivation survives it almost entirely — because the motivating thing was never
-the chat, it was seeing that Ivan is 3 ahead of you and studying right now.
+**Not designed.** What is on one has not been decided by either of us. It needs
+its own conversation, and it is where several safety questions actually live.
 
----
+### Leaderboards
 
-## Part 5 — the look
+**Decided.** Public leaderboards, maybe. You said you will think about how they
+are sorted.
 
-You want Bump's feel. I have not used it, so this section is deliberately thin
-until you put a few screenshots in `docs/design/`.
+**Decided.** A leaderboard for everybody is a bit dumb — which is the reason for
+the currency in Part 4.
 
-What I would ask for when you do: **which two or three screens** you want to
-feel like, and whether it is the typography, the colour, the density, the
-motion, or the photography that grabs you. Those are four different jobs.
+### Spotify
 
-What I would say now, from the screenshots of Climby: it is clean and it is
-*empty*. The nav uses a third of the sidebar, the screens use the top half. For
-a 15-year-old the app should feel full of activity the moment it opens, and the
-arena is what fills it.
+**Decided, as a maybe.** If you get many users, you may connect to Spotify so
+users can see what others are playing.
 
----
+**Proposed.** I would not build it soon: OAuth, a third party, a new privacy
+surface, and it serves atmosphere rather than studying. Your idea, my
+reservation.
 
-## Part 6 — data
+### Open in Part 3
 
-New tables:
-
-```
-group                id, kind(class|open), name, owner_id, join_code,
-                     created_at, member_cap
-group_member         group_id, user_id, role(owner|member), joined_at
-presence             user_id, kind(focus|tutor), started_at, expires_at
-student_profile      user_id, level(remembers|learns), body, updated_at,
-                     consented_by(self|parent), consented_at
-problem_brief        id, user_id, scan_id, body, model, created_at
-reaction             from_user, to_user, event_id, kind, created_at
-```
-
-`classroom` and `classroom_member` already exist and are the class case of
-`group`. They should be migrated into it rather than run alongside — two
-half-overlapping concepts is how this becomes unmaintainable.
-
-`presence` is deliberately short-lived, with an `expires_at`, so "studying now"
-cannot be stale and there is no long-term log of when a child was at their desk.
+1. Who may a search find? Everyone, or only friends-of-friends by default?
+2. Is a minor findable by strangers by default, or is that something they turn
+   on?
+3. What is on a profile?
+4. Who reads the moderation queue, and how quickly?
+5. Can people met only in an open group become friends, or only classmates and
+   friends-of-friends?
 
 ---
 
-## Part 7 — order of work
+## Part 4 — the currency
 
-Each step ships on its own and is worth having even if the next never happens.
+**Decided.** A leaderboard for everybody is a bit dumb, so there will be a
+currency instead. You have not worked out how it should function and asked me to
+make it good.
 
-1. **The relay.** Opus reads, brief stored, Haiku teaches. Escalation after
-   three stuck turns. → The tutor stops failing at the thing it is for.
-2. **Search, fenced.** Facts only, answer-key domains blocked.
-3. **Memory: Remembers.** Continuity across sessions, no profiling, no new
-   consent needed beyond what exists.
-4. **Memory: Learns you.** Consent screen, parent path under 14, readable and
-   deletable profile.
-5. **Groups.** `group` table, classes migrated in, open groups, codes, caps.
-6. **The board.** Weekly, improvement-sorted, solved-alone. Raw totals second.
-7. **Presence.** Studying-now, with the short expiry.
-8. **Reactions.** The closed set. Last, because it is the smallest win.
+Everything in this part is **proposed**. None of it is yours yet.
 
-Steps 1–4 are the tutor. 5–8 are the arena. If the tutor work runs long, the
-arena waits, because an arena around a tutor that cannot read is a worse product
-than a tutor that can read and has no arena.
+### Why it fits
+
+A 9th-grader and a 4th-grader cannot be ranked against each other, class sizes
+differ, and most people sit in the middle forever. A currency means everyone
+earns, nobody is ranked, and nobody is last.
+
+### Earning
+
+| | why |
+|---|---|
+| **Solved on your own** | the tutor judges it, the student cannot claim it — the main earner, and it already exists |
+| Task summited on time | rewards finishing, not starting |
+| Focus minutes | **capped per day**, or it becomes "leave the camera running" |
+| Streak day | small and steady |
+
+### The rule I would not break
+
+**Coins never buy anything that helps you learn.** No hints, no solutions, no
+skips. The moment coins buy answers, the student with the most coins receives
+the worst education and the app argues against itself.
+
+### Spending
+
+- **Your mountain** — a peak that visibly grows: more rock, then snow, then a
+  flag. The app's own metaphor, currently unused.
+- Avatar frames, themes, a name colour on a board.
+- **Gifting to a friend** — cheap to build, and the most pro-social thing
+  available here.
+- **A streak shield** — one-off insurance against a missed day. The only
+  functional purchase I would allow, because it protects motivation rather than
+  substituting for effort.
+
+### What I would avoid
+
+Losing coins, wagering them, entry fees, and "spend it or lose it" timers. Those
+are built for adults with money and read badly aimed at 13-year-olds.
+
+### Open in Part 4
+
+1. Does the currency have a name? ("Coins" is a placeholder.)
+2. Is it visible to other people, or only to you?
+3. Do the numbers reset — weekly, per term, never?
 
 ---
 
-## Open questions
+## Part 5 — the analyser
 
-1. **Screenshots of Bump** — which screens, and what about them.
-2. **Who creates open groups?** Anyone, or only verified 16+, or only accounts
-   older than N days? This is the main lever on how safe open groups are.
-3. **Does a teacher see the class board?** And do they see names against
-   numbers, or only the shape of the class?
-4. **What happens when a student is bottom every week?** I would suggest the
-   board simply does not show a position below a certain point — you see the top
-   few and yourself, never "you are 24th of 24".
-5. **Group size cap.** A group of 200 strangers is a different thing from a
-   group of 8. I would cap open groups low — 20? — and let class groups be
-   whatever the class is.
+**Decided.** You are open to a cool-looking analyser of the person, of his face.
+
+**Available now, unused.** `focus.js` already computes gaze, eyes, proximity,
+and how long eyes stay closed. A session report could show a real attention
+curve, where attention dropped, and when in a session the student holds it best.
+No new data collection required.
+
+**Fact, not preference.** The EU AI Act prohibits AI systems that infer
+**emotions** in education settings — Article 5, prohibited practices, applicable
+since February 2025, with narrow medical and safety exceptions. Bulgaria is in
+scope.
+
+- Allowed: at the desk or not, eyes open, looking at the screen, how long
+  attention held. Presence and attention.
+- Not allowed: happy, bored, frustrated, stressed. Emotion inference.
+
+**Checked, so it does not alarm you.** The `mood` variable in `focus.js` is a
+0-to-1 animation tween used for `globalAlpha` and glow. Despite the name it
+infers nothing about the student. Nothing in the app is over that line today. I
+would rename it before somebody reads the code and assumes otherwise.
+
+### Open in Part 5
+
+1. Attention analysis only, or did you mean something else by "analyser of his
+   face"?
+2. Is it shown after each session, or as a longer-term picture?
+
+---
+
+## Part 6 — the look
+
+**Decided.** You like Bump's look. Bump is a social app about places you have
+visited; Climby is for motivating study; it is the look you want, not the idea.
+
+**Decided.** The Settings menu is still ugly.
+
+**Not designed.** I have not used Bump and will not guess at it. What I need:
+two or three screenshots in `docs/design/`, and which part grabs you — the
+typography, the colour, the density, or the motion. Those are four different
+jobs with four different answers.
+
+**Observed.** From Climby's own screenshots: it is clean and it is empty. The
+navigation uses a third of the sidebar and the screens use their top half. For a
+15-year-old it should feel busy the moment it opens.
+
+---
+
+## Part 7 — what is not in this plan
+
+Things I raised earlier and you did not adopt. Recorded so they do not reappear
+as though they were agreed:
+
+- **No free text between students.** I argued for it; you chose friend-gated
+  chat instead. Your decision stands.
+- **Presence — "Ivan is studying now".** My idea. You have not said you want it.
+- **Reactions from a fixed set.** My idea. Not adopted.
+- **Improvement-sorted leaderboards.** My idea, and largely overtaken by the
+  currency.
+- **Merging `classroom` into a general `group` table.** An engineering proposal
+  I made; you have not seen the argument for it.
+
+---
+
+## Part 8 — the sequence I would suggest
+
+**Proposed**, and the biggest thing left for you to overrule.
+
+1. The relay — Opus reads, description stored, Haiku teaches.
+2. Search, with or without the fence.
+3. Memory, level Low.
+4. Memory, level Normal, with the consent screen.
+5. Groups, and creation by anyone over 12.
+6. Friends: search, friends-of-friends, requests.
+7. The currency: earning, then spending.
+8. Chat, last, because it is the piece that carries a standing duty rather than
+   a finish line.
+9. The analyser.
+10. The look, throughout, once there are references.
+
+Steps 1–4 are the tutor. 5–8 are the people. 9–10 sit across both.
+
+---
+
+## The questions I still need answered
+
+Gathered from every part:
+
+1. Does the Opus description carry the worked solution?
+2. Fenced search, or open?
+3. Low or Normal as the default memory level?
+4. May a student read and delete lines of their own file?
+5. Is a minor findable by strangers by default?
+6. Can people met only in an open group become friends?
+7. What is on a profile?
+8. **Who reads the moderation queue, and how fast?** — this one decides whether
+   chat is viable at all.
+9. Does the currency reset, and is it visible to others?
+10. Bump screenshots, and which part of the look you mean.
