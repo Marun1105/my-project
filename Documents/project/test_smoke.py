@@ -125,6 +125,7 @@ def test_ask_saves_scan_history_for_logged_in_user(monkeypatch):
         content = [_Block()]
 
     monkeypatch.setattr(server.client.messages, "create", lambda **kwargs: _Resp())
+    monkeypatch.setattr(server.client.beta.messages, "create", lambda **kwargs: _Resp())
 
     res = client.post("/ask", json={"images": [], "question": "Какво е това?", "lang": "bg"}, headers=headers)
     assert res.status_code == 200 and res.json()["answer"] == "Ето обяснението."
@@ -156,6 +157,7 @@ def _stub_anthropic(monkeypatch, text="Отговор."):
         content = [_Block()]
 
     monkeypatch.setattr(server.client.messages, "create", lambda **kwargs: _Resp())
+    monkeypatch.setattr(server.client.beta.messages, "create", lambda **kwargs: _Resp())
 
 
 def test_ask_as_guest_is_not_saved(monkeypatch):
@@ -189,6 +191,7 @@ def test_oversized_inputs_are_rejected_cleanly(monkeypatch):
     # таван изобщо и се плащаха на Anthropic.
     called = []
     monkeypatch.setattr(server.client.messages, "create", lambda **kw: called.append(1))
+    monkeypatch.setattr(server.client.beta.messages, "create", lambda **kw: called.append(1))
 
     res = client.post("/auth/register", json={
         "display_name": "X", "email": "big@example.com", "password": "a" * 5000,

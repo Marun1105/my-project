@@ -193,6 +193,31 @@ class ScanHistory(Base):
     created_at = Column(DateTime(timezone=True), default=_now)
 
 
+class ProblemBrief(Base):
+    """What Opus read on a photographed page, kept so the page is read once.
+
+    Haiku cannot reliably read handwritten Bulgarian geometry, and cannot
+    reliably solve it. So Opus reads the photographs once and writes this; every
+    turn of the conversation after that is Haiku, reading this instead of the
+    photographs. The photographs themselves are never stored.
+
+    `read_text` is shown to the student ("what ClimbAI read"), so a misreading
+    can be seen. `solution_text` never leaves the server: it exists only for
+    maths, physics and chemistry, and the tutor steers by it.
+
+    user_id is empty for a guest; the id is an unguessable uuid, so a guest's
+    brief works for as long as their page is open and belongs to no one else.
+    """
+    __tablename__ = "problem_briefs"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
+    subject = Column(String, nullable=False, default="other")
+    read_text = Column(String, nullable=False)
+    solution_text = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
 class CodePurpose(str, enum.Enum):
     verify_email = "verify_email"
     verify_phone = "verify_phone"

@@ -40,9 +40,10 @@ import activity
 import rate_limit
 import scans
 import tasks
+import relay
 import usage
 from db import Base, SessionLocal, engine, get_db
-from models import ScanHistory, Task, User
+from models import ProblemBrief, ScanHistory, Task, User
 from schemas import image_media_type
 
 app = FastAPI()
@@ -194,8 +195,8 @@ SYSTEM = {
 - Карай ученика да обясни: „защо направи това?", „какво значи този резултат?". Обяснението назад
   закрепва повече от четенето напред.
 - Кратко. Всеки отговор има естествен край и една следваща стъпка. Език за възрастта на ученика.
-- Насърчаващо, без лекции и без похвали на празно. Никога не правиш домашното вместо него: ако
-  поиска направо отговора, дай пътя и остави последната стъпка на него.
+- Насърчаващо, без лекции и без похвали на празно. По подразбиране подсказки първо. Но ако
+  ученикът изрично поиска отговора, дай му го — напълно обяснен, така че да проследи всяка стъпка.
 
 Форма:
 - Обяснявай на български, ясно и просто, на ниво, подходящо за ученика.
@@ -223,8 +224,8 @@ How you teach (from the research on good tutors — see docs/ai-v-ucheneto.md):
 - Make the student explain: "why did you do that?", "what does this result mean?". Explaining
   back sticks better than reading forward.
 - Short. Every reply has a natural end and one next step. Language for the student's age.
-- Encouraging, without lectures and without empty praise. Never do the homework for them: if they
-  ask for the answer outright, give the path and leave the last step to them.
+- Encouraging, without lectures and without empty praise. Hints first by default. But if the
+  student explicitly asks for the answer, give it — fully explained, so they can follow every step.
 
 Form:
 - Explain in English, clearly and simply, at a level appropriate for the student.
@@ -294,6 +295,9 @@ class Ask(BaseModel):
     # a different question — and answering it with the same flag left the chat
     # offering to look at photographs it has no way of receiving.
     surface: Literal["chat", "tutor"] = "tutor"
+    # A page Opus has already read. Follow-ups send this instead of uploading
+    # every photograph again; the server keeps what was read (see relay.py).
+    brief_id: Optional[str] = Field(default=None, max_length=64)
 
     @field_validator("images")
     @classmethod
@@ -963,6 +967,57 @@ def _student_context(db: Session, user: User, lang: str) -> str:
     return STUDENT_CONTEXT[lang].format(block="\n".join(lines))
 
 
+BRIEF_GONE_MESSAGE = {
+    "en": "That page is no longer on the server — sending it again.",
+    "bg": "Тази страница вече не е на сървъра — изпращам я отново.",
+}
+
+
+def _read_pages(db: Session, body: "Ask", user: Optional[User], lang: str):
+    """Opus reads the photographs and the result is stored. None on any failure.
+
+    Best effort from end to end: a reader that errors, refuses, times out or
+    answers in the wrong shape leaves the conversation exactly where it was
+    before the relay existed — Haiku reading the photographs.
+    """
+    image_blocks = [
+        {"type": "image", "source": {
+            "type": "base64", "media_type": _image_media_type(img) or "image/jpeg", "data": img}}
+        for img in body.images
+    ]
+    try:
+        fields, resp = relay.read_pages(client, image_blocks, body.question, lang,
+                                        grade=getattr(user, "grade", None) if user else None)
+    except Exception as err:  # noqa: BLE001 — every failure means the same thing here
+        print(f"[ask] reader failed, Haiku reads the photos instead: {err!r}", flush=True)
+        return None
+    usage.record(db, resp)
+    brief = ProblemBrief(user_id=user.id if user else None, **fields)
+    try:
+        db.add(brief)
+        db.commit()
+        db.refresh(brief)
+    except Exception as err:  # noqa: BLE001
+        db.rollback()
+        print(f"[ask] could not store the brief: {err!r}", flush=True)
+        return None
+    return brief
+
+
+def _load_brief(db: Session, brief_id: str, user: Optional[User]):
+    """The brief, if it exists and this caller may use it.
+
+    A brief that belongs to an account is that account's alone. A guest's brief
+    has no owner and is reachable only through its unguessable id.
+    """
+    brief = db.get(ProblemBrief, brief_id)
+    if brief is None:
+        return None
+    if brief.user_id and (user is None or brief.user_id != user.id):
+        return None
+    return brief
+
+
 @app.post("/ask")
 def ask(
     body: Ask,
@@ -980,9 +1035,28 @@ def ask(
     # The day's budget, after the in-memory brake and never before it; a call
     # refused for budget gives its hit back. See usage.guard.
     usage.guard(db, lang, request, "ask", user)
+    # Opus reads new photographs once; a follow-up names the page it already read.
+    # Either way Haiku then tutors from text and the photographs are not sent to
+    # it again. If reading fails, brief stays None and Haiku reads the photos
+    # itself, as it always did — the student never sees the relay fail.
+    brief, fresh = None, False
+    # Only on a conversation's first question. Installed copies from before the
+    # relay resend every photograph on every follow-up and never send brief_id;
+    # reading on each of those would cost them 35 seconds and an Opus call per
+    # message. Their follow-ups keep working exactly as before — Haiku reads the
+    # photos — until they update.
+    if body.images and not body.history:
+        brief = _read_pages(db, body, user, lang)
+        fresh = brief is not None
+    elif body.brief_id:
+        brief = _load_brief(db, body.brief_id, user)
+        if brief is None:
+            # The page is gone (or is somebody else's). The client still holds the
+            # photographs and resends them; 410 is the signal to do so.
+            raise HTTPException(410, BRIEF_GONE_MESSAGE[lang])
     # Типът се взима от самата снимка, а не се предполага: приложението праща JPEG,
     # но качен от компютър файл спокойно може да е PNG и тогава "image/jpeg" е лъжа.
-    messages = _build_messages(body.images, body.history, body.question)
+    messages = _build_messages([] if brief else body.images, body.history, body.question)
     system = SYSTEM[lang] + (FULL_SOLUTIONS[lang] if body.mode == "full" else "")
     system += NOTATION[lang]                    # how a Bulgarian exercise book is written
     system += APP_MAP[lang]                     # what the app around it is
@@ -990,6 +1064,9 @@ def ask(
     system += _grade_register(user, lang)       # every answer, photo or chat
     if body.context and user:
         system += _student_context(db, user, lang)
+    if brief is not None:
+        system += relay.brief_block(brief, lang)   # the page, as Opus read it
+    system += relay.TOOL_RULES[lang]              # when to ask Opus, what to search
     # Offered only where it could be acted on: the chat, signed in. A guest has
     # no Route to add to, and the photo screen is one problem rather than an
     # assignment. The block is stripped below regardless of this.
@@ -1013,16 +1090,21 @@ def ask(
         # грешка — просто не кешира нищо и cache_read_input_tokens остава 0.
         # Ако промптът някога мине 4096 токена, тогава си струва да се сложи
         # cache_control на статичната част; дотогава е шум.
-        resp = client.messages.create(
+        resp = client.beta.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=1500,
+            betas=[relay.ADVISOR_BETA],
+            tools=relay.tutor_tools(),
             system=system,
             messages=messages,
         )
     except APIError:
         raise HTTPException(502, ASK_ERROR_MESSAGE[lang])
     usage.record(db, resp)
-    answer = "".join(b.text for b in resp.content if b.type == "text")
+    # Only what comes after the last tool round-trip: Haiku sometimes announces
+    # the consultation first ("let me consult on the best method"), and that
+    # sentence is not for the student.
+    answer = relay.answer_text(resp)
     # Unconditionally: whatever the model put in the answer, the student reads
     # the answer and not the machinery.
     answer, marks = _strip_marked_blocks(answer)
@@ -1041,4 +1123,11 @@ def ask(
             db.rollback()
             print(f"[ask] could not save to history: {err!r}", flush=True)
 
-    return {"answer": answer, "suggestions": suggestions, "solved": solved}
+    return {
+        "answer": answer, "suggestions": suggestions, "solved": solved,
+        # The page this conversation is about, for the follow-ups to name.
+        "brief_id": brief.id if brief is not None else None,
+        # What was read — shown once, on the first answer, so a misreading can be
+        # caught. Never the solution: that stays on the server.
+        "read": brief.read_text if fresh else None,
+    }

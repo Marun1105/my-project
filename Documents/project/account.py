@@ -22,7 +22,7 @@ from auth import get_current_user
 from db import get_db
 from models import (
     ClassroomMember, Classroom, CodeAttempt, FamilyInvite, FamilyLink, FocusSession,
-    OAuthIdentity, PairRequest, PairedDevice, PhonePhoto, ScanHistory, Task, User,
+    OAuthIdentity, PairRequest, PairedDevice, PhonePhoto, ProblemBrief, ScanHistory, Task, User,
     VerificationCode,
 )
 from schemas import ProfileUpdate, UserOut
@@ -123,6 +123,7 @@ def export_data(
     tasks = db.query(Task).filter(Task.user_id == user.id).order_by(Task.created_at).all()
     scans = db.query(ScanHistory).filter(ScanHistory.user_id == user.id).order_by(ScanHistory.created_at).all()
     sessions = db.query(FocusSession).filter(FocusSession.user_id == user.id).order_by(FocusSession.created_at).all()
+    briefs = db.query(ProblemBrief).filter(ProblemBrief.user_id == user.id).order_by(ProblemBrief.created_at).all()
     parents = (db.query(User.display_name, FamilyLink.created_at)
                .join(FamilyLink, FamilyLink.parent_user_id == User.id)
                .filter(FamilyLink.student_user_id == user.id).all())
@@ -154,6 +155,10 @@ def export_data(
         "questions": [{
             "question": s.question, "answer": s.answer, "lang": s.lang, "asked_at": _iso(s.created_at),
         } for s in scans],
+        "photographed_pages": [{
+            "subject": b.subject, "what_was_read": b.read_text, "worked_solution": b.solution_text,
+            "at": _iso(b.created_at),
+        } for b in briefs],
         "study_sessions": [{
             "duration_seconds": s.duration_seconds, "focus_pct": s.focus_pct, "at": _iso(s.created_at),
         } for s in sessions],
@@ -226,6 +231,7 @@ def delete_account(
 
     db.query(Task).filter(Task.user_id == uid).delete(synchronize_session=False)
     db.query(ScanHistory).filter(ScanHistory.user_id == uid).delete(synchronize_session=False)
+    db.query(ProblemBrief).filter(ProblemBrief.user_id == uid).delete(synchronize_session=False)
     db.query(FocusSession).filter(FocusSession.user_id == uid).delete(synchronize_session=False)
     db.query(VerificationCode).filter(VerificationCode.user_id == uid).delete(synchronize_session=False)
     db.query(CodeAttempt).filter(CodeAttempt.user_id == uid).delete(synchronize_session=False)

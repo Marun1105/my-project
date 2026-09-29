@@ -58,6 +58,7 @@ def _answers(monkeypatch, text):
         return _Resp()
 
     monkeypatch.setattr(server.client.messages, "create", fake_create)
+    monkeypatch.setattr(server.client.beta.messages, "create", fake_create)
     return seen
 
 

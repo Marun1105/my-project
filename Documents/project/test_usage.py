@@ -43,6 +43,7 @@ def _fresh(monkeypatch):
     db.commit()
     db.close()
     monkeypatch.setattr(server.client.messages, "create", lambda **kwargs: _Resp())
+    monkeypatch.setattr(server.client.beta.messages, "create", lambda **kwargs: _Resp())
     monkeypatch.setattr(usage, "DAILY_TOKEN_CAP", 3_000_000)
     yield
 
