@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-anthropic
+anthropic>=0.117,<2  # tested on 0.117 locally and 1.9 in a clean prod-like venv; the relay uses beta params
 sqlalchemy
 psycopg2-binary
 passlib[bcrypt]
