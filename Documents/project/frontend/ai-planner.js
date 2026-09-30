@@ -3,6 +3,11 @@ const Planner = (() => {
   const $ = id => document.getElementById(id);
   const BACKEND = window.CLIMBY_BACKEND;
 
+  function authHeader() {
+    const token = window.Auth && Auth.getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
   function renderAdvice(text) {
     const el = $('planAdvice');
     el.classList.remove('error', 'thinking');
@@ -37,7 +42,10 @@ const Planner = (() => {
         // по-бавен от обикновена заявка към базата. Ползваме същия дълъг срок.
         timeout: Net.AI_TIMEOUT_MS,
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // Signed in, the request is counted against the account's own limit and
+        // budget; without the token every student behind one school router
+        // shared a single guest allowance.
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
         body: JSON.stringify({ tasks, lang: I18n.get() }),
       });
       const data = await res.json().catch(() => ({}));

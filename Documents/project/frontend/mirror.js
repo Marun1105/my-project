@@ -73,15 +73,17 @@ const Mirror = (() => {
   const RECENT_MAX = 3;
   let recentSeq = 0;
 
+  // Each panel answers with how many rows it drew: 0 for none, null when it
+  // does not know (no answer from the server, or overtaken by a newer draw).
   async function renderRecent() {
     const box = $('recentAsked');
     const list = $('recentAskedList');
-    if (!box || !list) return;
-    if (!window.Auth || !Auth.isLoggedIn()) { box.classList.add('hidden'); return; }
+    if (!box || !list) return null;
+    if (!window.Auth || !Auth.isLoggedIn()) { box.classList.add('hidden'); return 0; }
     const my = ++recentSeq;
     let scans;
-    try { scans = await get('/scans'); } catch { return; }
-    if (my !== recentSeq) return;
+    try { scans = await get('/scans'); } catch { return null; }
+    if (my !== recentSeq) return null;
     scans = (scans || []).slice(0, RECENT_MAX);
     list.textContent = '';
     for (const scan of scans) {
@@ -96,16 +98,81 @@ const Mirror = (() => {
       list.appendChild(li);
     }
     box.classList.toggle('hidden', scans.length === 0);
+    return scans.length;
+  }
+
+  // What is next on the Route: the few open tasks that are most urgent, the
+  // same order the Route itself uses. Tapping one goes there.
+  const NEXT_MAX = 3;
+  let nextSeq = 0;
+
+  function urgency(task) {
+    const d = window.Checklist && Checklist.daysUntil ? Checklist.daysUntil(task.deadline) : null;
+    return d === null ? Infinity : d;
+  }
+
+  async function renderNext() {
+    const box = $('routeNext');
+    const list = $('routeNextList');
+    if (!box || !list) return null;
+    if (!window.Auth || !Auth.isLoggedIn()) { box.classList.add('hidden'); return 0; }
+    const my = ++nextSeq;
+    let tasks;
+    try { tasks = await get('/tasks'); } catch { return null; }
+    if (my !== nextSeq) return null;
+    const open = (tasks || []).filter(x => !x.done).sort((a, b) => urgency(a) - urgency(b)).slice(0, NEXT_MAX);
+    list.textContent = '';
+    for (const task of open) {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'route-next-item';
+      btn.addEventListener('click', () => { if (window.Nav) Nav.activate('checklist'); });
+      const text = document.createElement('span');
+      text.className = 'recent-asked-q';
+      text.textContent = task.text;
+      const meta = document.createElement('span');
+      meta.className = 'route-next-meta';
+      if (task.subject) {
+        const pill = document.createElement('span');
+        pill.className = 'pill';
+        pill.textContent = task.subject;
+        meta.appendChild(pill);
+      }
+      if (window.Checklist && Checklist.deadlineLabel) {
+        const dl = Checklist.deadlineLabel(task.deadline);
+        const when = document.createElement('span');
+        when.className = 'deadline' + (dl.overdue ? ' overdue' : '') + (dl.soon ? ' soon' : '');
+        when.textContent = dl.text;
+        meta.appendChild(when);
+      }
+      btn.append(text, meta);
+      li.appendChild(btn);
+      list.appendChild(li);
+    }
+    box.classList.toggle('hidden', open.length === 0);
+    return open.length;
+  }
+
+  // Both panels empty — a new account, or a guest — and the space under the
+  // cards gets three ways in instead of nothing. Unknown is not empty: a
+  // server that did not answer does not turn a regular into a beginner.
+  function renderHome() {
+    Promise.all([renderRecent(), renderNext()]).then(([recent, next]) => {
+      const start = $('homeStart');
+      if (start) start.classList.toggle('hidden', !(recent === 0 && next === 0));
+    });
   }
 
   async function render() {
-    renderRecent();
     const el = $('mirror');
     if (!el) return;
     // Events arrive from every screen — a task ticked on the Route, a chat
     // message. Fetching for a line that is inside a hidden view is a wasted
-    // request; the view-shown handler redraws it the moment it matters.
+    // request; the view-shown handler redraws it the moment it matters. The
+    // recent list is on the same screen and waits the same way.
     if (window.Nav && Nav.currentView && Nav.currentView() !== 'tutor') return;
+    renderHome();
     if (!window.Auth || !Auth.isLoggedIn()) { el.classList.add('hidden'); return; }
     const my = ++seq;
     let data;
@@ -155,8 +222,10 @@ const Mirror = (() => {
   }
 
   function init() {
-    const all = document.querySelector('.recent-asked-all');
+    const all = document.querySelector('#recentAsked .recent-asked-all');
     if (all) all.addEventListener('click', () => { if (window.Nav) Nav.activate('history'); });
+    const chat = $('homeStartChat');
+    if (chat) chat.addEventListener('click', () => { if (window.Chat) Chat.open(); });
     window.addEventListener('climby:view-shown', e => { if (e.detail.view === 'tutor') render(); });
     window.addEventListener('climby:auth-changed', render);
     window.addEventListener('climby:lang-changed', render);

@@ -216,6 +216,14 @@ const History = (() => {
         } else {
           answer.textContent = scan.answer;
         }
+        // The same maths the tutor showed: without this a saved answer read
+        // "$rac{3}{4}$" where the student had seen a fraction.
+        if (window.renderMathInElement) {
+          renderMathInElement(answer, {
+            delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }],
+            throwOnError: false,
+          });
+        }
         rendered = true;
       }
     });
@@ -234,6 +242,39 @@ const History = (() => {
     li.appendChild(body);
     li.appendChild(del);
     return li;
+  }
+
+  // Three numbers above the list: how many are done, how many of those with a
+  // deadline were done in time, and how many this week. Effort, counted; a late
+  // one is not a mark against anybody, so the second number only counts tasks
+  // that had a deadline at all.
+  function renderStats(done) {
+    const box = $('historyStats');
+    if (!box) return;
+    if (!done.length) { box.classList.add('hidden'); return; }
+    const dated = done.filter(x => x.deadline && x.completed_at);
+    const onTime = dated.filter(x => daysBetween(x.deadline, x.completed_at) <= 0).length;
+    const weekAgo = Date.now() - 7 * 86400000;
+    const week = done.filter(x => x.completed_at && new Date(x.completed_at).getTime() >= weekAgo).length;
+    const cells = [
+      [String(done.length), window.t('history.statDone')],
+      [dated.length ? Math.round((100 * onTime) / dated.length) + '%' : '—', window.t('history.statOnTime')],
+      [String(week), window.t('history.statWeek')],
+    ];
+    box.textContent = '';
+    for (const [value, label] of cells) {
+      const cell = document.createElement('div');
+      cell.className = 'stat-cell';
+      const v = document.createElement('span');
+      v.className = 'stat-value';
+      v.textContent = value;
+      const l = document.createElement('span');
+      l.className = 'stat-label';
+      l.textContent = label;
+      cell.append(v, l);
+      box.appendChild(cell);
+    }
+    box.classList.remove('hidden');
   }
 
   // Чия сметка е нарисувана в момента на екрана. Таблетът е семеен и минава от
@@ -311,6 +352,7 @@ const History = (() => {
     const done = tasks
       .filter(t => t.done)
       .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
+    renderStats(done);
 
     list.innerHTML = '';
     if (done.length === 0) {
@@ -333,6 +375,7 @@ const History = (() => {
       // следващия да дочете списъка, докато сървърът се събужда.
       $('historyList').innerHTML = '';
       $('scanHistoryList').innerHTML = '';
+      if ($('historyStats')) $('historyStats').classList.add('hidden');
       $('historyEmpty').classList.add('hidden');
       $('scanHistoryEmpty').classList.add('hidden');
       renderedFor = null;

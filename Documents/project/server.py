@@ -48,6 +48,10 @@ from schemas import image_media_type
 
 app = FastAPI()
 client = Anthropic()  # чете ANTHROPIC_API_KEY от средата
+# The reader has its own hard stop (relay.READER_TIMEOUT_S), and the SDK's two
+# automatic retries would triple it into a wait the student's app gives up on.
+# One try; on failure Haiku reads the photos, which is the designed fallback.
+reader_client = client.with_options(max_retries=0)
 
 # Схемата се пипа от всеки работник при вдигане, а на Render работниците са
 # няколко и тръгват едновременно. Затова цялата стъпка минава под една ключалка:
@@ -986,7 +990,7 @@ def _read_pages(db: Session, body: "Ask", user: Optional[User], lang: str):
         for img in body.images
     ]
     try:
-        fields, resp = relay.read_pages(client, image_blocks, body.question, lang,
+        fields, resp = relay.read_pages(reader_client, image_blocks, body.question, lang,
                                         grade=getattr(user, "grade", None) if user else None)
     except Exception as err:  # noqa: BLE001 — every failure means the same thing here
         print(f"[ask] reader failed, Haiku reads the photos instead: {err!r}", flush=True)

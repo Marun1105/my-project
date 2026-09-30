@@ -71,6 +71,7 @@ def _fake(monkeypatch, reader_text=None, reader_error=None, reader_stop="end_tur
 
     monkeypatch.setattr(server.client.beta.messages, "create", create)
     monkeypatch.setattr(server.client.messages, "create", create)
+    monkeypatch.setattr(server.reader_client.beta.messages, "create", create)
     return calls
 
 
@@ -320,3 +321,20 @@ def test_the_export_includes_what_was_read(monkeypatch):
     assert pages[0]["what_was_read"] == READ
     # the student's own data includes the solution, even if the tutor holds it back
     assert pages[0]["worked_solution"] == SOLUTION
+
+
+def test_the_reader_is_tried_once_with_a_hard_stop():
+    """Two SDK retries on a 75 s timeout is almost four minutes; the app gives up
+    long before, and the student sees an error instead of the fallback."""
+    assert server.reader_client.max_retries == 0
+    assert server.client.max_retries > 0, "the tutor call keeps its retries"
+    assert relay.READER_TIMEOUT_S <= 80
+
+
+def test_the_reader_call_carries_the_timeout(monkeypatch):
+    calls = _fake(monkeypatch)
+    rate_limit._hits.clear()
+    res = client.post("/ask", json={"images": [JPEG], "question": "22?", "lang": "en"})
+    assert res.status_code == 200
+    reader = [c for c in calls if c["model"] == relay.READER_MODEL]
+    assert reader and reader[0]["timeout"] == relay.READER_TIMEOUT_S

@@ -79,9 +79,12 @@ const Checklist = (() => {
     btn.textContent = t('checklist.splitting');
     let steps;
     try {
+      const token = Auth.getToken();
       const res = await Net.fetch(BACKEND + '/plan/split', {
+        timeout: Net.AI_TIMEOUT_MS,   // an AI answer, not a database read
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // the account's own limit, not the shared guest one (see ai-planner.js)
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ text: task.text, subject: task.subject, lang: I18n.get() }),
       });
       const data = await res.json().catch(() => ({}));
@@ -510,7 +513,7 @@ const Checklist = (() => {
     return true;
   }
 
-  return { init, getPendingTasks, syncBadge, addTask, removeNewestMatching };
+  return { init, getPendingTasks, syncBadge, addTask, removeNewestMatching, deadlineLabel, daysUntil };
 })();
 
 window.Checklist = Checklist;

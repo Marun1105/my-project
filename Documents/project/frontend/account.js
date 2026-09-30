@@ -52,7 +52,7 @@ const Account = (() => {
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
     } catch {
-      alert(t('account.errGeneric'));
+      if (window.Toast) Toast.show(t('account.errGeneric'));
     } finally {
       btn.disabled = false;
     }
@@ -94,10 +94,18 @@ const Account = (() => {
 
   function init() {
     if (!$('accountRows')) return;
-    $('accountPasswordForm').addEventListener('submit', changePassword);
+    // Two presses sent two changes; the second one failed on the old password
+    // the first had just replaced, and said so in red.
+    $('accountPasswordForm').addEventListener('submit', e => {
+      e.preventDefault();
+      Net.guardSubmit(e.currentTarget, () => changePassword(e));
+    });
     $('accountExportBtn').addEventListener('click', exportData);
     $('accountDeleteBtn').addEventListener('click', revealDelete);
-    $('accountDeleteForm').addEventListener('submit', deleteAccount);
+    $('accountDeleteForm').addEventListener('submit', e => {
+      e.preventDefault();
+      Net.guardSubmit(e.currentTarget, () => deleteAccount(e));
+    });
     window.addEventListener('climby:auth-changed', sync);
     sync();
   }

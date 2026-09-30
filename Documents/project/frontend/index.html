@@ -260,6 +260,17 @@
     <!-- Език и тема са един и същ вид избор: две-три възможности, всички видими
          наведнъж. Затова изглеждат еднакво. Дотук езикът беше единствената
          системна контрола в иначе изцяло начертан интерфейс и си личеше. -->
+    <div class="settings-body">
+    <!-- Where things are, on a wide screen: the groups by name, one click away.
+         On a phone the list would only push the settings down, so it is hidden. -->
+    <nav class="settings-nav" aria-label="Settings sections" data-i18n-aria-label="settings.navAria">
+      <button type="button" class="settings-nav-link" data-settings-jump="setAppearance" data-i18n="settings.secAppearance">Appearance</button>
+      <button type="button" class="settings-nav-link" data-settings-jump="setTutor" data-i18n="settings.secTutor">ClimbAI</button>
+      <button type="button" class="settings-nav-link" data-settings-jump="setApp" data-i18n="settings.secApp">The app</button>
+      <button type="button" class="settings-nav-link settings-nav-account" data-settings-jump="accountRows" data-i18n="settings.secAccount">Account</button>
+    </nav>
+    <div class="settings-main">
+    <section class="settings-group" id="setAppearance">
     <h3 class="settings-section" data-i18n="settings.secAppearance">Appearance</h3>
     <div class="settings-row settings-row-stack">
       <span data-i18n="settings.language">Език</span>
@@ -296,6 +307,8 @@
       </div>
       <p class="settings-note" data-i18n="settings.readingNote">Wider letters and taller lines — easier on the eyes, especially with dyslexia.</p>
     </div>
+    </section>
+    <section class="settings-group" id="setTutor">
     <h3 class="settings-section" data-i18n="settings.secTutor">ClimbAI</h3>
     <div class="settings-row">
       <span class="settings-label" data-i18n="settings.tutorMode">How ClimbAI explains</span>
@@ -320,6 +333,8 @@
       <span class="settings-label" data-i18n="settings.voice">Voice</span>
       <div id="voicePicker" class="voice-picker"></div>
     </div>
+    </section>
+    <section class="settings-group" id="setApp">
     <h3 class="settings-section" data-i18n="settings.secApp">The app</h3>
     <div class="settings-row">
       <span data-i18n="settings.tour">Show the tour again</span>
@@ -338,9 +353,10 @@
       <div id="settingsDevices" class="device-list"></div>
     </div>
 
+    </section>
     <!-- The account itself: change the password, take the data, leave. Signed-in
          only. Leaving is last and behind a confirmation, because it is total. -->
-    <div id="accountRows" class="hidden">
+    <section id="accountRows" class="settings-group hidden">
     <h3 class="settings-section" data-i18n="settings.secAccount">Account</h3>
     <div class="settings-row">
       <span><span data-i18n="settings.profileTitle">About you</span><br><small id="settingsProfileSummary" class="settings-note"></small></span>
@@ -370,6 +386,8 @@
         </form>
         <p id="accountDeleteMsg" class="settings-note hidden" role="alert"></p>
       </div>
+    </section>
+    </div>
     </div>
   </div>
 </div>
@@ -591,13 +609,42 @@
 <!-- What you asked recently, under the cards. The home screen had one line
      about you and then nothing; the last few questions are the most natural
      thing to find there, and the way back into something half-understood. -->
-<section id="recentAsked" class="recent-asked hidden" aria-labelledby="recentAskedTitle">
+<!-- Under the cards: what is next on the Route and what was asked lately, side
+     by side on a wide screen. A new account has neither, and gets three ways
+     in instead — the screen is never cards and then nothing. -->
+<div id="homeGrid" class="home-grid">
+<section id="routeNext" class="recent-asked home-panel hidden" aria-labelledby="routeNextTitle">
+  <div class="recent-asked-head">
+    <h2 id="routeNextTitle" class="history-section-title" data-i18n="home.nextTitle">Next on your Route</h2>
+    <button type="button" class="recent-asked-all" data-goto-view="checklist" data-i18n="home.nextAll">The whole Route</button>
+  </div>
+  <ul id="routeNextList" class="recent-asked-list route-next-list"></ul>
+</section>
+<section id="recentAsked" class="recent-asked home-panel hidden" aria-labelledby="recentAskedTitle">
   <div class="recent-asked-head">
     <h2 id="recentAskedTitle" class="history-section-title" data-i18n="recent.title">Recently asked</h2>
     <button type="button" class="recent-asked-all" data-view="history" data-i18n="recent.all">All questions</button>
   </div>
   <ul id="recentAskedList" class="recent-asked-list"></ul>
 </section>
+<section id="homeStart" class="home-start hidden" aria-labelledby="homeStartTitle">
+  <h2 id="homeStartTitle" class="history-section-title" data-i18n="home.startTitle">Start here</h2>
+  <div class="home-start-row">
+    <button type="button" class="home-start-item" data-goto-view="checklist">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6.5h11M9.5 12h11M9.5 17.5h11"/><path d="m3 6.5 1.4 1.4L7 5.4"/><path d="m3 12 1.4 1.4L7 10.9"/><path d="m3 17.5 1.4 1.4L7 16.4"/></svg>
+      <span><strong data-i18n="home.startRoute">Write down your homework</strong><span data-i18n="home.startRouteHint">The Route puts the most urgent first.</span></span>
+    </button>
+    <button type="button" class="home-start-item" id="homeStartChat">
+      <span class="spark climbai-mark" aria-hidden="true"></span>
+      <span><strong data-i18n="home.startChat">Ask ClimbAI anything</strong><span data-i18n="home.startChatHint">A word, a rule, a problem — typed, no photo.</span></span>
+    </button>
+    <button type="button" class="home-start-item" data-goto-view="focus">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg>
+      <span><strong data-i18n="home.startFocus">Start a focus session</strong><span data-i18n="home.startFocusHint">Counts your time at the desk. Nothing leaves this device.</span></span>
+    </button>
+  </div>
+</section>
+</div>
 <!-- Past papers: exam, subject, year, page — and the page goes to the scanner as
      if it had been photographed. Hidden until the fourth entry card is pressed. -->
 <div id="paperPicker" class="paper-picker hidden">
@@ -749,6 +796,15 @@
   </div>
 </div>
 
+<!-- What ClimbAI read off the photographed pages, folded shut. A misread number
+     changes the whole answer; this is where it can be caught. Filled by tutor.js. -->
+<details id="readPanel" class="read-panel hidden">
+  <summary>
+    <span class="read-panel-title" data-i18n="scanner.readTitle">What ClimbAI read</span>
+    <span class="read-panel-hint" data-i18n="scanner.readHint">Check it matches your page</span>
+  </summary>
+  <div class="read-body"></div>
+</details>
 <div id="answer" class="card answer hidden" role="status" aria-live="polite"></div>
 <!-- The rest of the conversation: the student's replies and the tutor's answers,
      in order. The reply box appears once there is something to reply to. -->
@@ -783,6 +839,9 @@
       <strong data-i18n="checklist.how">Как работи чеклистът:</strong> <span data-i18n="checklist.howBody">добавяш задача с предмет и срок. Най-спешните излизат най-отгоре. Отметни я, когато я довършиш.</span>
     </div>
 
+    <!-- The left column on a wide screen: adding, and asking for a plan. Under
+         the form it was empty space the height of the list. -->
+    <div id="routeSide" class="route-side">
     <form id="taskForm" class="task-form">
       <label for="taskText" data-i18n="checklist.taskLabel">Задача</label>
       <input id="taskText" type="text" data-i18n-placeholder="checklist.taskPlaceholder" placeholder="Напр. „Реши задачи 4–8, стр. 32“" required>
@@ -800,6 +859,11 @@
 
       <button type="submit" class="btn-primary" data-i18n="checklist.addBtn">Добави задача</button>
     </form>
+    <div class="controls route-plan">
+      <button id="planBtn" class="btn-ai" type="button"><span class="spark climbai-mark" aria-hidden="true"></span><span data-i18n="checklist.planBtn">Помощ за плана</span></button>
+    </div>
+    <div id="planAdvice" class="card answer hidden" role="status" aria-live="polite"></div>
+    </div>
 
     <div id="taskTools" class="task-tools hidden">
       <div class="task-progress">
@@ -808,13 +872,13 @@
       </div>
       <button id="taskDoneAllBtn" class="btn-secondary task-tool" type="button" data-i18n="checklist.doneAll">Отметни всички</button>
     </div>
+    <!-- The subject filter, in the Route itself. It was a bar pinned to the
+         bottom of the window: it covered the last task and, on a monitor, cut
+         its own chips off halfway across an empty screen. -->
+    <div id="subjectBar" class="subject-bar hidden" role="group" data-i18n-aria-label="subjects.filterAria" aria-label="Филтър по предмет"></div>
     <ul id="taskList" class="task-list"></ul>
     <div id="taskEmpty" class="empty-state"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6.5h11M9.5 12h11M9.5 17.5h11"/><path d="m3 6.5 1.4 1.4L7 5.4"/><path d="m3 12 1.4 1.4L7 10.9"/><path d="m3 17.5 1.4 1.4L7 16.4"/></svg></span><p class="empty-title" data-i18n="checklist.emptyDefault">Няма добавени задачи още — добави първата отгоре.</p></div>
 
-    <div class="controls" style="margin-top: 20px;">
-      <button id="planBtn" class="btn-ai" type="button"><span class="spark climbai-mark" aria-hidden="true"></span><span data-i18n="checklist.planBtn">Помощ за плана</span></button>
-    </div>
-    <div id="planAdvice" class="card answer hidden" role="status" aria-live="polite"></div>
 
   </div>
 
@@ -841,6 +905,10 @@
     <div class="explainer help-note hidden">
       <strong data-i18n="history.intro">Тук е всичко, което вече си свършил.</strong> <span data-i18n="history.introBody">Виждаш кога си го добавил, какъв е бил срокът и дали си успял навреме.</span>
     </div>
+
+    <!-- The record in three numbers, above the list it summarises. Filled by
+         history.js from the tasks it already loads — no extra request. -->
+    <div id="historyStats" class="stat-strip hidden" aria-live="polite"></div>
 
     <div class="pill-tabs" role="tablist">
       <button class="pill-tab active" type="button" role="tab" aria-selected="true"
@@ -886,6 +954,10 @@
     <strong data-i18n="focus.how">Как работи фокус камерата:</strong> <span data-i18n="focus.howBody">следи тихо колко време си на бюрото, докато учиш. Не те прекъсва и не те подсеща по време на сесията — само брои. Разпознаването става изцяло на твоето устройство — снимки никога не се качват никъде и не се пазят.</span>
   </div>
 
+  <!-- Two columns on a wide screen: the session on the left, what the earlier
+       ones were on the right. One column everywhere else. -->
+  <div class="focus-layout">
+  <div class="focus-main">
   <!-- Серията е запис на вече учено, а не състояние на камерата. Стоеше вътре в
        етапа, който се скрива при изключена камера — тоест наградата за десет дни
        учене изчезваше заради превключвател, който няма нищо общо с нея. -->
@@ -932,11 +1004,13 @@
   </div>
 
   <p id="focusError" class="auth-error hidden"></p>
+  </div>
 
   <!-- Какви са били сесиите, не само че ги е имало. Екранът под брояча беше
        празен, а записът — също: „3 дни подред" не казва дали дните са били по
        дванайсет минути или по два часа. -->
   <section id="sessionHistory" class="session-history hidden"></section>
+  </div>
 
 </main>
 
@@ -983,14 +1057,19 @@
       <strong data-i18n="family.introStudent">Your rope team.</strong> <span data-i18n="family.introStudentBody">Whoever you give a code to sees your numbers — how many tasks, how many minutes, how many days in a row. Never what a task says or what you asked.</span>
     </div>
 
+    <!-- Side by side on a wide screen: making a code, and who already holds one. -->
+    <div class="family-grid">
+    <section class="family-panel">
     <h3 class="history-section-title" data-i18n="family.shareTitle">Дай достъп на родител</h3>
     <p class="hint" data-i18n="family.shareBody">Създай код и го дай на родителя си. Кодът важи 48 часа и може да се използва веднъж.</p>
     <div class="controls">
       <button id="familyInviteBtn" class="btn-ghost" type="button" data-i18n="family.inviteBtn">Създай код</button>
     </div>
     <p id="familyInviteCode" class="family-code hidden"></p>
+    </section>
 
-    <div id="familyParents"></div>
+    <section id="familyParents" class="family-panel"></section>
+    </div>
     </div>
   </div>
 
@@ -1049,7 +1128,6 @@
 
 </main>
 
-    <div id="subjectBar" class="subject-bar hidden" role="group" data-i18n-aria-label="subjects.filterAria" aria-label="Филтър по предмет"></div>
 
   </div>
 </div>

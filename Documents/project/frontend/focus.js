@@ -188,8 +188,7 @@ const Focus = (() => {
     // или да е спрял сесията. Тогава пътечките се спират веднага — иначе
     // лампичката свети за сесия, която никой не е започвал.
     if (attempt !== startId || !isEnabled()) {
-      dropMedia(media);
-      starting = false;
+      abandonStart(media);
       return;
     }
 
@@ -206,8 +205,7 @@ const Focus = (() => {
     // Зареждането на модела е второ чакане, значи и второ място, на което сесията
     // може да е отпаднала под краката ни.
     if (attempt !== startId || !isEnabled()) {
-      dropMedia(media);
-      starting = false;
+      abandonStart(media);
       return;
     }
 
@@ -223,6 +221,16 @@ const Focus = (() => {
     $('focusBadge').classList.remove('hidden');
     startBadgeClock();
     startTracking();
+  }
+
+  // A start that was overtaken while it waited. Its camera goes back at once,
+  // and the screen must not stay on "Loading": leaving the tab mid-start used to
+  // do exactly that, and coming back showed a spinner for a session that never
+  // began, with no button to press.
+  function abandonStart(media) {
+    dropMedia(media);
+    starting = false;
+    if (!sessionStart && isEnabled()) showStage('Idle');
   }
 
   // ---------- разпознаване и рисуване ----------
@@ -875,8 +883,11 @@ const Focus = (() => {
     if (badgeStop) {
       badgeStop.addEventListener('click', () => {
         if (!sessionLive()) return;
-        if (window.Nav) Nav.activate('focus');
+        // Stop first, then go there. The other way round, arriving on the tab
+        // reopened the camera for the session that was about to end — the light
+        // blinked on for nothing.
         stopSession(false);
+        if (window.Nav) Nav.activate('focus');
       });
     }
     // Затваряне на таба е същото като излизане — иначе камерата остава заета,

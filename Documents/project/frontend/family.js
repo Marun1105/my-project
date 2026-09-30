@@ -85,14 +85,14 @@ const Family = (() => {
     unlink.className = 'task-delete';
     unlink.setAttribute('aria-label', t('family.unlinkBtn'));
     unlink.textContent = '✕';
-    unlink.addEventListener('click', async () => {
-      try {
-        await api(`/family/students/${s.student_id}`, { method: 'DELETE' });
-        render();
-      } catch { render(); }
-    });
     head.appendChild(name);
     head.appendChild(unlink);
+    // One tap used to end the link for good — getting it back needs a new code
+    // from the child. It asks first now.
+    InlineConfirm.wire(head, unlink,
+      t('family.confirmUnlink', { name: s.display_name }),
+      t('family.confirmUnlinkWhy'),
+      () => api(`/family/students/${s.student_id}`, { method: 'DELETE' }).then(render, render));
 
     const stats = document.createElement('div');
     stats.className = 'family-stats';
@@ -205,19 +205,18 @@ const Family = (() => {
       row.className = 'family-parent-row';
       const name = document.createElement('span');
       name.textContent = p.display_name;
+      name.className = 'family-parent-name';
       const revoke = document.createElement('button');
       revoke.type = 'button';
-      revoke.className = 'scan-toggle';
+      revoke.className = 'cls-btn family-revoke';
       revoke.textContent = t('family.revokeBtn');
-      revoke.addEventListener('click', async () => {
-        try {
-          await api(`/family/parents/${p.parent_id}`, { method: 'DELETE' });
-          renderParents();
-        } catch { renderParents(); }
-      });
       row.appendChild(name);
       row.appendChild(revoke);
       wrap.appendChild(row);
+      InlineConfirm.wire(row, revoke,
+        t('family.confirmRevoke', { name: p.display_name }),
+        t('family.confirmRevokeWhy'),
+        () => api(`/family/parents/${p.parent_id}`, { method: 'DELETE' }).then(renderParents, renderParents));
     }
   }
 
@@ -285,7 +284,8 @@ const Family = (() => {
       e.preventDefault();
       Net.guardSubmit(e.currentTarget, () => handleLink(e));
     });
-    $('familyInviteBtn').addEventListener('click', handleInvite);
+    // A double click made two codes, and the first one shown was already dead.
+    $('familyInviteBtn').addEventListener('click', () => Net.guardClick($('familyInviteBtn'), handleInvite));
     window.addEventListener('climby:auth-changed', updateGate);
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) render(); });
     window.addEventListener('climby:view-shown', e => {

@@ -56,7 +56,7 @@ const Papers = (() => {
 
   function open() {
     $('entryStage').classList.add('hidden');
-    const recent = $('recentAsked'); if (recent) recent.classList.add('offstage');
+    const recent = $('homeGrid'); if (recent) recent.classList.add('offstage');
     $('paperPicker').classList.remove('hidden');
     $('paperPages').innerHTML = '';
     $('paperPages').classList.add('hidden');
@@ -74,7 +74,7 @@ const Papers = (() => {
   function close() {
     $('paperPicker').classList.add('hidden');
     $('entryStage').classList.remove('hidden');
-    const recent = $('recentAsked'); if (recent) recent.classList.remove('offstage');
+    const recent = $('homeGrid'); if (recent) recent.classList.remove('offstage');
   }
 
   function setStatus(text) {

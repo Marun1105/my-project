@@ -216,13 +216,21 @@ const Phone = (() => {
 
   // ---------- прибиране на снимките ----------
 
+  // One poll at a time. Waking Render takes far longer than two seconds, and
+  // the interval kept firing into it: by the time the server answered, a dozen
+  // identical requests were queued behind the first.
+  let polling = false;
+
   async function poll() {
-    if (!loggedIn()) return;
+    if (!loggedIn() || polling) return;
+    polling = true;
     let photos;
     try {
       photos = await api('/devices/photos');
     } catch {
       return;  // заспал сървър или прекъсната мрежа — следващият опит е след две секунди
+    } finally {
+      polling = false;
     }
     if (!photos.length) return;
 

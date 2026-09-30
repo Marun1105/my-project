@@ -95,8 +95,8 @@ const Scanner = (() => {
     });
     const onEntry = id === 'entryStage';
     const onCamera = id === 'cameraStage';
-    // the recent-questions list lives under the entry cards and goes with them
-    const recent = document.getElementById('recentAsked');
+    // the home panels (next on the Route, recent questions) live under the entry cards and go with them
+    const recent = document.getElementById('homeGrid');
     if (recent) recent.classList.toggle('offstage', !onEntry);
     // Без камера панелът за качване заема мястото на визьора — но само на този
     // етап, иначе би останал видим зад редактирането на снимката.
@@ -117,6 +117,17 @@ const Scanner = (() => {
     // няма какво да прави. Сега животът ѝ е вързан за етапа.
     if (onCamera && stream) startEdgeOverlay();
     else stopEdgeOverlay();
+
+    // Anything that is not the choice screen replaces the past-paper picker. A
+    // photo arriving from the phone while the picker was open used to open the
+    // crop screen underneath it, both on screen at once.
+    if (!onEntry) {
+      const picker = document.getElementById('paperPicker');
+      if (picker && !picker.classList.contains('hidden')) {
+        picker.classList.add('hidden');
+        if (recent) recent.classList.add('offstage');
+      }
+    }
 
     // Скенерът се освободи. Ако междувременно е пристигнала снимка от телефона,
     // тя чака точно този миг — phone.js слуша и я подава.
@@ -410,6 +421,10 @@ const Scanner = (() => {
   // филтрите трябва да важат и за трите пътя, а два екземпляра се разминават тихо.
   function loadIntoAdjust(dataUrl) {
     cameFrom = 'entryStage';
+    // A picture that did not come from the camera does not need it. Pasted or
+    // dropped while the viewfinder was open, the camera used to stay on behind
+    // the crop screen, light and all.
+    stop();
     const img = new Image();
     img.onload = () => {
       const cap = $('capture');
@@ -868,7 +883,11 @@ const Scanner = (() => {
     // Камерата върви само докато разделът се гледа. При връщане НЕ се пали сама:
     // човекът се връща там, откъдето е тръгнал, и решава пак.
     window.addEventListener('climby:view-shown', e => {
-      if (e.detail.view !== 'tutor') stop();
+      if (e.detail.view === 'tutor') return;
+      stop();
+      // The camera is off now, so the viewfinder would be a black box on return.
+      // Back to the choice instead; a crop in progress is left where it was.
+      if (stage === 'cameraStage') showStage('entryStage');
     });
     // Затварянето на прозореца/раздела не винаги минава по горния път.
     window.addEventListener('pagehide', stop);

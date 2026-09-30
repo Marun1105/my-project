@@ -125,6 +125,15 @@ const AccountUI = (() => {
     $('settingsMenuBtn').addEventListener('click', openSettings);
     $('menuLoginBtn').addEventListener('click', () => { closeMenu(); Auth.openEntryGate(); });
 
+    // The section list on the left: scroll the group into view inside the
+    // panel, which is the thing that scrolls — not the page behind it.
+    document.querySelectorAll('[data-settings-jump]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = document.getElementById(btn.dataset.settingsJump);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+
     $('settingsClose').addEventListener('click', closeSettings);
     $('settingsOverlay').addEventListener('click', e => {
       if (e.target === $('settingsOverlay')) closeSettings();

@@ -95,53 +95,9 @@ const Classes = (() => {
   // за дете или за учител пред клас това е стряскащо и лесно се натиска на сляпо.
   // Затова питането израства на мястото на бутона, казва какво точно ще се загуби
   // и се отменя с Escape или с "Не".
+  // Lives in dialog.js now; the family screen asks the same kind of question.
   function _wireConfirm(anchor, trigger, question, why, onYes) {
-    let bar = null;
-
-    function close() {
-      if (!bar) return;
-      bar.remove();
-      bar = null;
-      trigger.classList.remove('hidden');
-      trigger.setAttribute('aria-expanded', 'false');
-      trigger.focus();
-    }
-
-    function open() {
-      if (bar) return;
-      bar = _el('div', 'cls-confirm');
-      bar.setAttribute('role', 'group');
-
-      const text = _el('div', 'cls-confirm-text');
-      text.appendChild(_el('strong', 'cls-confirm-question', question));
-      if (why) text.appendChild(_el('span', 'cls-confirm-why', why));
-
-      const actions = _el('div', 'cls-confirm-actions');
-      const yes = _el('button', 'cls-btn cls-btn-solid', t('classes.confirmYes'));
-      yes.type = 'button';
-      const no = _el('button', 'cls-btn', t('classes.confirmNo'));
-      no.type = 'button';
-
-      yes.addEventListener('click', () => Net.guardClick(yes, onYes));
-      no.addEventListener('click', close);
-      // Escape е изходът, който всеки очаква от питане — и е единственият,
-      // достъпен без да местиш пръста си от клавиатурата.
-      bar.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-
-      actions.appendChild(no);
-      actions.appendChild(yes);
-      bar.appendChild(text);
-      bar.appendChild(actions);
-      anchor.insertAdjacentElement('afterend', bar);
-
-      trigger.classList.add('hidden');
-      trigger.setAttribute('aria-expanded', 'true');
-      // Фокусът пада върху безопасния отговор: случаен Enter не трие нищо.
-      no.focus();
-    }
-
-    trigger.setAttribute('aria-expanded', 'false');
-    trigger.addEventListener('click', open);
+    InlineConfirm.wire(anchor, trigger, question, why, onYes);
   }
 
   // ---------- копиране на кода ----------
@@ -426,16 +382,18 @@ const Classes = (() => {
       row.appendChild(_el('span', 'class-student-name', item.name));
       row.appendChild(_el('span', 'class-student-stats', t('classes.teacherIs', { name: item.teacher_name })));
 
-      const leave = _el('button', 'btn-ghost class-leave', t('classes.leaveBtn'));
+      const leave = _el('button', 'cls-btn class-leave', t('classes.leaveBtn'));
       leave.type = 'button';
-      leave.addEventListener('click', () => {
-        api(`/classes/mine/${item.class_id}`, { method: 'DELETE' })
-          .then(renderStudent)
-          .catch(err => _showError('studentClassesError', err));
-      });
-
       row.appendChild(leave);
       list.appendChild(row);
+      // Leaving took one click and could not be taken back without the code
+      // from the teacher. Now it asks, like every other thing here that is lost.
+      _wireConfirm(row, leave,
+        t('classes.confirmLeave', { name: item.name }),
+        t('classes.confirmLeaveWhy'),
+        () => api(`/classes/mine/${item.class_id}`, { method: 'DELETE' })
+          .then(renderStudent)
+          .catch(err => _showError('studentClassesError', err)));
     });
 
     _setEmptyText(empty, t('classes.emptyStudent'));

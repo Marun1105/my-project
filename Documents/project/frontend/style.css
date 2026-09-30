@@ -3256,22 +3256,24 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
     width: 100%;
   }
   #checklistApp > .help-note { grid-column: 1 / -1; }
-  #checklistApp > #taskForm {
+  #checklistApp > #routeSide {
     grid-column: 1;
-    grid-row: 2 / span 5;
+    grid-row: 2 / span 4;
     position: sticky;
     top: 28px;
-    margin-top: 0;
   }
+  /* A plan can be longer than the window; stuck to the top, its end could not
+     be scrolled to. It flows with the page while there is one. */
+  #checklistApp > #routeSide:has(#planAdvice:not(.hidden)) { position: static; }
+  #routeSide > #taskForm { margin-top: 0; }
   /* Explicit rows for everything: the help note is display:none once read,
      and auto-placement would then slide the tools row up into its slot, above
      the form's first field. */
   #checklistApp > #taskTools   { grid-column: 2; grid-row: 2; margin-top: 0; }
-  #checklistApp > #taskList    { grid-column: 2; grid-row: 3; }
-  #checklistApp > #taskEmpty   { grid-column: 2; grid-row: 4; }
-  #checklistApp > .controls    { grid-column: 2; grid-row: 5; }
-  #checklistApp > #planAdvice  { grid-column: 2; grid-row: 6; }
-  #checklistApp > :not(#taskForm):not(.help-note) { width: 100%; max-width: none; }
+  #checklistApp > #subjectBar  { grid-column: 2; grid-row: 3; }
+  #checklistApp > #taskList    { grid-column: 2; grid-row: 4; }
+  #checklistApp > #taskEmpty   { grid-column: 2; grid-row: 5; }
+  #checklistApp > :not(#routeSide):not(.help-note) { width: 100%; max-width: none; }
 
   /* the entry cards can breathe */
   .entry-choice { min-height: 200px; }
@@ -3841,3 +3843,332 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
 .session-bar span { display: block; height: 100%; background: var(--accent); }
 .session-note { margin: 8px 0 0; font-size: 12px; color: var(--text-faint); }
 @media (prefers-reduced-motion: reduce) { .session-chevron svg { transition: none; } }
+
+/* ============================================================================
+   The full-screen pass (2026-09-30)
+   ----------------------------------------------------------------------------
+   Screenshots at 1920x1080 showed the same thing on every screen: a column in
+   the middle, the top third used, and the rest of the monitor empty. Each
+   screen now has something true to put there — what is next, what was done,
+   what the earlier sessions were — and uses two columns where it has two
+   things to show. No new effects: the same cards, borders and type as before.
+   ========================================================================= */
+
+/* Wider on a monitor. Line length is kept by the columns inside, not by
+   squeezing the whole screen into a laptop's width. */
+@media (min-width: 1440px) { :root { --content-width: 1060px; } }
+@media (min-width: 1800px) { :root { --content-width: 1240px; } }
+
+.page-subtitle { max-width: 72ch; }
+
+/* A secondary button had no style of its own: it fell through to the
+   browser's default grey, which read as "disabled" next to everything else. */
+.btn-secondary {
+  flex: none;
+  padding: 10px 18px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+
+/* The help note sat flush against whatever came after it. */
+.view .help-note { margin-bottom: 18px; }
+
+/* ---------- ClimbAI home ---------- */
+/* Three doors, three columns: the grid was cut for four and left a hole. */
+.entry-choices { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) { .entry-choices { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .entry-choices { grid-template-columns: 1fr; } }
+@media (min-width: 1440px) {
+  .entry-choice { min-height: 150px; padding: 22px 20px 20px; }
+  .entry-choice-icon svg { width: 28px; height: 28px; }
+  .entry-choice-title { font-size: 16px; }
+  .entry-choice-hint { font-size: 13px; }
+}
+
+.home-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px 24px;
+  margin-top: 28px;
+}
+.home-grid.offstage { display: none; }
+@media (min-width: 1100px) {
+  /* auto-fit: when only one of the two panels has anything, it takes the
+     whole row instead of leaving the other half of the screen empty */
+  .home-grid { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); align-items: start; }
+}
+.home-grid > .recent-asked { margin-top: 0; }
+.home-panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px 8px;
+  box-shadow: inset 0 1px 0 var(--edge-light);
+}
+.home-panel .recent-asked-list li:first-child { border-top: 0; }
+.route-next-list li { display: block; padding: 0; }
+.route-next-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 11px 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: var(--text);
+  font-weight: 500;
+  font-size: 14px;
+  text-align: left;
+}
+.route-next-item:hover .recent-asked-q { text-decoration: underline; text-underline-offset: 3px; }
+.route-next-item:active { transform: none; }
+.route-next-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.home-start { grid-column: 1 / -1; }
+.home-start-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 10px;
+}
+@media (max-width: 900px) { .home-start-row { grid-template-columns: 1fr; } }
+.home-start-item {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  text-align: left;
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.home-start-item:hover { border-color: var(--text-dim); }
+.home-start-item > svg, .home-start-item > .spark { width: 22px; height: 22px; flex: none; color: var(--text-faint); margin-top: 1px; }
+.home-start-item > span:last-child { display: flex; flex-direction: column; gap: 3px; }
+.home-start-item strong { font-size: 14.5px; font-weight: 650; }
+.home-start-item strong + span { font-size: 12.5px; font-weight: 400; line-height: 1.45; color: var(--text-dim); }
+
+/* ---------- what ClimbAI read (tutor.js) ---------- */
+.read-panel {
+  width: 100%;
+  margin-top: 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.read-panel.hidden { display: none; }
+.read-panel summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 13px 18px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 14px;
+}
+.read-panel summary::-webkit-details-marker { display: none; }
+.read-panel summary::before {
+  content: "";
+  width: 7px; height: 7px;
+  border-right: 1.8px solid var(--text-dim);
+  border-bottom: 1.8px solid var(--text-dim);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+  flex: none;
+  align-self: center;
+}
+.read-panel[open] summary::before { transform: rotate(45deg); }
+.read-panel-title { font-weight: 650; color: var(--text); }
+.read-panel-hint { font-size: 12.5px; color: var(--text-faint); }
+.read-body {
+  padding: 2px 18px 16px 35px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.read-body p { margin: 0.5em 0; }
+.read-body ul, .read-body ol { margin: 0.4em 0 0.4em 1.2em; }
+
+/* The first question about a page waits for the reading: three quiet steps. */
+.answer.reading { font-style: normal; }
+.read-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.read-steps li { display: flex; align-items: center; gap: 10px; font-size: 14.5px; color: var(--text-faint); }
+.read-steps li.active { color: var(--text); font-weight: 600; }
+.read-steps li.done { color: var(--text-dim); }
+.read-step-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 1.5px solid currentColor;
+  flex: none;
+}
+.read-steps li.done .read-step-dot { background: currentColor; }
+.read-steps li.active .read-step-dot { border-color: var(--purple); background: var(--purple); animation: read-pulse 1.6s ease-in-out infinite; }
+@keyframes read-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.read-note { margin: 14px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--text-faint); }
+@media (prefers-reduced-motion: reduce) { .read-steps li.active .read-step-dot { animation: none; } }
+
+/* ---------- Focus: the session and its history side by side ---------- */
+.focus-layout { width: 100%; display: flex; flex-direction: column; }
+.focus-main { width: 100%; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+@media (min-width: 1100px) {
+  .focus-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    gap: 32px;
+    align-items: start;
+  }
+  .focus-layout > .session-history { margin-top: 18px; }
+}
+
+/* ---------- Summited: three numbers above the list ---------- */
+.stat-strip {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 0 0 18px;
+}
+.stat-strip.hidden { display: none; }
+.stat-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 18px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.stat-value { font-family: var(--font-heading); font-size: 26px; font-weight: 700; line-height: 1.15; color: var(--text); }
+.stat-label { font-size: 12.5px; color: var(--text-dim); }
+
+/* ---------- Connection: making a code, and who holds one ---------- */
+.family-grid { width: 100%; display: grid; grid-template-columns: 1fr; gap: 18px; }
+@media (min-width: 1100px) { .family-grid { grid-template-columns: 1fr 1fr; align-items: start; } }
+.family-panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px 20px;
+}
+.family-panel .history-section-title { margin-top: 0; }
+.family-panel .hint { padding: 0; margin-top: 6px; }
+.family-panel .controls { margin-top: 14px; }
+.family-panel .family-parent-row { background: var(--bg); }
+.family-parent-name { font-weight: 600; color: var(--text); min-width: 0; overflow-wrap: anywhere; }
+.family-revoke, .class-leave { flex: none; }
+
+/* ---------- Base (student): each class a proper row ---------- */
+.class-student {
+  padding: 14px 18px;
+  margin-top: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.class-student-name { font-size: 15px; font-weight: 650; }
+.class-student + .cls-confirm { margin-top: 6px; border: 1px solid var(--border); border-radius: var(--radius-lg); }
+
+/* ---------- the chat header ---------- */
+/* The + and the close button inherited `flex: 1` from the global button rule,
+   grew to fill the header, and squeezed the title into two lines. */
+.chat-head button { flex: none; }
+.chat-title { flex: 1; min-width: 0; }
+
+/* ---------- Settings: grouped, with a section list on a wide screen ---------- */
+#settingsOverlay .settings-card { background: var(--bg); }
+#settingsOverlay .settings-body {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 10px var(--gutter) 72px;
+}
+#settingsOverlay .settings-main { max-width: 760px; margin: 0 auto; }
+.settings-nav { display: none; }
+@media (min-width: 1100px) {
+  #settingsOverlay .settings-body {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 760px);
+    gap: 48px;
+    justify-content: center;
+  }
+  #settingsOverlay .settings-main { margin: 0; }
+  .settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    position: sticky;
+    top: 86px;
+    align-self: start;
+    padding-top: 18px;
+  }
+}
+.settings-nav-link {
+  flex: none;
+  text-align: left;
+  padding: 9px 12px;
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+}
+.settings-nav-link:hover { color: var(--text); background: var(--accent-soft); }
+.settings-body:has(#accountRows.hidden) .settings-nav-account { display: none; }
+
+.settings-group {
+  margin-top: 18px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  scroll-margin-top: 84px;
+  box-shadow: inset 0 1px 0 var(--edge-light);
+}
+.settings-group.hidden { display: none; }
+#settingsOverlay .settings-group > .settings-section,
+#settingsOverlay #accountRows > .settings-section {
+  max-width: none;
+  margin: 0;
+  padding: 18px 22px 4px;
+}
+#settingsOverlay .settings-group > .settings-row,
+#settingsOverlay #accountRows > .settings-row {
+  max-width: none;
+  margin: 0;
+  padding: 15px 22px;
+}
+#settingsOverlay .settings-group > .settings-section + .settings-row { border-top: 0; }
+
+/* ---------- the watermark ---------- */
+/* On a phone the content covers the whole screen and the mountain showed
+   through the middle of it as clutter. It stays on a monitor, in its corner. */
+@media (max-width: 860px) { .main-area::before { display: none; } }
+
+.route-side { width: 100%; }
+.route-plan { margin-top: 16px; }
+
+/* On a phone a label and a 200px dropdown do not fit on one line: the label
+   broke into three and the note under it was squeezed into the same narrow
+   column. One column there — label, then the control, then the note. */
+@media (max-width: 560px) {
+  #settingsOverlay .settings-row:not(.settings-row-stack) { grid-template-columns: minmax(0, 1fr); }
+  #settingsOverlay .settings-row > .settings-control { grid-column: 1; grid-row: auto; justify-self: stretch; min-width: 0; }
+  #settingsOverlay .settings-row > .settings-control .settings-select { width: 100%; }
+  #settingsOverlay .settings-group > .settings-row,
+  #settingsOverlay #accountRows > .settings-row { padding: 14px 16px; }
+  #settingsOverlay .settings-group > .settings-section,
+  #settingsOverlay #accountRows > .settings-section { padding: 16px 16px 2px; }
+}
+
+/* Once a page is being asked about, the conversation is the screen: the home
+   panels would otherwise sit between the cards and the question, pushing the
+   answer below the fold. */
+#view-tutor:has(#qa:not(.hidden)) .home-grid { display: none; }

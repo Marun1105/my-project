@@ -1,73 +1,38 @@
-/* subjects.css — долна лента с предмети (филтър на чеклиста).
+/* subjects.css — лентата с предмети (филтър на Маршрута).
    Ползва само токените от style.css :root — никакъв твърдо зададен цвят,
    лентата е строго сива, без изключения (AI градиентът не важи тук). */
 
-:root {
-  /* реалната височина на лентата (за padding-bottom, който компенсира
-     останалата част от приложението — виж бележката към другия инженер) */
-  --subject-bar-h: 65px;
-}
-
+/* In the Route, above the list — not pinned to the window. Pinned, it covered
+   the last task on a phone and cut its own chips off on a monitor. The chips
+   wrap on a wide screen and scroll sideways on a narrow one. */
 .subject-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 45;
-  display: flex;
-  justify-content: center;
-  background: var(--bg-elevated);
-  border-top: 1px solid var(--border);
-  box-shadow: 0 -8px 24px var(--shadow);
-  padding-bottom: env(safe-area-inset-bottom);
+  width: 100%;
+  margin: 4px 0 12px;
 }
-
-/* На бюро страничното меню заема лявата колона (виж .sidebar, 256px) —
-   лентата спира до нея вместо да минава отгоре ѝ. */
-@media (min-width: 861px) {
-  .subject-bar { left: 256px; }
-}
-
 .subject-bar.hidden { display: none; }
 
 .subject-bar-track {
-  position: relative;
-  width: 100%;
-  max-width: var(--content-width);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--gutter);
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-
-  /* скрит скролбар — скролът си работи, лентата просто изглежда чиста */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-
-  /* лек фейд в двата края намеква, че има още чипове извън изгледа,
-     без да добавя цвят или допълнителни елементи в DOM-а */
-  mask-image: linear-gradient(
-    to right,
-    transparent 0,
-    #000 var(--gutter),
-    #000 calc(100% - var(--gutter)),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0,
-    #000 var(--gutter),
-    #000 calc(100% - var(--gutter)),
-    transparent 100%
-  );
+  gap: 8px;
 }
-.subject-bar-track::-webkit-scrollbar { display: none; }
+@media (max-width: 860px) {
+  .subject-bar-track {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    /* the chips run off the edge on purpose: the cut says there are more */
+    margin-right: calc(-1 * var(--gutter));
+    padding-right: var(--gutter);
+  }
+  .subject-bar-track::-webkit-scrollbar { display: none; }
+}
 
 .subject-chip {
   flex: 0 0 auto;
-  min-height: 44px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   padding: 0 var(--space-3);
@@ -97,24 +62,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .subject-bar-track { scroll-behavior: auto; }
   .subject-chip { transition: none; }
   .subject-chip:active { transform: none; }
 }
 
-/* Лентата стои върху съдържанието, затова последната задача се нуждае от място
-   под себе си — иначе се скрива зад нея точно когато я четеш. */
-#view-checklist {
-  padding-bottom: calc(var(--subject-bar-h, 65px) + env(safe-area-inset-bottom) + var(--space-3));
-}
-
-/* On a wide screen the Route is two columns and the list is the right one.
-   The filter belongs under the list, not in the middle of the room. */
-@media (min-width: 1440px) {
-  /* the track is as wide as the whole column; the chips start where the list
-     column starts — past the form (360px) and the gap (36px) */
-  .subject-bar-track { padding-left: calc(360px + 36px + var(--gutter)); }
-}
-@media (min-width: 1800px) {
-  .subject-bar-track { padding-left: calc(400px + 44px + var(--gutter)); }
-}

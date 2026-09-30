@@ -48,6 +48,11 @@ const Chat = (() => {
   }
   let busy = false;
   let open = false;
+  // Bumped whenever the thread on screen is swapped or thrown away. An answer
+  // that arrives after that belongs to a conversation that is gone — on a
+  // shared computer, to the previous student — and must not be written into
+  // the new one.
+  let epoch = 0;
 
   function t(key, vars) { return window.t ? window.t(key, vars) : key; }
 
@@ -110,6 +115,7 @@ const Chat = (() => {
     theirs.innerHTML = sparkSvg('spark-spin') + ' ' + t('scanner.thinking');
     scrollToEnd();
     busy = true;
+    const asked = epoch;
     try {
       const token = window.Auth ? Auth.getToken() : null;
       const res = await Net.fetch(BACKEND + '/ask', {
@@ -124,6 +130,7 @@ const Chat = (() => {
                                context: !!token, surface: 'chat' }),
       });
       const data = await res.json().catch(() => ({}));
+      if (asked !== epoch) return;
       theirs.classList.remove('chat-thinking');
       if (!res.ok || !data.answer) {
         theirs.classList.add('chat-error');
@@ -140,19 +147,26 @@ const Chat = (() => {
       history.push({ role: 'user', text }, { role: 'assistant', text: data.answer });
       persist();
     } catch (err) {
+      if (asked !== epoch) return;
       theirs.classList.remove('chat-thinking');
       theirs.classList.add('chat-error');
       theirs.textContent = t('scanner.errOffline');
     } finally {
-      busy = false;
-      scrollToEnd();
-      box.focus();
+      // A stale request leaves the busy flag alone: it may already belong to a
+      // question asked in the new thread.
+      if (asked === epoch) {
+        busy = false;
+        scrollToEnd();
+        box.focus();
+      }
     }
   }
 
   // Empty the panel without touching what is stored. Signing in and out swaps
   // whose thread is on screen; only the "new chat" button throws one away.
   function clearView() {
+    epoch++;
+    busy = false;
     history = [];
     if (window.Suggest) Suggest.clearPending();
     $('chatLog').innerHTML = '';

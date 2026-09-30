@@ -30,6 +30,10 @@ const Net = (() => {
   // си", докато сървърът още пишеше. Срок все пак има: заявка, която е онемяла
   // завинаги, трябва да свърши някога, иначе бутонът остава заключен.
   const AI_TIMEOUT_MS = 120000;
+  // A photographed page is read by the stronger model first (the server stops
+  // that read at 75 s) and only then answered — so the first question about a
+  // page gets longer than any other AI request. Replies after it are fast.
+  const AI_READ_TIMEOUT_MS = 180000;
   const PROBE_TIMEOUT_MS = 8000;
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -148,5 +152,5 @@ const Net = (() => {
     }
   }
 
-  return { fetch: request, guardSubmit, guardClick, AI_TIMEOUT_MS };
+  return { fetch: request, guardSubmit, guardClick, AI_TIMEOUT_MS, AI_READ_TIMEOUT_MS };
 })();

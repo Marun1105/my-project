@@ -325,7 +325,7 @@ const Auth = (() => {
     clearError();
     try {
       await forgotPassword(pendingResetEmail);
-      setError(t('auth.resetCodeSent'));
+      setNotice(t('auth.resetCodeSent'));
     } catch (err) {
       setError(err.message);
     }

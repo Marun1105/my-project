@@ -899,7 +899,7 @@ def test_adding_from_the_chat_can_be_undone():
     # and the Route actually offers that door
     checklist = _read("checklist.js")
     assert "removeNewestMatching" in checklist
-    assert "return { init, getPendingTasks, syncBadge, addTask, removeNewestMatching };" in checklist
+    assert re.search(r"return { init, getPendingTasks, syncBadge, addTask, removeNewestMatching[,} ]", checklist)
 
 
 def test_a_typed_yes_costs_no_ai_call():
@@ -1114,3 +1114,54 @@ def test_the_tutor_offers_more_than_exercises():
         assert kind in offer, f"no example of {kind!r} — the model will keep offering only exercises"
     for kind in ("\u0434\u0430 \u043f\u043e\u0432\u0442\u043e\u0440\u044f", "\u0421\u044a\u0447\u0438\u043d\u0435\u043d\u0438\u0435"):
         assert kind.lower() in offer.lower(), "the Bulgarian half needs its own examples"
+
+
+
+# ------------------------------------------ the study relay and the 09-30 pass
+
+
+def test_tutor_follow_ups_name_the_page_instead_of_resending_it():
+    js = _read("tutor.js")
+    assert "brief_id: withPages ? null : briefId" in js
+    assert "images: withPages ? scannedImages : []" in js
+    # the server lost the page: send the photographs once, carry on
+    assert "res.status === 410" in js
+    assert "Net.AI_READ_TIMEOUT_MS" in js and "AI_READ_TIMEOUT_MS" in _read("net.js")
+
+
+def test_what_was_read_is_shown_and_the_solution_never_is():
+    js = _read("tutor.js")
+    assert "showRead(data.read)" in js
+    # the worked solution stays on the server; nothing here reads or shows it
+    assert "data.solution" not in js and "solution_text" not in js
+    assert 'id="readPanel"' in _read("index.html")
+
+
+def test_a_late_chat_answer_cannot_land_in_the_next_students_thread():
+    js = _read("chat.js")
+    assert "asked !== epoch" in js
+    assert "epoch++" in js
+
+
+def test_removing_access_asks_first():
+    fam = _read("family.js")
+    assert fam.count("InlineConfirm.wire(") == 2
+    assert "InlineConfirm.wire" in _read("classes.js")
+    assert "window.InlineConfirm" in _read("dialog.js")
+
+
+def test_ai_helpers_send_the_account_token():
+    assert "authHeader()" in _read("ai-planner.js")
+    around_split = _read("checklist.js").split("'/plan/split'")[1][:400]
+    assert "Authorization" in around_split
+
+
+def test_secondary_buttons_have_a_style_of_their_own():
+    css = _read("style.css")
+    assert re.search(r"(?m)^\.btn-secondary \{[^}]*background: transparent", css)
+
+
+def test_the_subject_filter_lives_in_the_route_not_the_window():
+    html = _read("index.html")
+    assert html.index('id="subjectBar"') < html.index('id="taskList"')
+    assert "position: fixed" not in _read("subjects.css")

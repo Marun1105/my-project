@@ -26,6 +26,10 @@ ADVISOR_MODEL = "claude-opus-5"
 # the client gives up at 120.
 READER_EFFORT = "low"
 READER_MAX_TOKENS = 8000
+# A hard stop on the read. The slowest measured read was 77 s; past this the
+# caller falls back to Haiku reading the photos, which still leaves the tutor
+# turn room inside the client's own limit (AI_READ_TIMEOUT_MS in net.js).
+READER_TIMEOUT_S = 75
 
 # Uncapped, the advisor took 82 s to answer one chat message. Capped at 2000
 # tokens: 26 s, and it still chose the method a 7th-grader is taught.
@@ -112,6 +116,7 @@ def read_pages(client, image_blocks, question, lang, grade=None):
     resp = client.beta.messages.create(
         model=READER_MODEL,
         max_tokens=READER_MAX_TOKENS,
+        timeout=READER_TIMEOUT_S,
         betas=[FALLBACK_BETA],
         # If Opus declines, the API re-runs the request on a fallback model in
         # the same call instead of returning nothing.
