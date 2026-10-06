@@ -527,8 +527,8 @@ def test_the_chat_thread_is_kept_per_account():
     conversation, so what is stored records whose it is and is checked on the
     way back in."""
     js = _read("chat.js")
-    assert "saved.who !== owner()" in js
-    assert "who: owner()" in js
+    assert "saved.who !== who" in js
+    assert "JSON.stringify({ who," in js
 
 
 def test_only_the_new_chat_button_throws_the_thread_away():
@@ -537,7 +537,9 @@ def test_only_the_new_chat_button_throws_the_thread_away():
     js = _read("chat.js")
     reset = js[js.index("function reset()"):]
     reset = reset[:reset.index("\n  }")]
-    assert "removeItem(THREAD_KEY)" in reset
+    assert "forgetThread()" in reset
+    forget = js[js.index("function forgetThread()"):]
+    assert "removeItem(THREAD_KEY)" in forget[:forget.index("\n  }")]
     clear = js[js.index("function clearView()"):]
     clear = clear[:clear.index("\n  }")]
     assert "THREAD_KEY" not in clear
@@ -1165,3 +1167,25 @@ def test_the_subject_filter_lives_in_the_route_not_the_window():
     html = _read("index.html")
     assert html.index('id="subjectBar"') < html.index('id="taskList"')
     assert "position: fixed" not in _read("subjects.css")
+
+
+def test_a_guest_conversation_is_never_written_down():
+    """owner() used to answer the literal string 'guest' for everyone not signed
+    in, so every guest on a shared computer had the same identity: student A
+    asked something and left, student B opened the app, and restore() matched
+    'guest' against 'guest' and put A's conversation on B's screen. The comment
+    above owner() names that as the thing it prevents, and it prevented it only
+    for accounts. A guest has no account to tie a thread to, so nothing is
+    stored for them at all."""
+    js = _read("chat.js")
+    owner = js[js.index("const owner = ()"):]
+    owner = owner[:owner.index("};") + 2]
+    assert "'guest'" not in owner, "a shared identity is not an identity"
+    assert ": null" in owner
+
+    for name in ("function persist()", "function restore()"):
+        fn = js[js.index(name):]
+        fn = fn[:fn.index("\n  }")]
+        assert "if (!who) return forgetThread();" in fn, (
+            f"{name} still acts for a signed-out visitor"
+        )

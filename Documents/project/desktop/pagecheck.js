@@ -288,6 +288,42 @@ function findChromium() {
     }
   }
 
+  // A guest's conversation must not reach the next guest on the same computer.
+  // It did: owner() answered 'guest' for everyone signed out, so one identity
+  // covered all of them and restore() handed the thread straight over.
+  const guestPage = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const secret = 'something a student would not want read';
+  const asGuest = async (p0) => {
+    await p0.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+    await p0.waitForTimeout(1000);
+    await p0.evaluate(() => {
+      document.getElementById('entryGate')?.classList.add('hidden');
+      document.getElementById('onboarding')?.classList.add('hidden');
+      window.Auth.getToken = () => null;
+      window.Auth.getUser = () => null;
+      window.Auth.isLoggedIn = () => false;
+      window.fetch = () => Promise.resolve({
+        ok: true, status: 200,
+        json: () => Promise.resolve({ answer: 'One step at a time.', suggestions: [] }),
+      });
+      document.getElementById('aiFab').click();
+    });
+    await p0.waitForTimeout(250);
+  };
+  await asGuest(guestPage);
+  await guestPage.fill('#chatInput', secret);
+  await guestPage.click('#chatSend');
+  await guestPage.waitForTimeout(600);
+  const leftBehind = await guestPage.evaluate(() => localStorage.getItem('climby-chat-thread'));
+  if (leftBehind) problems.push('a guest conversation was written to localStorage');
+  // the next student, same profile
+  await asGuest(guestPage);
+  await guestPage.waitForTimeout(300);
+  if ((await guestPage.locator('#chatLog').innerText()).includes(secret)) {
+    problems.push("a guest was shown the previous guest's conversation");
+  }
+  await guestPage.close();
+
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT, fullPage: false });
   await browser.close();
   server.close();

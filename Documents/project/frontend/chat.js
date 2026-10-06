@@ -20,19 +20,35 @@ const Chat = (() => {
 
   // Whose thread it is. A school computer has more than one student on it, and
   // a conversation left on screen for the next one is the wrong kind of memory.
+  //
+  // A guest is nobody in particular, so there is no "whose" to record. Writing
+  // one down under the name 'guest' - which is what this used to do - gave every
+  // guest on the machine the same identity, and handed the next one the last
+  // one's conversation. That is the precise thing the line above promises not to
+  // do, and it was prevented only for accounts. So for a guest nothing is
+  // stored: the thread lives as long as the tab. Losing it on reload is the
+  // price, and it is not a close call.
   const owner = () => {
     const u = window.Auth && Auth.getUser();
-    return (u && u.id) ? String(u.id) : 'guest';
+    return (u && u.id) ? String(u.id) : null;
   };
 
+  function forgetThread() {
+    try { localStorage.removeItem(THREAD_KEY); } catch {}
+  }
+
   function persist() {
-    try { localStorage.setItem(THREAD_KEY, JSON.stringify({ who: owner(), turns: history.slice(-THREAD_MAX) })); } catch {}
+    const who = owner();
+    if (!who) return forgetThread();   // a guest leaves nothing behind
+    try { localStorage.setItem(THREAD_KEY, JSON.stringify({ who, turns: history.slice(-THREAD_MAX) })); } catch {}
   }
 
   function restore() {
+    const who = owner();
+    if (!who) return forgetThread();   // and is handed nothing either
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem(THREAD_KEY) || 'null'); } catch { saved = null; }
-    if (!saved || saved.who !== owner() || !Array.isArray(saved.turns) || !saved.turns.length) return;
+    if (!saved || saved.who !== who || !Array.isArray(saved.turns) || !saved.turns.length) return;
     history = saved.turns.slice(-THREAD_MAX);
     $('chatEmpty').classList.add('hidden');
     for (const turn of history) {
@@ -175,7 +191,7 @@ const Chat = (() => {
   }
 
   function reset() {
-    try { localStorage.removeItem(THREAD_KEY); } catch {}
+    forgetThread();
     clearView();
   }
 
