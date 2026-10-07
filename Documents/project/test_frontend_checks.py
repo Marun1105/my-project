@@ -1189,3 +1189,26 @@ def test_a_guest_conversation_is_never_written_down():
         assert "if (!who) return forgetThread();" in fn, (
             f"{name} still acts for a signed-out visitor"
         )
+
+
+def test_the_screen_does_not_promise_more_privacy_than_the_server_keeps():
+    """The help text told students the photograph was "processed once and kept
+    nowhere" and that Summited held "only" the question and the answer. The
+    photograph part is true — the image bytes are never written. The "only" was
+    not: what the reader makes of the page is stored as a ProblemBrief, so the
+    cheap model can answer every follow-up without the page being read again.
+    A sentence a child reads about their own data has to be the true one, and
+    it has to stay true when the storage changes, which is why it is pinned to
+    the model rather than to itself."""
+    import models
+    assert hasattr(models, "ProblemBrief"), (
+        "if the brief is gone the promise can go back to being the simple one"
+    )
+
+    i18n = _read("i18n.js")
+    bodies = re.findall(r"'tutor\.howBody': '(.*?)',\n", i18n)
+    assert len(bodies) == 2, "one of the two languages has lost the help text"
+    for body in bodies:
+        assert "kept nowhere" not in body
+        assert u"\u043d\u0435 \u0441\u0435 \u043f\u0430\u0437\u0438 \u043d\u0438\u043a\u044a\u0434\u0435; " not in body
+        assert u"only what you asked" not in body
