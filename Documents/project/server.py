@@ -11,7 +11,7 @@ import base64
 import binascii
 import json
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional, Literal
 
@@ -976,6 +976,35 @@ BRIEF_GONE_MESSAGE = {
     "bg": "Тази страница вече не е на сървъра — изпращам я отново.",
 }
 
+GUEST_BRIEF_TTL_HOURS = 24
+
+
+def _sweep_guest_briefs(db: Session) -> None:
+    """Throws away the briefs that belong to nobody.
+
+    A brief with an owner is reachable: account export returns it and deleting
+    the account deletes it. A guest's brief has no owner, so neither query ever
+    matches it — it stayed in the database for good, holding what the reader
+    made of a child's homework page, with nothing in the app able to remove it.
+
+    Swept on the way past rather than on a clock, for the reason devices._sweep
+    gives: Render sleeps a free service, so a scheduled job simply does not run.
+    A guest whose brief goes while their page is still open loses nothing — the
+    client still holds the photographs, and 410 asks for them again.
+
+    Failing to sweep must never fail the question that passed through here.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=GUEST_BRIEF_TTL_HOURS)
+    try:
+        db.query(ProblemBrief).filter(
+            ProblemBrief.user_id.is_(None),
+            ProblemBrief.created_at < cutoff,
+        ).delete(synchronize_session=False)
+        db.commit()
+    except Exception as err:  # noqa: BLE001
+        db.rollback()
+        print(f"[ask] could not sweep the ownerless briefs: {err!r}", flush=True)
+
 
 def _read_pages(db: Session, body: "Ask", user: Optional[User], lang: str):
     """Opus reads the photographs and the result is stored. None on any failure.
@@ -996,6 +1025,7 @@ def _read_pages(db: Session, body: "Ask", user: Optional[User], lang: str):
         print(f"[ask] reader failed, Haiku reads the photos instead: {err!r}", flush=True)
         return None
     usage.record(db, resp)
+    _sweep_guest_briefs(db)
     brief = ProblemBrief(user_id=user.id if user else None, **fields)
     try:
         db.add(brief)
