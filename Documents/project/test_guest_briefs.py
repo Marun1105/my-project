@@ -10,12 +10,20 @@
 # Run:  python -m pytest test_guest_briefs.py -q
 import os
 import tempfile
+import uuid
 from datetime import datetime, timedelta, timezone
 
+# This DATABASE_URL only takes effect when this module is imported first, i.e.
+# when the file is run on its own. Under the whole suite, test_account.py sorts
+# earlier and has already imported db, so `from db import SessionLocal` below
+# hands back ITS engine and every module shares one database. So nothing here
+# may assume an empty table: every assertion is scoped to rows this file
+# created, by id, and the one destructive call is bounded to briefs that are
+# both ownerless and over a day old, which only this file makes.
 _tmp_db = os.path.join(tempfile.mkdtemp(), "briefs.db")
-os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_db}"
-os.environ["JWT_SECRET"] = "test-secret"
-os.environ["TRUSTED_PROXY_HOPS"] = "0"
+os.environ.setdefault("DATABASE_URL", f"sqlite:///{_tmp_db}")
+os.environ.setdefault("JWT_SECRET", "test-secret")
+os.environ.setdefault("TRUSTED_PROXY_HOPS", "0")
 
 import server  # noqa: E402
 from db import SessionLocal  # noqa: E402
@@ -38,8 +46,11 @@ def _ids(db):
     return {r.id for r in db.query(ProblemBrief).all()}
 
 
-def _an_account(db, email):
-    user = User(display_name="A", email=email, password_hash="x", is_email_verified=True)
+def _an_account(db):
+    """A fresh address every run: the database may be shared with every other
+    test module, so a fixed one is a collision waiting for a reordering."""
+    user = User(display_name="A", email=f"brief-{uuid.uuid4().hex[:12]}@example.com",
+                password_hash="x", is_email_verified=True)
     db.add(user)
     db.commit()
     return user.id
@@ -70,7 +81,7 @@ def test_an_old_brief_with_an_owner_is_left_alone():
     """Summited shows these back, and the account's export must still contain
     them. Their removal belongs to the account, not to a sweep."""
     db = SessionLocal()
-    uid = _an_account(db, "briefowner@example.com")
+    uid = _an_account(db)
     owned = _brief(db, uid, server.GUEST_BRIEF_TTL_HOURS * 10)
     server._sweep_guest_briefs(db)
     assert owned in _ids(db)
