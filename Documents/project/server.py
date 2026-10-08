@@ -10,6 +10,7 @@ load_dotenv()  # трябва да е преди другите импорти, 
 import base64
 import binascii
 import json
+import os
 import re
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -415,6 +416,18 @@ def favicon():
 # пипа и базата — един "SELECT 1" — за да има какво да пита външен наблюдател.
 #
 # Подробностите за грешката остават в лога, не в отговора: адресът е публичен.
+# The commit this process was built from, read once at import.
+#
+# Render sets RENDER_GIT_COMMIT on every build. Reporting it is the only
+# fingerprint that changes on EVERY deploy, which is what the watchdog needs:
+# the route count read 51 local and 51 live right through an eleven-day stall,
+# and phone_page.html's digest only moves when that one file is edited, so a
+# server.py-only deploy — which is nearly all of them — looked identical by
+# either measure. Empty when running anywhere but Render, which is how the
+# watchdog tells "cannot know" apart from "stale".
+BUILD_COMMIT = os.environ.get("RENDER_GIT_COMMIT", "")
+
+
 @app.get("/healthz", include_in_schema=False)
 def healthz():
     try:
@@ -428,7 +441,7 @@ def healthz():
     # at night for it would teach them to ignore the alarm that matters.
     with SessionLocal() as db_session:
         ai_today = usage.today(db_session)
-    return {"status": "ok", "db": "ok", "ai_today": ai_today, "email": email_service.delivery_status()["state"]}
+    return {"status": "ok", "db": "ok", "commit": BUILD_COMMIT, "ai_today": ai_today, "email": email_service.delivery_status()["state"]}
 
 
 
@@ -1002,7 +1015,15 @@ def _sweep_guest_briefs(db: Session) -> None:
         ).delete(synchronize_session=False)
         db.commit()
     except Exception as err:  # noqa: BLE001
-        db.rollback()
+        # The rollback can raise too, on exactly the failure that got us here:
+        # Neon drops a pooled connection mid-request and rolling back an
+        # invalidated one errors. Unguarded, that propagated out of _read_pages
+        # into /ask as a 500 and threw away an answer the student had already
+        # waited through an Opus read for.
+        try:
+            db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
         print(f"[ask] could not sweep the ownerless briefs: {err!r}", flush=True)
 
 
