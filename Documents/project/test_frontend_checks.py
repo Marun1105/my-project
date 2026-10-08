@@ -1192,23 +1192,40 @@ def test_a_guest_conversation_is_never_written_down():
 
 
 def test_the_screen_does_not_promise_more_privacy_than_the_server_keeps():
-    """The help text told students the photograph was "processed once and kept
-    nowhere" and that Summited held "only" the question and the answer. The
-    photograph part is true — the image bytes are never written. The "only" was
-    not: what the reader makes of the page is stored as a ProblemBrief, so the
-    cheap model can answer every follow-up without the page being read again.
-    A sentence a child reads about their own data has to be the true one, and
-    it has to stay true when the storage changes, which is why it is pinned to
-    the model rather than to itself."""
+    """The help text on the photo screen told students the picture was
+    "processed once and kept nowhere" and that Summited held "only" the question
+    and the answer. The picture half is true — the image bytes are never
+    written. The "only" was not: what the reader makes of the page is stored as
+    a ProblemBrief so the cheap model can answer follow-ups without the page
+    being read again.
+
+    A sentence a child reads about their own data has to be the true one, and it
+    has to stay true when the storage changes — hence the tie to the model
+    rather than to a form of words. Both copies are checked: index.html carries
+    the Bulgarian inline as the pre-i18n default, so it is what a student reads
+    before i18n.js runs, and all a student ever reads if it fails to load."""
     import models
     assert hasattr(models, "ProblemBrief"), (
         "if the brief is gone the promise can go back to being the simple one"
     )
 
-    i18n = _read("i18n.js")
-    bodies = re.findall(r"'tutor\.howBody': '(.*?)',\n", i18n)
+    bodies = re.findall(r"'tutor\.howBody': '(.*?)',\n", _read("i18n.js"))
     assert len(bodies) == 2, "one of the two languages has lost the help text"
-    for body in bodies:
+
+    inline = re.search(r'<span data-i18n="tutor\.howBody">(.*?)</span>', _read("index.html"))
+    assert inline, "the inline default for tutor.howBody is gone"
+    assert inline.group(1) == bodies[0], (
+        "index.html and i18n.js disagree about what is kept; the inline copy is "
+        "what is on screen until i18n.js runs"
+    )
+
+    for body in bodies + [inline.group(1)]:
+        # what it must not claim
         assert "kept nowhere" not in body
-        assert u"\u043d\u0435 \u0441\u0435 \u043f\u0430\u0437\u0438 \u043d\u0438\u043a\u044a\u0434\u0435; " not in body
-        assert u"only what you asked" not in body
+        assert "only what you asked" not in body
+        assert u"\u043d\u0435 \u0441\u0435 \u043f\u0430\u0437\u0438 \u043d\u0438\u043a\u044a\u0434\u0435;" not in body
+        assert u"\u0441\u0430\u043c\u043e \u043a\u0430\u043a\u0432\u043e \u0441\u0438 \u043f\u0438\u0442\u0430\u043b" not in body
+        # and what it must: that the reading is written down, not only the Q and A
+        assert "ClimbAI" in body, (
+            "the sentence no longer says who read the page or that the reading is kept"
+        )
