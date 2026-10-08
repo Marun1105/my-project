@@ -525,24 +525,64 @@ def test_deleting_a_task_offers_a_way_back():
 def test_the_chat_thread_is_kept_per_account():
     """A shared computer must not hand the next student the last one's
     conversation, so what is stored records whose it is and is checked on the
-    way back in."""
+    way back in.
+
+    Checking the name of the local variable is not enough: `saved.who !== who`
+    reads the same whether `who` came from an account id or from the literal
+    'guest' that gave every guest one identity. What matters is that the value
+    can only be an account id, so the assertion is on owner() itself."""
     js = _read("chat.js")
+    owner = js[js.index("const owner = ()"):]
+    owner = owner[:owner.index("};") + 2]
+    assert "Auth.getUser()" in owner
+    assert "(u && u.id) ? String(u.id) : null" in owner, (
+        "the stored identity must be an account id or nothing at all"
+    )
     assert "saved.who !== who" in js
     assert "JSON.stringify({ who," in js
 
 
 def test_only_the_new_chat_button_throws_the_thread_away():
-    """Signing in and out swaps whose thread is shown. If that path called
-    reset(), it would delete the thread of the account that just arrived."""
+    """Signing in and out swaps whose thread is shown, and the handler for it
+    is `clearView(); restore();`. So anything on that path which deletes takes
+    the thread of the account that just left — it was gone on signing back in,
+    and gone on a token quietly expiring into logout(false).
+
+    This asserts where the removal is reached from, not merely that reset()
+    reaches it. The earlier version checked reset() and clearView() only, and
+    passed for a day while persist() and restore() both deleted."""
     js = _read("chat.js")
-    reset = js[js.index("function reset()"):]
-    reset = reset[:reset.index("\n  }")]
-    assert "forgetThread()" in reset
+
     forget = js[js.index("function forgetThread()"):]
     assert "removeItem(THREAD_KEY)" in forget[:forget.index("\n  }")]
-    clear = js[js.index("function clearView()"):]
-    clear = clear[:clear.index("\n  }")]
-    assert "THREAD_KEY" not in clear
+
+    reset = js[js.index("function reset()"):]
+    reset = reset[:reset.index("\n  }")]
+    assert "forgetThread()" in reset, "the new chat button must still clear it"
+
+    # every other mention of the removal, by either name, has to be a comment
+    after = js.index("function forgetThread()")
+    after = js.index("\n  }", after) + 4          # past its own body
+    body = js[after:]
+    callers = []
+    for n, line in enumerate(body.splitlines()):
+        stripped = line.strip()
+        if stripped.startswith("//") or stripped.startswith("*"):
+            continue
+        if "forgetThread()" in stripped or "removeItem(THREAD_KEY)" in stripped:
+            callers.append(stripped)
+    assert callers == ["forgetThread();"], (
+        "the thread is thrown away from somewhere other than the new chat "
+        "button: %r" % (callers,)
+    )
+
+    for name in ("function persist()", "function restore()", "function clearView()"):
+        fn = js[js.index(name):]
+        fn = fn[:fn.index("\n  }")]
+        assert "forgetThread" not in fn and "removeItem" not in fn, (
+            f"{name} deletes the thread; it runs with no user on the way OUT "
+            f"of an account, so it would delete that account's conversation"
+        )
 
 
 def test_back_goes_to_the_previous_screen():
@@ -1186,9 +1226,12 @@ def test_a_guest_conversation_is_never_written_down():
     for name in ("function persist()", "function restore()"):
         fn = js[js.index(name):]
         fn = fn[:fn.index("\n  }")]
-        assert "if (!who) return forgetThread();" in fn, (
+        assert "if (!who) return;" in fn, (
             f"{name} still acts for a signed-out visitor"
         )
+        # ...and returns without deleting: it also runs on the way OUT of an
+        # account, where deleting took the leaving account's own conversation.
+        assert "forgetThread" not in fn, f"{name} deletes somebody else's thread"
 
 
 def test_the_screen_does_not_promise_more_privacy_than_the_server_keeps():

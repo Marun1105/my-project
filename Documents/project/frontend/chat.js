@@ -37,15 +37,22 @@ const Chat = (() => {
     try { localStorage.removeItem(THREAD_KEY); } catch {}
   }
 
+  // Neither of these deletes. A guest writing nothing is what stops the leak;
+  // deleting as well looked like belt and braces and was data loss, because
+  // both run with no user on the way OUT of an account: the auth-changed
+  // handler is `clearView(); restore();`, so signing out — or a token quietly
+  // expiring into logout(false) — reached forgetThread() and threw away the
+  // conversation of the account that had just left. It was gone on signing
+  // back in. Only the "new chat" button throws a thread away.
   function persist() {
     const who = owner();
-    if (!who) return forgetThread();   // a guest leaves nothing behind
+    if (!who) return;                  // a guest leaves nothing behind
     try { localStorage.setItem(THREAD_KEY, JSON.stringify({ who, turns: history.slice(-THREAD_MAX) })); } catch {}
   }
 
   function restore() {
     const who = owner();
-    if (!who) return forgetThread();   // and is handed nothing either
+    if (!who) return;                  // and is handed nothing either
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem(THREAD_KEY) || 'null'); } catch { saved = null; }
     if (!saved || saved.who !== who || !Array.isArray(saved.turns) || !saved.turns.length) return;
