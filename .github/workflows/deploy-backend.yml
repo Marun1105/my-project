@@ -11,6 +11,14 @@
 #
 # Frontend, site, docs and desktop changes do not trigger it: none of those
 # reach the server, so a deploy for them would be a two-minute no-op.
+#
+# The Python version is pinned in Documents/project/.python-version, which
+# cannot hold a comment, so the reason is here: nothing pinned it before, so
+# the runtime was whatever Render's default happened to be that week. Deploys
+# succeeded on 24 September and failed from the 29th with no change to the
+# server, which is the shape of a platform default rolling forward rather than
+# of a bug. 3.12 is what the suite runs on; passlib 1.7.4, which requirements
+# pins, is a known breakage on 3.13.
 name: Deploy backend
 
 on:
