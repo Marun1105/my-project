@@ -1251,6 +1251,15 @@ def test_the_screen_does_not_promise_more_privacy_than_the_server_keeps():
     assert hasattr(models, "ProblemBrief"), (
         "if the brief is gone the promise can go back to being the simple one"
     )
+    # Tied to the columns, not to the class: read_text was disclosed and
+    # solution_text - a full worked solution to the child's homework, up to
+    # 30000 characters, which account.py exports as "worked_solution" - was
+    # not. The same omission as the one being fixed, one column over. A new
+    # stored column fails here until the sentence has been looked at again.
+    stored = {c.name for c in models.ProblemBrief.__table__.columns}
+    assert stored == {"id", "user_id", "subject", "read_text", "solution_text", "created_at"}, (
+        f"ProblemBrief stores something the help text was never checked against: {stored}"
+    )
 
     bodies = re.findall(r"'tutor\.howBody': '(.*?)',\n", _read("i18n.js"))
     assert len(bodies) == 2, "one of the two languages has lost the help text"
@@ -1272,3 +1281,7 @@ def test_the_screen_does_not_promise_more_privacy_than_the_server_keeps():
         assert "ClimbAI" in body, (
             "the sentence no longer says who read the page or that the reading is kept"
         )
+
+    # and each language says a solution is kept too, in its own words
+    assert "worked solution" in bodies[1], "the English text omits solution_text"
+    assert u"\u0440\u0435\u0448\u0435\u043d\u0438\u0435" in bodies[0], "the Bulgarian text omits solution_text"
