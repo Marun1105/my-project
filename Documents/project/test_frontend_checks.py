@@ -542,15 +542,22 @@ def test_the_chat_thread_is_kept_per_account():
     assert "JSON.stringify({ who," in js
 
 
-def test_only_the_new_chat_button_throws_the_thread_away():
-    """Signing in and out swaps whose thread is shown, and the handler for it
-    is `clearView(); restore();`. So anything on that path which deletes takes
-    the thread of the account that just left — it was gone on signing back in,
-    and gone on a token quietly expiring into logout(false).
+def test_the_thread_is_thrown_away_only_on_purpose():
+    """Two things may throw a thread away, and both are a decision by the
+    student: the "new chat" button, and a deliberate "Log out" click — in a
+    school that button means the computer is being handed over, so the
+    conversation goes too.
 
-    This asserts where the removal is reached from, not merely that reset()
-    reaches it. The earlier version checked reset() and clearView() only, and
-    passed for a day while persist() and restore() both deleted."""
+    Nothing else may. Signing in and out swaps whose thread is shown and the
+    handler is `clearView(); restore();`, so a deletion anywhere on that path
+    fires for a token quietly expiring into logout(false) as well, and takes a
+    conversation from a student still sitting there. That is why the sign-out
+    clearing is gated on detail.showGate, which auth.js sets true only for the
+    click, and why persist(), restore() and clearView() must not delete at all.
+
+    This asserts where the removal is reached FROM, not merely that reset()
+    reaches it. The first version of this test checked reset() and clearView()
+    only, and passed for a day while persist() and restore() both deleted."""
     js = _read("chat.js")
 
     forget = js[js.index("function forgetThread()"):]
@@ -571,9 +578,20 @@ def test_only_the_new_chat_button_throws_the_thread_away():
             continue
         if "forgetThread()" in stripped or "removeItem(THREAD_KEY)" in stripped:
             callers.append(stripped)
-    assert callers == ["forgetThread();"], (
-        "the thread is thrown away from somewhere other than the new chat "
-        "button: %r" % (callers,)
+    assert sorted(callers) == sorted([
+        "forgetThread();",
+        "if (e && e.detail && e.detail.showGate) forgetThread();",
+    ]), (
+        "the thread is thrown away from somewhere that is not a deliberate "
+        "choice by the student: %r" % (callers,)
+    )
+
+    # the sign-out clearing must stay gated: ungated, it also fires on a 401
+    handler = js[js.index("'climby:auth-changed'"):]
+    handler = handler[:handler.index("\n    });")]
+    assert "detail.showGate" in handler, (
+        "the sign-out clearing is no longer gated on an explicit log out, so a "
+        "silent token expiry now deletes the conversation again"
     )
 
     for name in ("function persist()", "function restore()", "function clearView()"):

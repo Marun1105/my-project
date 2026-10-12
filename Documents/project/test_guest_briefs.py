@@ -13,21 +13,34 @@ import tempfile
 import uuid
 from datetime import datetime, timedelta, timezone
 
-# This DATABASE_URL only takes effect when this module is imported first, i.e.
-# when the file is run on its own. Under the whole suite, test_account.py sorts
-# earlier and has already imported db, so `from db import SessionLocal` below
-# hands back ITS engine and every module shares one database. So nothing here
-# may assume an empty table: every assertion is scoped to rows this file
-# created, by id, and the one destructive call is bounded to briefs that are
-# both ownerless and over a day old, which only this file makes.
+# This is SET, not setdefault. setdefault was wrong and dangerous: this file
+# is the only test that calls a DELETE, and with a DATABASE_URL already in the
+# shell — a Neon URL, say, left over from a migration or a psql session — it
+# would have aimed `DELETE FROM problem_briefs` at production.
+#
+# Setting it still only decides the engine when this module is imported first,
+# i.e. when the file is run on its own. Under the whole suite test_account.py
+# sorts earlier and has already imported db, so `from db import SessionLocal`
+# hands back ITS engine and every module shares one database. Two consequences,
+# both handled rather than assumed: nothing here may expect an empty table, so
+# every assertion is scoped by id to rows this file created; and the engine is
+# checked to be SQLite below before anything destructive runs, because neither
+# this setting nor the import order is a guarantee on its own.
 _tmp_db = os.path.join(tempfile.mkdtemp(), "briefs.db")
-os.environ.setdefault("DATABASE_URL", f"sqlite:///{_tmp_db}")
-os.environ.setdefault("JWT_SECRET", "test-secret")
-os.environ.setdefault("TRUSTED_PROXY_HOPS", "0")
+os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_db}"
+os.environ["JWT_SECRET"] = "test-secret"
+os.environ["TRUSTED_PROXY_HOPS"] = "0"
 
 import server  # noqa: E402
-from db import SessionLocal  # noqa: E402
+from db import SessionLocal, engine  # noqa: E402
 from models import ProblemBrief, User  # noqa: E402
+
+# The belt to the braces above. If anything ever points this file at a real
+# database, fail at import rather than delete rows in it.
+assert engine.url.get_backend_name() == "sqlite", (
+    f"test_guest_briefs.py issues a DELETE and is bound to {engine.url!r}, "
+    f"which is not SQLite — refusing to run"
+)
 
 
 def _brief(db, owner_id, age_hours):

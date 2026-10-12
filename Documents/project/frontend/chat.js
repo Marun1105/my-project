@@ -228,7 +228,13 @@ const Chat = (() => {
       if (route) route.classList.toggle('hidden', !on);
     };
     syncContext();
-    window.addEventListener('climby:auth-changed', () => {
+    window.addEventListener('climby:auth-changed', (e) => {
+      // A deliberate "Log out" click means the student is handing the computer
+      // over — in a school that is the whole point of the button — so the
+      // thread goes with them. A silent 401 expiry (showGate false) does not:
+      // they are still sitting there, and taking the conversation away because
+      // a token aged out is the data loss this file already had once.
+      if (e && e.detail && e.detail.showGate) forgetThread();
       syncContext();
       clearView();
       restore();

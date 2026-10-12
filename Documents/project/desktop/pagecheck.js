@@ -292,7 +292,18 @@ function findChromium() {
   // It did: owner() answered 'guest' for everyone signed out, so one identity
   // covered all of them and restore() handed the thread straight over.
   const guestPage = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  // chat.js is the file under test here, so an exception thrown in it has to
+  // count. Bound to `page` only, this check printed "clean" through one.
+  guestPage.on('pageerror', e => problems.push('guest page error: ' + e.message));
+  guestPage.on('console', m => {
+    if (m.type() !== 'error') return;
+    const text = m.text();
+    if (/Failed to load resource|ERR_CONNECTION|net::/.test(text)) return;
+    problems.push('guest console error: ' + text);
+  });
+
   const secret = 'something a student would not want read';
+  const THREAD = 'climby-chat-thread';
   const asGuest = async (p0) => {
     await p0.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
     await p0.waitForTimeout(1000);
@@ -306,10 +317,15 @@ function findChromium() {
         ok: true, status: 200,
         json: () => Promise.resolve({ answer: 'One step at a time.', suggestions: [] }),
       });
-      document.getElementById('aiFab').click();
+      // `?.` like the two lines above: without it a renamed FAB rejects the
+      // evaluate, the top-level catch exits, and neither the browser nor the
+      // port is ever closed.
+      document.getElementById('aiFab')?.click();
     });
     await p0.waitForTimeout(250);
   };
+
+  // Direction one: a guest must leave nothing for the next guest.
   await asGuest(guestPage);
   await guestPage.fill('#chatInput', secret);
   await guestPage.click('#chatSend');
@@ -322,6 +338,29 @@ function findChromium() {
   if ((await guestPage.locator('#chatLog').innerText()).includes(secret)) {
     problems.push("a guest was shown the previous guest's conversation");
   }
+
+  // Direction two: and must not take away what an ACCOUNT left.
+  //
+  // newPage() opens a fresh context, so the check above could only ever see
+  // the guest's own write — it was structurally blind to the opposite fault,
+  // which is the one the first fix introduced: persist() and restore() both
+  // ran with no user while signing OUT, so they deleted the thread of the
+  // account that had just left. Seeding the key first is what makes that
+  // visible.
+  const mine = JSON.stringify({ who: 'account-1', turns: [{ role: 'user', text: 'my own thread' }] });
+  await guestPage.evaluate(([k, v]) => localStorage.setItem(k, v), [THREAD, mine]);
+  await asGuest(guestPage);
+  await guestPage.fill('#chatInput', 'a guest passing through');
+  await guestPage.click('#chatSend');
+  await guestPage.waitForTimeout(600);
+  const survived = await guestPage.evaluate((k) => localStorage.getItem(k), THREAD);
+  if (survived !== mine) {
+    problems.push(`a guest session destroyed an account's stored thread (now ${survived})`);
+  }
+  if ((await guestPage.locator('#chatLog').innerText()).includes('my own thread')) {
+    problems.push("a guest was shown an account's conversation");
+  }
+
   await guestPage.close();
 
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT, fullPage: false });
