@@ -15,7 +15,8 @@
     "dist:store": "electron-builder --win appx",
     "dist:linux": "electron-builder --linux",
     "smoke": "node smoke.js",
-    "pagecheck": "node pagecheck.js"
+    "pagecheck": "node pagecheck.js",
+    "shots": "node shots.js"
   },
   "devDependencies": {
     "electron": "^43.4.0",
