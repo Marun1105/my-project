@@ -69,8 +69,15 @@ const Focus = (() => {
     return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
   }
 
-  function computeStreak(sessions) {
+  // Закованите дни се броят като работни. Сметката остава тук, в браузъра,
+  // защото само тук се знае коя е календарната дата на детето — сървърът пази
+  // само факта, че денят е купен (виж clibis.buy_anchor).
+  function computeStreak(sessions, anchored = []) {
     const days = new Set(sessions.map(s => dateKey(s.created_at)));
+    anchored.forEach(day => {
+      const [y, m, d] = String(day).split('-').map(Number);
+      days.add(dateKey(new Date(y, m - 1, d).toISOString()));
+    });
     const cursor = new Date();
     if (!days.has(dateKey(cursor.toISOString()))) {
       cursor.setDate(cursor.getDate() - 1);
@@ -84,6 +91,83 @@ const Focus = (() => {
     return streak;
   }
 
+  async function _clibisGet(path) {
+    try {
+      const res = await Net.fetch(BACKEND + path, {
+        headers: { Authorization: `Bearer ${Auth.getToken()}` },
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch { return null; }
+  }
+
+  async function _anchoredDays() {
+    const data = await _clibisGet('/clibis/anchors');
+    return (data && data.anchored) || [];
+  }
+
+  function _dayBefore(n) {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return d;
+  }
+
+  function _iso(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  // Предлага се само в деня, в който серия наистина се е скъсала: вчера няма
+  // сесия, а онзи ден има. Извън този момент клинът не е помощ, а покупка без
+  // повод — и екранът не бива да я подсказва.
+  async function _offerAnchor(sessions, anchored) {
+    const box = $('focusAnchor');
+    if (!box) return;
+    box.classList.add('hidden');
+
+    const days = new Set(sessions.map(s => dateKey(s.created_at)));
+    anchored.forEach(day => {
+      const [y, m, d] = String(day).split('-').map(Number);
+      days.add(dateKey(new Date(y, m - 1, d).toISOString()));
+    });
+
+    const yesterday = _dayBefore(1);
+    const before = _dayBefore(2);
+    const broke = !days.has(dateKey(yesterday.toISOString()))
+                && days.has(dateKey(before.toISOString()));
+    if (!broke) return;
+
+    const purse = await _clibisGet('/clibis/me');
+    if (!purse) return;
+    const anchors = await _clibisGet('/clibis/anchors');
+    const cost = (anchors && anchors.cost) || 60;
+    if (purse.balance < cost) return;
+
+    $('focusAnchorText').textContent = t('focus.anchorOffer', { n: cost });
+    const btn = $('focusAnchorBtn');
+    btn.textContent = t('focus.anchorBuy');
+    btn.disabled = false;
+    btn.onclick = async () => {
+      btn.disabled = true;
+      try {
+        const res = await Net.fetch(BACKEND + '/clibis/anchor', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${Auth.getToken()}`,
+          },
+          body: JSON.stringify({ day: _iso(yesterday) }),
+        });
+        if (!res.ok) throw new Error('no');
+        box.classList.add('hidden');
+        renderStreak();
+      } catch {
+        btn.disabled = false;
+        $('focusAnchorText').textContent = t('focus.anchorFailed');
+      }
+    };
+    box.classList.remove('hidden');
+  }
+
   async function renderStreak() {
     const el = $('focusStreak');
     if (!el) return;
@@ -95,7 +179,9 @@ const Focus = (() => {
       if (!res.ok) throw new Error('bad status');
       const sessions = await res.json();
       if (!sessions.length) { el.classList.add('hidden'); return; }
-      const streak = computeStreak(sessions);
+      const anchored = await _anchoredDays();
+      const streak = computeStreak(sessions, anchored);
+      _offerAnchor(sessions, anchored);
       const label = streak > 0
         ? t('focus.streak', { n: streak, days: streak === 1 ? t('history.dayOne') : t('history.dayMany') })
         : t('focus.sessionsLogged', { n: sessions.length });

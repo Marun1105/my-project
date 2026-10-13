@@ -4333,3 +4333,15 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
 .board-clibis { color: var(--text); font-variant-numeric: tabular-nums; }
 
 .wall-invite { padding: 14px 16px; border: 1px dashed var(--border); border-radius: var(--radius); }
+
+/* Предложението за клин: тихо, защото е покупка, а не постижение. */
+.anchor-offer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
