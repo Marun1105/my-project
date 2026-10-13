@@ -11,6 +11,50 @@ should leave alone. Commit it together with the work it describes.
 
 ---
 
+## 2026-10-13 (later) · Claude Code · branch `worktree-social-clibis`
+
+Built the social feature from the spec. Backend and screen both done; 476
+Python tests and 134 frontend checks pass, `pagecheck` clean.
+
+### New files
+
+`clibis.py`, `social.py`, `frontend/wall.js`, and the tests `test_clibis.py`,
+`test_clibis_awards.py`, `test_social.py`, `test_rope_anchor.py`.
+
+### Modified
+
+`models.py` (5 new tables), `tasks.py`, `focus_sessions.py`, `activity.py`,
+`server.py` (routers, APP_MAP, the award where ScanHistory is written),
+`frontend/index.html`, `frontend/i18n.js`, `frontend/style.css`,
+`frontend/focus.js`, `frontend/sw.js`, `test_frontend_checks.py`.
+
+### Things worth knowing
+
+- **No migration, deliberately.** `create_all()` makes missing *tables* at
+  startup; only new *columns* need `migrations.py`. Everything here is a new
+  table, including `social_profiles`, which is why the nickname is not a column
+  on `users`. `migrations.py` is untouched. Given the deploy is already broken,
+  do not turn any of this into a column without a very good reason.
+- **Two names were already taken.** `nav.family` is "Rope Team" and its
+  Bulgarian label is «Свръзка». So the paired weekly goal is **Tie-in /
+  «Обвръзка»**, and the screen is **The Wall / «Стената»**. If you rename
+  anything, these are the collisions to avoid.
+- **Clibis are only ever written by `clibis.award()`**, called from the three
+  places work is recorded. No endpoint grants currency. Please keep it that way.
+- `test_clibis.py`, `test_social.py` and `test_rope_anchor.py` each **set**
+  `DATABASE_URL` rather than `setdefault` it, for the same reason
+  `test_guest_briefs.py` does.
+- Adding a screen means three registrations the tests enforce: `sw.js`'s cache
+  list, `APP_MAP` in `server.py` (both languages), and `_MAP_MUST_NAME` in
+  `test_frontend_checks.py`. I found all three by failing them.
+
+### Not done
+
+The leaderboard has no `period=week` control on screen, though the endpoint
+takes one. The ledger lines from `/clibis/me` are fetched but not displayed.
+
+---
+
 ## 2026-10-13 · Claude Code · branch `worktree-social-clibis`
 
 ### Finished
