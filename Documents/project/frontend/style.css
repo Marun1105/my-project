@@ -1766,13 +1766,17 @@ button:disabled { opacity: 0.4; cursor: default; }
   justify-content: center;
   padding: 20px;
 }
+/* 380px беше тясно за въпрос, с който приложението започва: картата изглеждаше
+   като съобщение, а не като екран. Сега е с размера на настройките на GitHub и
+   Claude — достатъчно голяма, за да е ясно, че трябва да ѝ се отговори. С
+   clamp(), защото на телефон 560px с голям padding няма къде да се сложат. */
 .onboarding-card {
   width: 100%;
-  max-width: 380px;
+  max-width: 560px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 26px 24px 20px;
+  padding: clamp(26px, 5vw, 44px) clamp(24px, 5vw, 48px) clamp(20px, 4vw, 34px);
   text-align: center;
   box-shadow: 0 18px 48px var(--shadow);
   animation: climby-rise 0.28s ease both;
@@ -1791,20 +1795,22 @@ button:disabled { opacity: 0.4; cursor: default; }
   transition: background 0.2s ease, width 0.2s ease;
 }
 .onboarding-dot.active { width: 20px; background: var(--accent); }
-.onboarding-icon { font-size: 40px; line-height: 1; margin-bottom: 14px; }
+.onboarding-icon { font-size: clamp(40px, 7vw, 56px); line-height: 1; margin-bottom: 16px; }
 .onboarding-title {
-  font-size: 19px;
+  font-size: clamp(19px, 3vw, 26px);
   font-weight: 700;
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   color: var(--text);
 }
+/* По-широката карта би разтеглила изречението; 46ch го държи четимо. */
 .onboarding-body {
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: clamp(14px, 1.6vw, 16px);
+  line-height: 1.65;
   color: var(--text-dim);
-  margin: 0 0 22px;
+  margin: 0 auto 26px;
+  max-width: 46ch;
 }
-.onboarding-actions { display: flex; gap: 10px; }
+.onboarding-actions { display: flex; gap: 10px; max-width: 420px; margin: 0 auto; width: 100%; }
 
 .task-split {
   margin-top: 10px;
@@ -2060,24 +2066,27 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 /* ---------- отговорите във въпросника ---------- */
+/* Картата е широка, отговорите не трябва да са: "5. клас" в бутон от 320px
+   изглежда като празно поле, а не като избор. 420px ги държи заедно. */
 .onboarding-choices {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-1);
-  margin-top: var(--space-3);
+  margin: var(--space-3) auto 0;
   width: 100%;
+  max-width: 420px;
 }
 .onboarding-choice {
   flex: 1 1 auto;
   min-width: 44%;
-  padding: 11px 14px;
+  padding: 13px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-sunken);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
