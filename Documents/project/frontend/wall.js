@@ -127,7 +127,9 @@ const Wall = (() => {
 
   function _pendingRow(p) {
     const row = _el('div', 'friend-row pending');
-    row.appendChild(_el('span', 'friend-name', p.name));
+    // Поканата, която аз съм пратил, няма име: докато другият не приеме,
+    // сървърът не го казва (виж social.list_friends). Пишем какво чака, не кой.
+    row.appendChild(_el('span', 'friend-name', p.they_asked ? p.name : t('wall.youAsked')));
     if (p.they_asked) {
       const ok = _el('button', 'btn-secondary wall-mini', t('wall.accept'));
       ok.addEventListener('click', () => _accept(p.link_id));

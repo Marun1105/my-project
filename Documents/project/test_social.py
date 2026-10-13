@@ -116,6 +116,35 @@ def test_a_request_is_pending_until_it_is_accepted():
     db.close()
 
 
+def test_a_code_alone_does_not_tell_you_who_someone_is():
+    """Until they accept, a guessed code must buy nothing. Otherwise trying
+    codes until one lands returns a child's name and year, and that child was
+    never asked. The rate limit makes the guessing slow; this makes the prize
+    worthless."""
+    db = SessionLocal()
+    a, b = _student(db, name="Ива Петрова"), _student(db, name="Непознат")
+    social.add_friend(social.my_profile(user=b, db=db)["friend_code"], user=a, db=db)
+
+    asked = social.list_friends(user=a, db=db)["pending"]
+    assert len(asked) == 1
+    assert set(asked[0]) == {"link_id", "they_asked"}
+    assert json.dumps(asked, ensure_ascii=False).find("Непознат") == -1
+
+    # Но този, когото питат, вижда кой го пита — иначе не може да реши.
+    theirs = social.list_friends(user=b, db=db)["pending"]
+    assert theirs[0]["name"] == "Ива Петрова"
+    assert theirs[0]["they_asked"] is True
+    db.close()
+
+
+def test_trying_codes_is_rate_limited():
+    """The endpoint that turns a guess into an answer is the one that has to
+    be slowed down."""
+    import inspect
+    src = inspect.getsource(social.add_friend)
+    assert "rate_limit.enforce" in src, "a code can be guessed as fast as the network allows"
+
+
 def test_only_the_person_asked_can_accept():
     db = SessionLocal()
     a, b = _student(db), _student(db)

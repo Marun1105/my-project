@@ -12,13 +12,14 @@ import secrets
 from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import clibis
+import rate_limit
 from auth import get_current_user
 from db import get_db
 from models import (
@@ -171,8 +172,15 @@ def _as_link(link: Friendship, me_id: str) -> dict:
 
 @router.post("/friends/code/{code}")
 def add_friend(code: str,
+               request: Request = None,
                user: User = Depends(get_current_user),
                db: Session = Depends(get_db)):
+    # Кодът е шест знака от 32 — около милиард комбинации. Срещу човек това е
+    # достатъчно; срещу скрипт без таван не е, а наградата за едно позване е
+    # името и класът на дете. Таванът е истинската защита тук, не дължината.
+    if request is not None:
+        rate_limit.enforce(request, "friend-code", max_calls=20, window_seconds=3600,
+                           message="Too many codes tried. Wait a little.", user=user)
     target = (db.query(SocialProfile)
               .filter(SocialProfile.friend_code == code.strip().upper())
               .first())
@@ -229,12 +237,21 @@ def list_friends(user: User = Depends(get_current_user), db: Session = Depends(g
         other = db.query(User).filter(User.id == other_id).first()
         if not other:
             continue
-        row = {"link_id": link.id, "user_id": other.id, "name": other.display_name,
-               "grade": other.grade}
         if link.status == "accepted":
-            friends.append({**row, **_stats(db, other.id)})
+            friends.append({"link_id": link.id, "user_id": other.id,
+                            "name": other.display_name, "grade": other.grade,
+                            **_stats(db, other.id)})
+        elif link.addressee_id == user.id:
+            # Питат МЕН: трябва да знам кой, иначе няма как да реша.
+            waiting.append({"link_id": link.id, "user_id": other.id,
+                            "name": other.display_name, "grade": other.grade,
+                            "they_asked": True})
         else:
-            waiting.append({**row, "they_asked": link.addressee_id == user.id})
+            # Аз питам ТЯХ, а те още не са се съгласили на нищо. Докато не
+            # приемат, не им връщаме името: иначе познат код е достатъчен, за да
+            # се разбере как се казва едно дете и в кой клас е, без то да е
+            # разрешило каквото и да било.
+            waiting.append({"link_id": link.id, "they_asked": False})
     friends.sort(key=lambda r: r["clibis"], reverse=True)
     return {"friends": friends, "pending": waiting}
 

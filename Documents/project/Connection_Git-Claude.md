@@ -48,6 +48,18 @@ Python tests and 134 frontend checks pass, `pagecheck` clean.
   list, `APP_MAP` in `server.py` (both languages), and `_MAP_MUST_NAME` in
   `test_frontend_checks.py`. I found all three by failing them.
 
+### A hole that was found and closed
+
+`/social/friends/code/{code}` had no rate limit, and a pending request returned
+the other person's name and year straight away. Together that meant guessing
+codes until one landed returned a child's name and class, with that child never
+having agreed to anything. Now the endpoint is capped at 20 tries an hour per
+account and address, and a request you sent returns only `{link_id,
+they_asked}` until it is accepted. The person being asked still sees who is
+asking — they cannot decide otherwise. `test_social_http.py` checks this over
+real HTTP, because the limit only exists if FastAPI really hands the endpoint a
+`Request`.
+
 ### Not done
 
 The leaderboard has no `period=week` control on screen, though the endpoint
