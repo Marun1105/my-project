@@ -28,6 +28,7 @@ from starlette.responses import HTMLResponse, JSONResponse, Response
 
 import auth
 import classes
+import clibis
 import devices
 import family
 import focus_sessions
@@ -1171,9 +1172,16 @@ def ask(
         # Best effort, like the token count above it: the answer is already
         # bought, and a database hiccup here must not throw it away as a 500.
         try:
-            db.add(ScanHistory(user_id=user.id, question=body.question, answer=answer,
-                               lang=lang, solved_unaided=solved))
+            entry = ScanHistory(user_id=user.id, question=body.question, answer=answer,
+                                lang=lang, solved_unaided=solved)
+            db.add(entry)
             db.commit()
+            # Плаща се за стигнатото само, не за зададения въпрос — и преценката
+            # е на учителя, не на ученика: solved идва от собствената маркировка
+            # на модела, не от нищо, което клиентът праща.
+            if solved:
+                clibis.award_quietly(db, user.id, "solved_step", entry.id)
+                clibis.award_day(db, user.id)
         except Exception as err:  # noqa: BLE001
             db.rollback()
             print(f"[ask] could not save to history: {err!r}", flush=True)

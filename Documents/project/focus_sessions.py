@@ -5,6 +5,7 @@ from typing import List
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
+import clibis
 import rate_limit
 from auth import get_current_user
 from db import get_db
@@ -36,6 +37,14 @@ def create_session(
     db.add(session)
     db.commit()
     db.refresh(session)
+
+    # Кратките сесии не се плащат по същата причина, по която не влизат и в
+    # статистиката: минута и половина пред отворена тетрадка не е сядане на
+    # бюрото, а MIN_SESSION_SECONDS вече е мястото, където това е решено.
+    if session.duration_seconds >= MIN_SESSION_SECONDS:
+        clibis.award_quietly(db, user.id, "focus_session", session.id)
+        clibis.award_day(db, user.id)
+
     return session
 
 

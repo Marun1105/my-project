@@ -5,6 +5,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
+import clibis
 import rate_limit
 from auth import get_current_user
 from db import get_db
@@ -67,6 +68,16 @@ def update_task(
 
     db.commit()
     db.refresh(task)
+
+    # Платено е за ЗАДАЧАТА, не за отмятането: ref_id е id-то на задачата, така
+    # че размисленото и после пак отметнато домашно е една работа, платена
+    # веднъж. Обратното — да се връщат клиби при разотмятане — щеше да кара
+    # числото да трепка при всяко докосване по погрешка, а работата пак е била
+    # свършена.
+    if data.get("done") and not was_done:
+        clibis.award_quietly(db, user.id, "task_done", task.id)
+        clibis.award_day(db, user.id)
+
     return task
 
 
