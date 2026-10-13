@@ -12,14 +12,20 @@
 # places where work is actually recorded — a task turning done, a focus
 # session saved, an answer the tutor marked as solved unaided — because those
 # are facts about work, and a request is only a claim about one.
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from models import ClibiLedger
+from auth import get_current_user
+from db import get_db
+from models import ClibiLedger, StreakAnchor, User
+
+router = APIRouter(prefix="/clibis", tags=["clibis"])
 
 # Решението, което не е число: solved_step е единственото, което расте, когато
 # ученикът се нуждае от помощ по-малко (виж ScanHistory.solved_unaided), затова
@@ -134,3 +140,90 @@ def award_day(db: Session, user_id: Optional[str], day: Optional[date] = None) -
     """
     stamp = (day or datetime.now(timezone.utc).date()).isoformat()
     return award_quietly(db, user_id, "streak_day", stamp)
+
+
+# ----------------------------------------------------------------------- клин
+
+
+class AnchorIn(BaseModel):
+    day: date
+
+
+# Скъп нарочно: шест отметнати задачи. Клин, който се купува между другото, не
+# пази серия — прави я безсмислена.
+ANCHOR_COST = 60
+
+
+@router.post("/anchor")
+def buy_anchor(body: AnchorIn,
+               user: User = Depends(get_current_user),
+               db: Session = Depends(get_db)):
+    """Купува един ден, в който нищо не е правено, за да не се скъса серията.
+
+    Проверките са в този ред нарочно: първо дали денят вече е закован. Второто
+    докосване по погрешка трябва да върне "вече е", а не да вземе още 60 клиби
+    за ден, който вече е платен.
+    """
+    exists = (db.query(StreakAnchor)
+              .filter(StreakAnchor.user_id == user.id, StreakAnchor.day == body.day)
+              .first())
+    if exists:
+        raise HTTPException(409, "That day is already anchored.")
+
+    month_start = body.day.replace(day=1)
+    next_month = (month_start + timedelta(days=32)).replace(day=1)
+    this_month = (db.query(StreakAnchor)
+                  .filter(StreakAnchor.user_id == user.id,
+                          StreakAnchor.day >= month_start,
+                          StreakAnchor.day < next_month)
+                  .first())
+    if this_month:
+        raise HTTPException(400, "One anchor a month. A streak you can buy every day is not a streak.")
+
+    if balance(db, user.id) < ANCHOR_COST:
+        raise HTTPException(400, "Not enough clibis yet.")
+
+    if not spend(db, user.id, ANCHOR_COST, "anchor", body.day.isoformat()):
+        raise HTTPException(400, "Not enough clibis yet.")
+
+    row = StreakAnchor(user_id=user.id, day=body.day)
+    db.add(row)
+    try:
+        db.commit()
+    except IntegrityError:
+        # Двойно натискане, стигнало дотук: клинът вече стои, а платеното за
+        # него е същият ден — spend() щеше да откаже втория. Нищо за връщане.
+        db.rollback()
+        raise HTTPException(409, "That day is already anchored.")
+    return {"day": body.day, "cost": ANCHOR_COST, "balance": balance(db, user.id)}
+
+
+@router.get("/anchors")
+def my_anchors(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    rows = db.query(StreakAnchor.day).filter(StreakAnchor.user_id == user.id).all()
+    return {"anchored": [r[0] for r in rows], "cost": ANCHOR_COST}
+
+
+# --------------------------------------------------------------------- екранът
+
+
+@router.get("/me")
+def my_clibis(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Балансът и последните редове, които го правят.
+
+    Причините се връщат като ключове ("task_done"), не като изречения: кое как
+    се казва на български и на английски знае i18n.js, а сървърът не бива да
+    има втори речник, който да се разминава с неговия.
+    """
+    rows = (db.query(ClibiLedger)
+            .filter(ClibiLedger.user_id == user.id)
+            .order_by(ClibiLedger.created_at.desc())
+            .limit(20)
+            .all())
+    return {
+        "balance": balance(db, user.id),
+        "earned_today": earned_today(db, user.id),
+        "daily_cap": DAILY_CAP,
+        "rates": RATES,
+        "recent": [{"reason": r.reason, "amount": r.amount, "at": r.created_at} for r in rows],
+    }

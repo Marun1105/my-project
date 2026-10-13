@@ -41,6 +41,7 @@ import account
 import activity
 import rate_limit
 import scans
+import social
 import tasks
 import relay
 import usage
@@ -69,6 +70,8 @@ if _applied:
 
 app.include_router(auth.router)
 app.include_router(tasks.router)
+app.include_router(social.router)
+app.include_router(clibis.router)
 app.include_router(planner.router)
 app.include_router(scans.router)
 app.include_router(focus_sessions.router)

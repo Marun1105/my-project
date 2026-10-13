@@ -248,6 +248,89 @@ class ClibiLedger(Base):
     created_at = Column(DateTime(timezone=True), default=_now, index=True)
 
 
+class SocialProfile(Base):
+    """Това, което другите ученици могат да видят — и нищо повече от него.
+
+    Отделна таблица, а не колони в users, по две причини. Първата е проста:
+    create_all() създава липсващи ТАБЛИЦИ при всяко стартиране, така че нова
+    таблица не иска миграция, а нова колона върху пълната users иска. Втората е
+    по-важна: границата между "акаунт" и "видимо от съученик" става буквална —
+    каквото не е тук, не се показва на никого.
+
+    Прякорът съществува само заради общата класация. Детето не бива да стои в
+    публичен списък с името, с което го знае учителят му, затова display_name
+    никога не стига дотам; а класацията между приятели и в класа ползва името,
+    защото там всички вече се познават.
+    """
+    __tablename__ = "social_profiles"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), unique=True, nullable=False, index=True)
+    # Кодът се диктува на глас в междучасието — същата азбука като класовете.
+    friend_code = Column(String, unique=True, nullable=False, index=True)
+    nickname = Column(String, nullable=True)
+    on_global_board = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class Friendship(Base):
+    """Приятелство, поискано с код и прието. Търсене по име няма никъде:
+    в Climby дете не може да бъде намерено от някой, който не го познава.
+
+    Уникалността е по двойката в реда, в който е поискано; обратната посока се
+    проверява в social.py преди записа, за да няма два реда за едно нещо.
+    """
+    __tablename__ = "friendships"
+    __table_args__ = (
+        UniqueConstraint("requester_id", "addressee_id", name="uq_friendship_pair"),
+    )
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    requester_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    addressee_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    status = Column(String, nullable=False, default="pending")   # pending | accepted
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class RopePartner(Base):
+    """Двама приятели, една цел за седмицата — «свръзка».
+
+    Бонусът се плаща само ако и двамата стигнат целта. Това е нарочно: сам
+    срещу другите е класацията, а тук единственият начин да спечелиш е другият
+    също да успее.
+    """
+    __tablename__ = "rope_partners"
+    __table_args__ = (
+        UniqueConstraint("a_user_id", "b_user_id", "week_start", name="uq_rope_pair_week"),
+    )
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    a_user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    b_user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    week_start = Column(Date, nullable=False, index=True)
+    target = Column(Integer, nullable=False)
+    settled = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class StreakAnchor(Base):
+    """Ден, купен с клиби, за да не се скъса серията — «клин».
+
+    Серията се смята в браузъра (виж activity.py: кой календарен ден е, знае
+    само часовата зона на детето), затова тук стои само фактът, че този ден е
+    закован. Какво значи това за серията решава същата сметка, която я прави.
+    """
+    __tablename__ = "streak_anchors"
+    __table_args__ = (
+        UniqueConstraint("user_id", "day", name="uq_anchor_user_day"),
+    )
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    day = Column(Date, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
 class CodePurpose(str, enum.Enum):
     verify_email = "verify_email"
     verify_phone = "verify_phone"

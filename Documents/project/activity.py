@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from auth import get_current_user
 from db import get_db
 from focus_sessions import MIN_SESSION_SECONDS
-from models import FocusSession, ScanHistory, Task, User
+from models import FocusSession, ScanHistory, StreakAnchor, Task, User
 
 router = APIRouter(prefix="/activity", tags=["activity"])
 
@@ -39,6 +39,10 @@ class ActivityEvent(BaseModel):
 class ActivityOut(BaseModel):
     events: List[ActivityEvent]
     due_today: int
+    # Дните, закупени с клин. Серията се смята в браузъра, защото само там се
+    # знае коя е календарната дата на детето — затова и клинът трябва да стигне
+    # до същата сметка, вместо сървърът да отсъжда вместо нея.
+    anchored: List[date] = []
 
 
 @router.get("", response_model=ActivityOut)
@@ -86,4 +90,8 @@ def activity(
                  .filter(Task.user_id == user.id, Task.done.is_(False), Task.deadline == day)
                  .count())
 
-    return ActivityOut(events=events, due_today=due_today)
+    anchored = [r[0] for r in db.query(StreakAnchor.day)
+                .filter(StreakAnchor.user_id == user.id,
+                        StreakAnchor.day >= since.date())]
+
+    return ActivityOut(events=events, due_today=due_today, anchored=anchored)
