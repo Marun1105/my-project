@@ -218,6 +218,36 @@ class ProblemBrief(Base):
     created_at = Column(DateTime(timezone=True), default=_now)
 
 
+class ClibiLedger(Base):
+    """Всяко клиби, спечелено или похарчено, е отделен ред — няма число "колко
+    има" никъде.
+
+    Сборът е балансът. Изглежда по-скъпо от една колона в users, но колоната
+    щеше да се разминава с историята си при първия повторен опит на телефон със
+    слаба връзка, а разминал се баланс е точно грешката, заради която таблицата
+    съществува. И отговаря на въпроса, който детето ЩЕ зададе: "защо имам 240?"
+
+    Уникалността (user_id, reason, ref_id) е самата защита от двойно плащане.
+    Не се проверява "има ли вече такъв ред" — между проверката и записа има
+    място за втора заявка. Базата отказва, clibis.award() го хваща.
+
+    Похарченото е отрицателен ред, не изтрит ред: историята остава цяла.
+    """
+    __tablename__ = "clibi_ledger"
+    __table_args__ = (
+        UniqueConstraint("user_id", "reason", "ref_id", name="uq_clibi_user_reason_ref"),
+    )
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    amount = Column(Integer, nullable=False)
+    reason = Column(String, nullable=False)
+    # Кое точно парче работа е платено: id на задачата, на сесията, на отговора
+    # или датата — за да може същото да не бъде платено втори път.
+    ref_id = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now, index=True)
+
+
 class CodePurpose(str, enum.Enum):
     verify_email = "verify_email"
     verify_phone = "verify_phone"
