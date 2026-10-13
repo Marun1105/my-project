@@ -588,6 +588,10 @@ The screens, from the menu on the left:
 - "Rope Team" — a parent, linked by a code. The parent sees how much was done and
   when, never what the tasks say and never these conversations.
 - "Base Camp" — a teacher's class, joined by a code the teacher gives out.
+- "The Wall" — clibis earned by working, friends added by a code read out loud, and a
+  leaderboard that starts with those friends. A friend sees counts only: never a task,
+  a question or an answer. A tie-in is one weekly target shared with one friend, which
+  pays only if both reach it; an anchor buys back a single missed day of a streak.
 
 There is also a chat panel — a small window opened by the round button in the bottom right
 corner, on every screen. It is text only.
@@ -634,6 +638,10 @@ something that does not exist trusts you less about the mathematics too.""",
 - „Свръзка" — родител, свързан с код. Родителят вижда колко е свършено и кога, никога
   какво пише в задачите и никога тези разговори.
 - „Базата" — клас на учител, влиза се с код, който учителят дава.
+- „Стената" — клибите, спечелени с работа, приятели, добавени с код, казан на глас, и
+  класация, която започва от тях. Приятелят вижда само числа: никога задача, въпрос или
+  отговор. „Обвръзка" е една обща цел за седмицата с един приятел и се плаща само ако и
+  двамата я стигнат; „клин" откупва един пропуснат ден от серията.
 
 Има и панел за разговор — малък прозорец, който се отваря с кръглото копче долу вдясно, на
 всеки екран. Той е само текст.

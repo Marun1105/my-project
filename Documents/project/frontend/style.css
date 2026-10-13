@@ -4211,3 +4211,125 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
    panels would otherwise sit between the cards and the question, pushing the
    answer below the fold. */
 #view-tutor:has(#qa:not(.hidden)) .home-grid { display: none; }
+
+/* ---------- Стената: клиби, обвръзка, класация ---------- */
+/* .view центрира децата си, така че блок без ширина се свива до съдържанието
+   си и застава по средата, по-тесен от собственото си заглавие. */
+#wallBody, #wallGate { width: 100%; }
+/* Единственото място в приложението, където едно число е самата гледка. Затова
+   клибите са едри и сами на реда си, а всичко останало наоколо е тихо: ако и
+   списъкът с приятели крещеше толкова, екранът щеше да е табло, а не кесия. */
+
+.wall-purse {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 26px 20px 22px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4, 20px);
+}
+.wall-purse-count {
+  font-size: clamp(34px, 6vw, 46px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+}
+.wall-purse-unit { font-size: 0.42em; font-weight: 600; color: var(--text-dim); }
+.wall-purse-today { font-size: 13px; color: var(--text-faint); }
+.wall-code { font-size: 13px; color: var(--text-dim); margin-top: 8px; }
+.wall-code strong { letter-spacing: 0.14em; color: var(--text); margin-left: 6px; }
+
+.wall-section { margin-bottom: 26px; }
+.wall-h { font-size: 15px; font-weight: 700; margin: 0 0 4px; color: var(--text); }
+.wall-note { font-size: 13px; line-height: 1.55; color: var(--text-dim); margin: 0 0 12px; max-width: 60ch; }
+.wall-empty { font-size: 13px; color: var(--text-faint); margin: 10px 0; }
+
+.wall-add { display: flex; gap: var(--space-1); align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.wall-add input {
+  flex: 1 1 160px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+/* Главните букви са за кода, не за подсказката: "КОД НА ПРИЯТЕЛ" крещи. */
+.wall-add input::placeholder { text-transform: none; letter-spacing: normal; }
+.wall-add label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.wall-mini { flex: 0 0 auto; padding: 6px 12px; font-size: 12px; white-space: nowrap; }
+
+/* Обвръзката: две ленти, една над друга, за да се вижда, че са едно нещо. */
+.rope-card {
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.rope-who { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+.rope-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.rope-name { flex: 0 0 72px; font-size: 12px; color: var(--text-dim); }
+.rope-track { flex: 1 1 auto; height: 8px; background: var(--bg-sunken); border-radius: 999px; overflow: hidden; }
+.rope-fill { height: 100%; background: var(--text-dim); border-radius: 999px; transition: width 0.3s ease; }
+/* Стигнатата цел е единственото, което си заслужава цвета на ClimbAI тук. */
+.rope-fill.done { background: var(--ai-gradient); }
+.rope-num { flex: 0 0 auto; font-size: 12px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+.friend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+.friend-row.pending { border-style: dashed; }
+.friend-who { display: flex; flex-direction: column; flex: 1 1 140px; min-width: 0; }
+.friend-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.friend-grade { font-size: 12px; color: var(--text-faint); }
+.friend-nums { display: flex; gap: 10px; margin-right: auto; font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.friend-clibis { font-weight: 700; color: var(--text); }
+
+.wall-tabs { display: flex; gap: var(--space-1); margin-bottom: 12px; }
+.wall-tab {
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wall-tab.active { border-color: var(--text); color: var(--text); }
+
+.board-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.board-row:last-child { border-bottom: 0; }
+/* Твоят ред се намира с поглед, не с четене: това е единственото, което човек
+   търси в класация, и търсенето по име отнема точно толкова, колкото трябва да
+   не го прави. */
+.board-row.you { background: var(--bg-elevated); border-radius: var(--radius); font-weight: 700; }
+.board-place { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.board-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.board-clibis { color: var(--text); font-variant-numeric: tabular-nums; }
+
+.wall-invite { padding: 14px 16px; border: 1px dashed var(--border); border-radius: var(--radius); }

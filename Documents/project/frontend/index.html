@@ -436,6 +436,11 @@
           <span data-i18n="nav.family">Родител</span>
         </button>
       </div>
+      <div class="nav-group" data-role="student">
+        <button class="nav-link nav-parent" data-view="wall"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20.5 9.2 4.8a1.2 1.2 0 0 1 2.2 0l3 7.4"/><path d="m10.5 20.5 4.6-5.6a1.2 1.2 0 0 1 1.9 0l4 5.6z"/><circle cx="17.2" cy="6.4" r="1.6"/></svg>
+          <span data-i18n="nav.wall">Стената</span>
+        </button>
+      </div>
       <div class="nav-group" data-role="teacher student">
         <button class="nav-link nav-parent" data-view="classes"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.2 2.5 9 12 13.8 21.5 9z"/><path d="M6.5 11.3V16c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-4.7"/></svg>
           <span data-i18n="nav.classes">Клас</span>
@@ -1075,6 +1080,62 @@
 
 </main>
 
+<!-- Стената: клибите, свръзката и класацията. Нито едно число тук не е текст —
+     съученикът вижда колко, никога какво (виж social.py). -->
+<main id="view-wall" class="view hidden">
+<header class="page-header">
+  <h1 data-i18n="nav.wall">Стената</h1>
+  <p class="page-subtitle" data-i18n="page.wallSubtitle">Клибите ти, свръзката ти и къде си спрямо своите. Другите виждат числа, никога какво си писал или питал.</p>
+  <button class="help-toggle" type="button" data-help-view="wall" aria-expanded="false" data-i18n-aria="help.aria" aria-label="Как работи този екран"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 17h.01"/></svg></button>
+</header>
+
+  <div id="wallGate" class="auth-gate-simple">
+    <div class="explainer">
+      <strong data-i18n="wall.why">Защо трябва да влезеш:</strong> <span data-i18n="wall.whyBody">клибите и приятелите стоят в акаунта — иначе няма кой да ги брои.</span>
+    </div>
+  </div>
+
+  <div id="wallBody" class="hidden">
+    <div id="wallError" class="error-text hidden" role="alert"></div>
+
+    <section class="wall-purse">
+      <div class="wall-purse-count"><span id="wallClibis">0</span> <span class="wall-purse-unit" data-i18n="wall.clibis">клиби</span></div>
+      <div class="wall-purse-today" id="wallToday"></div>
+      <div class="wall-code">
+        <span data-i18n="wall.yourCode">Твоят код:</span>
+        <strong id="wallCode">······</strong>
+      </div>
+    </section>
+
+    <section class="wall-section">
+      <h2 class="wall-h" data-i18n="wall.ropeTitle">Обвръзка</h2>
+      <p class="wall-note" data-i18n="wall.ropeNote">Една цел за седмицата с един приятел. Плаща се само ако и двамата я стигнете.</p>
+      <div id="wallRope"></div>
+    </section>
+
+    <section class="wall-section">
+      <h2 class="wall-h" data-i18n="wall.friendsTitle">Приятели</h2>
+      <div class="wall-add">
+        <input id="wallFriendCode" type="text" maxlength="6" autocomplete="off" spellcheck="false" placeholder=" ">
+        <label for="wallFriendCode" data-i18n="wall.codeLabel">Код на приятел</label>
+        <button id="wallAddBtn" class="btn-secondary" type="button" data-i18n="wall.add">Добави</button>
+      </div>
+      <div id="wallPending"></div>
+      <div id="wallFriends"></div>
+    </section>
+
+    <section class="wall-section">
+      <h2 class="wall-h" data-i18n="wall.boardTitle">Класация</h2>
+      <div class="wall-tabs" role="tablist">
+        <button class="wall-tab active" type="button" data-scope="friends" role="tab" data-i18n="wall.scopeFriends">Приятели</button>
+        <button class="wall-tab" type="button" data-scope="class" role="tab" data-i18n="wall.scopeClass">Класът</button>
+        <button class="wall-tab" type="button" data-scope="global" role="tab" data-i18n="wall.scopeGlobal">Всички</button>
+      </div>
+      <div id="wallBoard"></div>
+    </section>
+  </div>
+</main>
+
 <main id="view-classes" class="view hidden">
 <header class="page-header">
   <h1 data-i18n="nav.classes">Клас</h1>
@@ -1237,6 +1298,7 @@
 <script src="mirror.js"></script>
 <script src="family.js"></script>
 <script src="classes.js"></script>
+<script src="wall.js"></script>
 <script src="onboarding.js"></script>
 <script src="tour.js"></script>
 <script>

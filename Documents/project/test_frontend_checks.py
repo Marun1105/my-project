@@ -749,6 +749,7 @@ def test_both_screens_say_which_one_they_are():
 _MAP_MUST_NAME = [
     # the screens
     "nav.tutor", "nav.checklist", "nav.history", "nav.focus", "nav.classes", "nav.family",
+    "nav.wall",
     # the ways into ClimbAI
     "entry.cameraTitle", "entry.phoneTitle", "entry.paperTitle",
     # every row of Settings

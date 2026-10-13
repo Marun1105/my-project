@@ -16,7 +16,9 @@
 - **No migration.** New tables only. `migrations.py` must not be edited by this plan.
 - **Names are taken.** `nav.family` is already **Rope Team** and `nav.classes` is **Base Camp**. The new names are:
   - **The Wall** / «Стената» — the new screen (friends, balance, leaderboard)
-  - **Rope partner** / «Свръзка» — two friends, one weekly goal (`свръзка` is the Bulgarian climbing word for a roped pair)
+  - **Tie-in** / «Обвръзка» — two friends, one weekly goal. NOT «Свръзка»: that is
+    already the Bulgarian label of `nav.family`, i.e. Rope Team. «Обвръзка» is the
+    harness you tie into, and it is free in both languages.
   - **Anchor** / «Клин» — a day of streak bought with clibis
   - **clibis** / «клиби» — the currency
 - **Both languages.** Every user-facing string goes through `i18n.js`, `bg` and `en`.
@@ -96,7 +98,7 @@ Five things the spec implies but no happy-path test would catch:
 - [ ] Tests, including the two from Review Focus: deleting a friendship immediately 403s the profile, and a `global` response's **JSON text** contains no `display_name` key and none of the fixture's real names.
 - [ ] Commit.
 
-### Task 6: Rope partner (Свръзка)
+### Task 6: Tie-in (Обвръзка)
 
 **Files:** Modify `models.py` (`RopePartner`), `social.py`. Test: `test_rope_partner.py`
 
@@ -126,10 +128,10 @@ Five things the spec implies but no happy-path test would catch:
 - [ ] Both languages in `i18n.js`.
 - [ ] Commit.
 
-### Task 9: Rope partner and Anchor on screen
+### Task 9: Tie-in and Anchor on screen
 
 **Files:** Modify `frontend/wall.js`, `frontend/i18n.js`, `frontend/style.css`, `frontend/checklist.js` (the streak line). Test: `test_frontend_checks.py`
 
-- [ ] Proposing a rope partner from the friends list; the pair's progress toward the shared target.
+- [ ] Proposing a tie-in from the friends list; the pair's progress toward the shared target.
 - [ ] The anchor offered only where the streak is shown, only when the balance allows it, and worded as what it does: the day counts even though nothing was done.
 - [ ] Commit.

@@ -34,6 +34,7 @@ const SHELL = [
   './net.js',
   './offline.js',
   './classes.js',
+  './wall.js',
   './subjects.js',
   './subjects.css',
   './classes.css',
