@@ -428,15 +428,27 @@ def verify_registration_phone(
     )
 
 
+def _send_sms_quietly(phone: str, code: str) -> None:
+    try:
+        sms_service.send_verification_sms(phone, code)
+    except RuntimeError:
+        pass
+
+
 @router.post("/resend-registration-phone")
-def resend_registration_phone(body: ResendCodeRequest, request: Request, db: Session = Depends(get_db)):
+def resend_registration_phone(body: ResendCodeRequest, request: Request, background: BackgroundTasks,
+                              db: Session = Depends(get_db)):
     rate_limit.enforce(request, "resend-registration-phone", max_calls=5, window_seconds=3600,
                        message="Too many attempts. Please wait a moment and try again.")
+    # Unauthenticated, so the answer is the same for every address. It used to
+    # say "sms_sent": true only for a real, confirmed account with an
+    # unconfirmed phone — a way to test which emails have accounts. The SMS
+    # goes out after the response, so its delay does not tell either.
     user = db.query(User).filter(_email_matches(body.email)).first()
-    sent = False
     if user and user.is_email_verified and user.phone and not user.is_phone_verified:
-        sent = _send_registration_phone_code(user, db)
-    return {"status": "ok", "sms_sent": sent}
+        code = _issue_code(db, user, CodePurpose.verify_phone)
+        background.add_task(_send_sms_quietly, user.phone, code)
+    return {"status": "ok"}
 
 
 @router.post("/resend-code")

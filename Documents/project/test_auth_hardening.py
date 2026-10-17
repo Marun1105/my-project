@@ -178,8 +178,9 @@ def test_an_unconfirmed_phone_never_blocks_a_sign_in():
     assert _login("unconfirmed-phone@example.com").status_code == 200
 
 
-def test_sms_delivery_failure_is_reported_and_can_be_retried(monkeypatch, codes):
-    """The 1.0.24 client still offers to confirm the phone after sign-up."""
+def test_resending_the_phone_code_says_nothing_about_the_account(monkeypatch, codes):
+    """Unauthenticated: the reply must not tell a real account from a made-up
+    address, or a failed SMS from a sent one."""
     assert _register("sms-retry@example.com").status_code == 200
     assert client.post("/auth/verify-email", json={
         "email": "sms-retry@example.com", "code": codes[-1],
@@ -189,14 +190,14 @@ def test_sms_delivery_failure_is_reported_and_can_be_retried(monkeypatch, codes)
         raise RuntimeError("SMS provider unavailable")
 
     monkeypatch.setattr(sms_service, "send_verification_sms", fail_delivery)
-    failed = client.post("/auth/resend-registration-phone", json={"email": "sms-retry@example.com"})
-    assert failed.status_code == 200
-    assert failed.json()["sms_sent"] is False
-
+    real_failed = client.post("/auth/resend-registration-phone", json={"email": "sms-retry@example.com"})
+    unknown = client.post("/auth/resend-registration-phone", json={"email": "nobody-here@example.com"})
     monkeypatch.setattr(sms_service, "send_verification_sms", lambda phone, code: codes.append(code))
-    retry = client.post("/auth/resend-registration-phone", json={"email": "sms-retry@example.com"})
-    assert retry.status_code == 200
-    assert retry.json()["sms_sent"] is True
+    before = len(codes)
+    real_sent = client.post("/auth/resend-registration-phone", json={"email": "sms-retry@example.com"})
+    assert real_failed.status_code == unknown.status_code == real_sent.status_code == 200
+    assert real_failed.json() == unknown.json() == real_sent.json() == {"status": "ok"}
+    assert len(codes) == before + 1, "the code still goes out to the real account"
 
 
 def test_invalid_and_expired_registration_sms_codes_do_not_verify_phone(codes):
@@ -205,7 +206,7 @@ def test_invalid_and_expired_registration_sms_codes_do_not_verify_phone(codes):
         "email": "sms-invalid@example.com", "code": codes[-1],
     }).status_code == 200
     assert client.post("/auth/resend-registration-phone",
-                       json={"email": "sms-invalid@example.com"}).json()["sms_sent"] is True
+                       json={"email": "sms-invalid@example.com"}).status_code == 200
     assert client.post("/auth/verify-registration-phone", json={
         "email": "sms-invalid@example.com", "code": "000000",
     }).status_code == 400
