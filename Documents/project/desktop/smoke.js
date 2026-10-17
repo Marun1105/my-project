@@ -48,7 +48,14 @@ async function main() {
                           : 'the app never opened its debugging port');
   }
 
-  const page = browser.contexts()[0].pages()[0];
+  // The port opens before the window exists; wait for the window itself.
+  let page = null;
+  for (let i = 0; i < 30 && !page; i++) {
+    const ctx = browser.contexts()[0];
+    page = ctx && ctx.pages()[0];
+    if (!page) await new Promise(r => setTimeout(r, 500));
+  }
+  if (!page) throw new Error('the app opened no window within 15 seconds');
   page.on('pageerror', e => note('page error', e.message.slice(0, 200)));
   page.on('console', m => { if (m.type() === 'error') note('console error', m.text().slice(0, 200)); });
   page.on('requestfailed', r => { if (!/cdn\.jsdelivr|fonts\./.test(r.url())) note('request failed', r.url().slice(0, 120)); });
