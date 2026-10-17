@@ -248,13 +248,13 @@ def test_register_accepts_optional_username_and_phone():
         assert res.status_code == 422, (bad, res.text)
 
 
-def test_registration_requires_phone_but_not_username():
+def test_registration_needs_neither_phone_nor_username():
     res = client.post("/auth/register", json={
         "display_name": "Без", "email": "plain@example.com", "password": "testpass123",
     })
-    assert res.status_code == 422, res.text
+    assert res.status_code == 200, res.text
     res = client.post("/auth/register", json={
-        "display_name": "Без", "email": "plain@example.com",
+        "display_name": "С", "email": "plain-phone@example.com",
         "phone": "+15550000004", "password": "testpass123",
     })
     assert res.status_code == 200, res.text
@@ -262,7 +262,8 @@ def test_registration_requires_phone_but_not_username():
     from models import User
     db = SessionLocal()
     u = db.query(User).filter(User.email == "plain@example.com").first()
-    assert u.username is None and u.phone == "+15550000004"
+    assert u.username is None and u.phone is None
+    assert db.query(User).filter(User.email == "plain-phone@example.com").first().phone == "+15550000004"
     db.close()
 
 

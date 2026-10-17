@@ -139,58 +139,73 @@ def test_username_can_be_used_to_sign_in_case_insensitively():
         assert res.status_code == 200, (spelling, res.text)
 
 
-def test_new_registration_requires_sms_verification_before_sign_in(codes):
+def test_a_confirmed_email_signs_in_without_waiting_for_an_sms(codes):
+    """SMS is not configured on Render. When the token waited for an SMS code,
+    every new account could be created and never used."""
     assert _register("sms-required@example.com", username="sms.user").status_code == 200
-    email_code = codes[-1]
     email_result = client.post("/auth/verify-email", json={
-        "email": "sms-required@example.com", "code": email_code,
+        "email": "sms-required@example.com", "code": codes[-1],
     })
-    assert email_result.status_code == 200
-    assert email_result.json()["status"] == "phone_verification_required"
-    phone_code = codes[-1]
-
-    refused = client.post("/auth/login", json={
-        "identifier": "sms.user", "password": "testpass123",
-    })
-    assert refused.status_code == 403
-
-    verified = client.post("/auth/verify-registration-phone", json={
-        "email": "sms-required@example.com", "code": phone_code,
-    })
-    assert verified.status_code == 200, verified.text
+    assert email_result.status_code == 200, email_result.text
+    assert email_result.json()["token"]
     accepted = client.post("/auth/login", json={
         "identifier": "sms.user", "password": "testpass123",
     })
     assert accepted.status_code == 200, accepted.text
+    assert not _find("sms-required@example.com").is_phone_verified
+
+
+def test_the_phone_number_is_optional_at_sign_up(codes):
+    rate_limit._hits.clear()
+    res = client.post("/auth/register", json={
+        "display_name": "Без телефон", "email": "no-phone@example.com", "password": "testpass123",
+    })
+    assert res.status_code == 200, res.text
+    assert _find("no-phone@example.com").phone is None
+
+
+def test_an_unconfirmed_phone_never_blocks_a_sign_in():
+    """Accounts that typed a number once and never got the SMS were locked out."""
+    assert _register("unconfirmed-phone@example.com").status_code == 200
+    db = SessionLocal()
+    try:
+        u = db.query(User).filter(User.email == "unconfirmed-phone@example.com").first()
+        u.is_email_verified = True
+        u.is_phone_verified = False
+        db.commit()
+    finally:
+        db.close()
+    assert _login("unconfirmed-phone@example.com").status_code == 200
 
 
 def test_sms_delivery_failure_is_reported_and_can_be_retried(monkeypatch, codes):
+    """The 1.0.24 client still offers to confirm the phone after sign-up."""
     assert _register("sms-retry@example.com").status_code == 200
-    email_code = codes[-1]
+    assert client.post("/auth/verify-email", json={
+        "email": "sms-retry@example.com", "code": codes[-1],
+    }).status_code == 200
 
     def fail_delivery(phone, code):
         raise RuntimeError("SMS provider unavailable")
 
     monkeypatch.setattr(sms_service, "send_verification_sms", fail_delivery)
-    result = client.post("/auth/verify-email", json={
-        "email": "sms-retry@example.com", "code": email_code,
-    })
-    assert result.status_code == 200
-    assert result.json()["sms_sent"] is False
+    failed = client.post("/auth/resend-registration-phone", json={"email": "sms-retry@example.com"})
+    assert failed.status_code == 200
+    assert failed.json()["sms_sent"] is False
 
     monkeypatch.setattr(sms_service, "send_verification_sms", lambda phone, code: codes.append(code))
     retry = client.post("/auth/resend-registration-phone", json={"email": "sms-retry@example.com"})
     assert retry.status_code == 200
     assert retry.json()["sms_sent"] is True
-    assert len(codes) == 2
 
 
 def test_invalid_and_expired_registration_sms_codes_do_not_verify_phone(codes):
     assert _register("sms-invalid@example.com").status_code == 200
-    email_code = codes[-1]
     assert client.post("/auth/verify-email", json={
-        "email": "sms-invalid@example.com", "code": email_code,
+        "email": "sms-invalid@example.com", "code": codes[-1],
     }).status_code == 200
+    assert client.post("/auth/resend-registration-phone",
+                       json={"email": "sms-invalid@example.com"}).json()["sms_sent"] is True
     assert client.post("/auth/verify-registration-phone", json={
         "email": "sms-invalid@example.com", "code": "000000",
     }).status_code == 400
@@ -215,8 +230,36 @@ def test_invalid_and_expired_registration_sms_codes_do_not_verify_phone(codes):
         "email": "sms-invalid@example.com", "code": codes[-1],
     })
     assert expired.status_code == 400
-    user = _find("sms-invalid@example.com")
-    assert not user.is_phone_verified
+    assert not _find("sms-invalid@example.com").is_phone_verified
+
+
+def test_adding_a_phone_without_sms_answers_503_not_500(monkeypatch):
+    headers = _account("add-phone-down@example.com")
+
+    def down(phone, code):
+        raise RuntimeError("SMS delivery is not configured.")
+
+    monkeypatch.setattr(sms_service, "send_verification_sms", down)
+    res = client.post("/auth/phone", json={"phone": "+359888777009"}, headers=headers)
+    assert res.status_code == 503
+    assert "SMS" in res.json()["detail"]
+
+
+def test_sms_reset_answers_the_same_for_known_and_unknown_numbers(monkeypatch, codes):
+    """A raise for registered numbers only told anyone which numbers have accounts."""
+    headers = _account("reset-known@example.com")
+    client.post("/auth/phone", json={"phone": "+359888777010"}, headers=headers)
+    assert client.post("/auth/verify-phone", json={"code": codes[-1]}, headers=headers).status_code == 200
+
+    def down(phone, code):
+        raise RuntimeError("SMS delivery failed.")
+
+    monkeypatch.setattr(sms_service, "send_reset_sms", down)
+    rate_limit._hits.clear()
+    known = client.post("/auth/forgot-password", json={"channel": "sms", "contact": "+359888777010"})
+    unknown = client.post("/auth/forgot-password", json={"channel": "sms", "contact": "+359888777011"})
+    assert known.status_code == unknown.status_code == 200
+    assert known.json() == unknown.json()
 
 
 def test_sms_delivery_fails_closed_when_production_is_not_configured(monkeypatch):

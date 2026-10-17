@@ -299,8 +299,6 @@ def register(body: RegisterRequest, request: Request, background: BackgroundTask
                         message="Too many sign-up attempts. Please wait a moment and try again.")
     email = normalize_email(body.email)
     phone = normalize_phone(body.phone)
-    if not phone:
-        raise HTTPException(400, "A phone number is required.")
 
     # Регистрацията беше последното място, което казваше на глас кой адрес има
     # профил: 400 "вече има акаунт" за зает, 200 за свободен. Затова всичко
@@ -371,7 +369,7 @@ def register(body: RegisterRequest, request: Request, background: BackgroundTask
     return NEUTRAL
 
 
-@router.post("/verify-email")
+@router.post("/verify-email", response_model=AuthResponse)
 def verify_email(body: VerifyEmailRequest, request: Request, db: Session = Depends(get_db)):
     rate_limit.enforce(request, "verify-email", max_calls=10, window_seconds=3600,
                         message="Too many attempts. Please wait a moment and try again.")
@@ -393,12 +391,12 @@ def verify_email(body: VerifyEmailRequest, request: Request, db: Session = Depen
 
     user.is_email_verified = True
     db.commit()
-    if user.phone:
-        sent = _send_registration_phone_code(user, db)
-        return {
-            "status": "phone_verification_required",
-            "sms_sent": sent,
-        }
+    # A confirmed email is enough to sign in. Holding the token back until an
+    # SMS code arrived locked out every new account whenever SMS was not
+    # configured — and it is not, on Render — so the account could be created
+    # and never used. A phone given at sign-up stays unconfirmed until the
+    # student confirms it; /auth/verify-registration-phone is kept for 1.0.24
+    # clients that still show that step.
     return AuthResponse(token=security.create_access_token(user.id, user.token_version), user=UserOut.model_validate(user))
 
 
@@ -480,8 +478,8 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
         raise HTTPException(401, "Incorrect username or email, or password.")
     if not user.is_email_verified:
         raise HTTPException(403, "Please verify your email address before signing in.")
-    if user.phone and not user.is_phone_verified:
-        raise HTTPException(403, "Please verify your phone number before signing in.")
+    # An unconfirmed phone is never a reason to refuse a sign-in: it locked out
+    # every account that had typed a number once and never got the SMS.
     return AuthResponse(token=security.create_access_token(user.id, user.token_version), user=UserOut.model_validate(user))
 
 
@@ -508,7 +506,12 @@ def add_phone(
     user.is_phone_verified = False
     db.commit()
     code = _issue_code(db, user, CodePurpose.verify_phone)
-    sms_service.send_verification_sms(phone, code)
+    # sms_service raises when it cannot send (no provider configured, or the
+    # provider failed). That is a 503 with a sentence, not a 500.
+    try:
+        sms_service.send_verification_sms(phone, code)
+    except RuntimeError:
+        raise HTTPException(503, "We could not send the SMS right now. Please try again later.")
     return {"status": "ok", "message": "We have sent you a code by SMS."}
 
 
@@ -557,7 +560,13 @@ def forgot_password(body: ForgotPasswordRequest, request: Request, background: B
         if body.channel == "email":
             background.add_task(email_service.send_reset_email, user.email, code)
         else:
-            sms_service.send_reset_sms(user.phone, code)
+            # Swallowed on purpose. Raising here answered 500 only for numbers
+            # that have an account and 200 for the rest — a way to test which
+            # phone numbers are registered. Every caller gets the same reply.
+            try:
+                sms_service.send_reset_sms(user.phone, code)
+            except RuntimeError:
+                pass
     return {"status": "ok", "message": "If that account exists, we have sent a code."}
 
 

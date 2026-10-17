@@ -233,7 +233,7 @@ const Auth = (() => {
     const password = $('registerPassword').value;
     const phone = $('registerPhone').value.trim();
     const role = (document.querySelector('input[name="registerRole"]:checked') || {}).value || 'student';
-    if (!name || !email || !phone || !password) {
+    if (!name || !email || !password) {
       setError(t('auth.errFillAll'));
       return;
     }

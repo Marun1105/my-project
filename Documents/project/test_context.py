@@ -345,8 +345,12 @@ def test_the_tutor_uses_the_current_screen_names_not_the_old_ones(monkeypatch):
     seen = _capture(monkeypatch)
     assert _ask().status_code == 200
     system = seen["system"]
-    for current in ('"Homework"', '"Completed work"', '"Study timer"', '"Family progress"', '"Classes"'):
-        assert current in system
+    # The names are the ones the screens carry now (1.0.25). The test reads them
+    # from the line that tells the tutor which names to use, so the next rename
+    # fails here instead of quietly teaching the old ones.
+    current_line = system.split("Always use the current names above:", 1)[1].split("Earlier", 1)[0]
+    for current in ('"Homework HQ"', '"Done & dusted"', '"Focus mode"', '"Family progress"', '"Classroom crew"'):
+        assert current in current_line
     assert "never use them yourself" in system
     assert 'Adding to the Route' not in system and 'on their Route' not in system
 
@@ -377,7 +381,7 @@ def test_both_languages_carry_the_map(monkeypatch):
     assert _ask(lang="bg").status_code == 200
     system = seen["system"]
     assert "Къде се намираш" in system
-    assert "Домашни задачи" in system and "Таймер за учене" in system and "Глас" in system
+    assert "Щабът на домашните" in system and "Режим фокус" in system and "Глас" in system
     assert "не измисляй бутон" in system
 
 

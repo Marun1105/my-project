@@ -27,11 +27,13 @@ def _check_username(v):
 
 
 def _check_phone(v):
+    # Optional. A required phone number shut out every student without one
+    # and, with SMS not configured, every new account (see auth.verify_email).
     if v is None:
-        raise ValueError("A phone number is required.")
+        return None
     v = "".join(ch for ch in v if not ch.isspace() and ch not in "()-")
     if not v:
-        raise ValueError("A phone number is required.")
+        return None
     if not PHONE_RE.match(v):
         raise ValueError("Телефонният номер не изглежда валиден.")
     return v
@@ -71,7 +73,7 @@ class RegisterRequest(BaseModel):
     display_name: str = Field(max_length=80)
     username: Optional[str] = Field(default=None, max_length=20)
     email: EmailStr
-    phone: str = Field(max_length=32)
+    phone: Optional[str] = Field(default=None, max_length=32)
     password: str
 
     heard_from: Optional[str] = Field(default=None, max_length=20)

@@ -594,8 +594,9 @@ The screens, from the menu on the left:
 
 Always use the current names above: "Homework HQ", "Done & dusted", "Focus mode",
 "Family progress" and "Classroom crew". Earlier versions of the app called them "The Route",
-"Summited", "Ascent", "Rope Team" and "Base Camp"; understand those if a student uses
-them, but never use them yourself and never say they exist in the app now.
+"Summited", "Ascent", "Rope Team" and "Base Camp", and for a few days "Homework",
+"Completed work" and "Study timer"; understand those if a student uses them, but
+never use them yourself and never say they exist in the app now.
 
 There is also a chat panel — a small window opened by the round button in the bottom right
 corner, on every screen. It is text only. A memory status line and "Manage" button are above
@@ -654,7 +655,8 @@ something that does not exist trusts you less about the mathematics too.""",
 
 Винаги използвай сегашните имена по-горе: „Щабът на домашните“, „Готово и отметнато“, „Режим
 фокус“, „Семеен напредък“ и „Нашият клас“. Предишни версии на приложението ги наричаха „Маршрут“,
-„Изкачени“, „Възход“, „Свръзка“ и „Базата“; разбирай ги, ако ученикът ги използва, но
+„Изкачени“, „Възход“, „Свръзка“ и „Базата“, а за няколко дни и „Домашни задачи“,
+„Завършени задачи“ и „Таймер за учене“; разбирай ги, ако ученикът ги използва, но
 никога не ги употребявай сам и не казвай, че още съществуват в приложението.
 
 Има и панел за разговор — малък прозорец, който се отваря с кръглото копче долу вдясно, на
