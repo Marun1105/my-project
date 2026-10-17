@@ -15,9 +15,10 @@ if DATABASE_URL.startswith("postgres://"):
 # died at import with "ModuleNotFoundError: No module named 'psycopg'", every
 # deploy since late September, while Render kept serving the last build that
 # had booted. Any Postgres address is pointed at the driver that is installed.
-for _prefix in ("postgresql+psycopg://", "postgresql+psycopg3://"):
-    if DATABASE_URL.startswith(_prefix):
-        DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len(_prefix):]
+# Every spelling of it: postgres or postgresql, with psycopg, psycopg3, or none.
+_scheme, _sep, _rest = DATABASE_URL.partition("://")
+if _sep and _scheme.lower().split("+")[0] in ("postgres", "postgresql")         and _scheme.lower() != "postgresql+psycopg2":
+    DATABASE_URL = "postgresql+psycopg2://" + _rest
 
 
 def _require_postgres_tls(url: str) -> str:

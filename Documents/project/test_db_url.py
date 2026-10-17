@@ -29,7 +29,8 @@ def _import_db_with(url):
 
 
 @pytest.mark.parametrize("scheme", ["postgresql+psycopg", "postgresql+psycopg3",
-                                    "postgres", "postgresql"])
+                                    "postgres+psycopg", "POSTGRESQL+PSYCOPG",
+                                    "postgres", "postgresql", "postgresql+psycopg2"])
 def test_every_postgres_address_boots_on_the_installed_driver(scheme):
     run = _import_db_with(f"{scheme}://user:pw@ep-example.eu-central-1.aws.neon.tech/climby")
     assert run.returncode == 0, run.stderr[-800:]
