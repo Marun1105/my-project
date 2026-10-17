@@ -10,6 +10,14 @@ DATABASE_URL = os.environ.get("DATABASE_URL") or "sqlite:///./climby.db"
 # а SQLAlchemy иска "postgresql://"
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+# Neon hands out its address as "postgresql+psycopg://" — the psycopg 3 driver —
+# and requirements.txt installs psycopg2-binary. With that address the server
+# died at import with "ModuleNotFoundError: No module named 'psycopg'", every
+# deploy since late September, while Render kept serving the last build that
+# had booted. Any Postgres address is pointed at the driver that is installed.
+for _prefix in ("postgresql+psycopg://", "postgresql+psycopg3://"):
+    if DATABASE_URL.startswith(_prefix):
+        DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len(_prefix):]
 
 
 def _require_postgres_tls(url: str) -> str:
