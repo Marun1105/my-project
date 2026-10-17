@@ -48,23 +48,23 @@ def test_both_languages_define_the_same_keys(i18n):
     assert bg == en, f"само в bg: {sorted(bg - en)} | само в en: {sorted(en - bg)}"
 
 
-def test_sidebar_labels_use_plain_language_in_both_locales(i18n):
+def test_sidebar_labels_are_playful_but_clear_in_both_locales(i18n):
     labels = {
         "bg": {
             "nav.tutor": "Попитай ClimbAI",
-            "nav.checklist": "Домашни задачи",
-            "nav.history": "Завършени задачи",
-            "nav.focus": "Таймер за учене",
+            "nav.checklist": "Щабът на домашните",
+            "nav.history": "Готово и отметнато",
+            "nav.focus": "Режим фокус",
             "nav.family": "Семеен напредък",
-            "nav.classes": "Класове",
+            "nav.classes": "Нашият клас",
         },
         "en": {
             "nav.tutor": "Ask ClimbAI",
-            "nav.checklist": "Homework",
-            "nav.history": "Completed work",
-            "nav.focus": "Study timer",
+            "nav.checklist": "Homework HQ",
+            "nav.history": "Done & dusted",
+            "nav.focus": "Focus mode",
             "nav.family": "Family progress",
-            "nav.classes": "Classes",
+            "nav.classes": "Classroom crew",
         },
     }
     for lang, expected in labels.items():
@@ -73,6 +73,16 @@ def test_sidebar_labels_use_plain_language_in_both_locales(i18n):
         block = i18n[start:end]
         for key, value in expected.items():
             assert f"'{key}': '{value}'" in block
+
+
+def test_ai_loading_has_localized_jokes_without_reading_them_as_status(i18n):
+    for key in (f"loading.quip{i}" for i in range(1, 7)):
+        assert i18n.count(f"'{key}'") == 2, f"{key} must be defined in both languages"
+    assert "function loadingAside()" in i18n
+    for file in ("tutor.js", "chat.js"):
+        source = _read(file)
+        assert "I18n.loadingAside()" in source
+        assert "setAttribute('aria-hidden', 'true')" in source
 
 
 def test_every_key_used_in_html_exists(html, i18n):

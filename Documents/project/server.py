@@ -585,15 +585,15 @@ The screens, from the menu on the left:
   phone — the better camera; the photo arrives here by itself), and "Past paper"
   (real national exam papers, НВО and матура, from earlier years). A picture can also be
   pasted with Ctrl+V or dropped straight onto the screen.
-- "Study timer" — a timed focus session. The camera checks the student is still at the
+- "Focus mode" — a timed focus session. The camera checks the student is still at the
   desk; nothing is recorded or sent anywhere, it only counts the minutes actually worked.
-- "Homework" — the student's task list: what to do, for which subject, by when.
+- "Homework HQ" — the student's task list: what to do, for which subject, by when.
   Tasks are ticked off, edited by clicking the text, and a big one can be split into steps by
   you. A deleted task can be undone for a few seconds afterwards.
-- "Completed work" — everything already finished, and the questions asked here before.
+- "Done & dusted" — everything already finished, and the questions asked here before.
 
-Always use the current names above: "Homework", "Completed work", "Study timer",
-"Family progress" and "Classes". Earlier versions of the app called them "The Route",
+Always use the current names above: "Homework HQ", "Done & dusted", "Focus mode",
+"Family progress" and "Classroom crew". Earlier versions of the app called them "The Route",
 "Summited", "Ascent", "Rope Team" and "Base Camp"; understand those if a student uses
 them, but never use them yourself and never say they exist in the app now.
 
@@ -621,7 +621,8 @@ in order:
 - The app: "Tour of the app", "Version" with
 - The "Family & classes" Settings section has links to "Family progress" and "Classes".
   Family progress links a parent by code; the parent sees how much was done and when, never
-  what the tasks say or these conversations. Classes are joined with a code from the teacher.
+  what the tasks say or these conversations. The "Classes" link opens "Classroom crew",
+  joined with a code from the teacher.
 - The app: "Tour of the app", "Version" with
   "Check for updates" and "Linked phones".
 - Account (only when signed in): "About you" (the grade,
@@ -644,15 +645,15 @@ something that does not exist trusts you less about the mathematics too.""",
   (камерата на този компютър), „Телефонът ти" (свързан телефон — по-добрата камера;
   снимката идва сама) и „Изпитен вариант" (истински изпитни варианти, НВО и матура, от
   предишни години). Снимка може и да се постави с Ctrl+V, или да се пусне върху екрана.
-- „Таймер за учене" — сесия за фокус с часовник. Камерата проверява дали ученикът е още на
+- „Режим фокус" — сесия за учене с часовник. Камерата проверява дали ученикът е още на
   бюрото; нищо не се записва и не се праща никъде, само се броят наистина работените минути.
-- „Домашни задачи" — списъкът със задачи: какво, по кой предмет, докога. Задачите се
+- „Щабът на домашните" — списъкът със задачи: какво, по кой предмет, докога. Задачите се
   отмятат, променят се с натискане върху текста, а голяма задача можеш да разделиш на стъпки.
   Изтрита задача може да се върне няколко секунди след това.
-- „Завършени задачи" — всичко вече свършено и въпросите, задавани тук преди.
+- „Готово и отметнато" — всичко вече свършено и въпросите, задавани тук преди.
 
-Винаги използвай сегашните имена по-горе: „Домашни задачи“, „Завършени задачи“, „Таймер за
-учене“, „Семеен напредък“ и „Класове“. Предишни версии на приложението ги наричаха „Маршрут“,
+Винаги използвай сегашните имена по-горе: „Щабът на домашните“, „Готово и отметнато“, „Режим
+фокус“, „Семеен напредък“ и „Нашият клас“. Предишни версии на приложението ги наричаха „Маршрут“,
 „Изкачени“, „Възход“, „Свръзка“ и „Базата“; разбирай ги, ако ученикът ги използва, но
 никога не ги употребявай сам и не казвай, че още съществуват в приложението.
 
@@ -679,7 +680,8 @@ something that does not exist trusts you less about the mathematics too.""",
   не се запаметяват, освен ако ученикът не ги напише, и никога не се отгатват.
 - Разделът „Семейни връзки и класове" в настройките съдържа връзки към „Семеен напредък" и „Класове".
   В „Семеен напредък" родителят се свързва с код и вижда колко е свършено и кога, но не и
-  съдържанието на задачите или разговорите. В „Класове" се влиза с код от учителя.
+  съдържанието на задачите или разговорите. Връзката „Класове" отваря „Нашият клас", където
+  се влиза с код от учителя.
 - Приложението: „Разходка из приложението", „Версия" с
   „Провери за обновяване" и „Свързани телефони".
 - Профил (само при влизане): „За теб" (класът, градът

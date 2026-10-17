@@ -1489,6 +1489,15 @@ button:disabled { opacity: 0.4; cursor: default; }
 .ai-activity-video { opacity: 0; transition: opacity 180ms ease; }
 .ai-activity-artwork.is-playing .ai-activity-video { opacity: 1; }
 .ai-activity-label { line-height: 1.45; }
+.thinking-quip {
+  display: block;
+  margin: 6px 0 0 86px;
+  color: var(--text-faint);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.45;
+}
 .ai-activity--compact { gap: 10px; min-height: 42px; }
 .ai-activity--compact .ai-activity-artwork {
   width: 42px;
@@ -3342,6 +3351,7 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 .chat-ai .speak-btn svg { width: 16px; height: 16px; }
 .chat-thinking { color: var(--text-dim); font-style: italic; }
 .chat-thinking .ai-activity { min-height: 42px; }
+.chat-thinking .thinking-quip { margin-left: 52px; }
 .chat-error { color: var(--warn); border-color: var(--warn); }
 .chat-input-row { display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px 12px; border-top: 1px solid var(--glass-border); }
 .chat-input-row textarea {

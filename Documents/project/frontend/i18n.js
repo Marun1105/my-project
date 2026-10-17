@@ -7,9 +7,9 @@ const I18n = (() => {
     bg: {
       'brand.tagline': 'Изкачи се по своя път към успеха',
       'nav.tutor': 'Попитай ClimbAI',
-      'nav.checklist': 'Домашни задачи',
-      'nav.history': 'Завършени задачи',
-      'nav.focus': 'Таймер за учене',
+      'nav.checklist': 'Щабът на домашните',
+      'nav.history': 'Готово и отметнато',
+      'nav.focus': 'Режим фокус',
 
       // Заглавието на всеки екран носи същата дума като менюто, а изречението под
       // него казва за какво служи екранът — на телефон менюто е извън екрана.
@@ -27,6 +27,12 @@ const I18n = (() => {
       'loading.generic': 'Зареждам…',
       'loading.ai': 'ClimbAI работи по отговора…',
       'loading.reading': 'ClimbAI прочита задачата и подготвя обяснението…',
+      'loading.quip1': 'Един въображаем стажант проверява запетаите.',
+      'loading.quip2': 'Малкият робот брои на пръсти. Почти готово.',
+      'loading.quip3': 'Моливът загрява за голямото обяснение.',
+      'loading.quip4': 'Знаеш ли? Точките за зареждане са на кратко събрание.',
+      'loading.quip5': 'Отговорът си оправя прическата.',
+      'loading.quip6': 'Нищо не гори. Освен любопитството.',
       'loading.focus': 'Подготвям камерата за фокус сесията…',
 
       'auth.roleLegend': 'Кой си ти?',
@@ -52,7 +58,7 @@ const I18n = (() => {
       'help.aria': 'Как работи този екран',
       'tutor.how': 'Как работи ClimbAI:',
       'tutor.howBody': 'снимаш задачата и получаваш пътя до отговора, а не само отговора — за да можеш следващата да я решиш сам. Самата снимка не се пази никъде. Каквото ClimbAI е прочел от страницата се записва, а по математика, физика и химия — и решение, което остава само на сървъра и по което те води, за да не чете страницата при всеки твой въпрос; в Завършени задачи остава какво си питал и какво е отговорено.',
-      'nav.classes': 'Класове',
+      'nav.classes': 'Нашият клас',
       'classes.why': 'Защо трябва да влезеш:',
       'classes.whyBody': 'класовете стоят в акаунта — на учителя или на ученика.',
       'classes.login': 'Влез',
@@ -673,9 +679,9 @@ const I18n = (() => {
     en: {
       'brand.tagline': 'Climb your way to success',
       'nav.tutor': 'Ask ClimbAI',
-      'nav.checklist': 'Homework',
-      'nav.history': 'Completed work',
-      'nav.focus': 'Study timer',
+      'nav.checklist': 'Homework HQ',
+      'nav.history': 'Done & dusted',
+      'nav.focus': 'Focus mode',
 
       'page.tutorSubtitle': 'Photograph a problem and we work through it together — step by step, until it clicks.',
       'page.checklistSubtitle': "Today's homework: everything due, in one place, the most urgent on top.",
@@ -691,6 +697,12 @@ const I18n = (() => {
       'loading.generic': 'Loading…',
       'loading.ai': 'ClimbAI is working on your answer…',
       'loading.reading': 'ClimbAI is reading the exercise and preparing an explanation…',
+      'loading.quip1': 'An imaginary intern is checking the commas.',
+      'loading.quip2': 'Tiny robot, counting on its fingers. Nearly there.',
+      'loading.quip3': 'The pencil is warming up for its big explanation.',
+      'loading.quip4': 'Did you know? The loading dots are having a tiny meeting.',
+      'loading.quip5': 'The answer is fixing its hair.',
+      'loading.quip6': 'Nothing is on fire. Except our curiosity.',
       'loading.focus': 'Preparing the camera for your Focus session…',
 
       'auth.roleLegend': 'Who are you?',
@@ -716,7 +728,7 @@ const I18n = (() => {
       'help.aria': 'How this screen works',
       'tutor.how': 'How ClimbAI works:',
       'tutor.howBody': 'you photograph the problem and get the road to the answer, not just the answer — so you can solve the next one yourself. The photo itself is never stored. What ClimbAI read off the page is written down, and for maths, physics and chemistry a worked solution it keeps to itself and steers by, so it does not have to read the page again for every question; Completed work keeps what you asked and what came back.',
-      'nav.classes': 'Classes',
+      'nav.classes': 'Classroom crew',
       'classes.why': 'Why you need to log in:',
       'classes.whyBody': "classes live in your account — the teacher's or the student's.",
       'classes.login': 'Log in',
@@ -1355,6 +1367,15 @@ const I18n = (() => {
     return s;
   }
 
+  let lastQuip = -1;
+  function loadingAside() {
+    const options = Array.from({ length: 6 }, (_, i) => t(`loading.quip${i + 1}`));
+    let next = Math.floor(Math.random() * options.length);
+    if (next === lastQuip) next = (next + 1) % options.length;
+    lastQuip = next;
+    return options[next];
+  }
+
   function applyToDom() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
       el.textContent = t(el.dataset.i18n);
@@ -1392,7 +1413,7 @@ const I18n = (() => {
     });
   }
 
-  return { t, get, setLang, applyToDom, init };
+  return { t, get, setLang, applyToDom, init, loadingAside };
 })();
 
 window.I18n = I18n;
