@@ -5,14 +5,14 @@
    Both have Cyrillic. Inter stays second in --font-heading as a plain fallback for
    българските заглавия — смяната се вижда само на латиница. */
 
-:root {
-  /* тъмна тема — основна */
-  /* Никъде чисто черно: #000 върху OLED дъно изглежда като дупка в екрана и
-     ръбовете на картите изчезват. Тонът е едва доловимо студен, за да не изглежда
-     сиво-мръсен, но си остава неутрален. */
-  --bg: #0a0a0d;
-  --bg-elevated: #141419;
-  --bg-sunken: #060608;
+/* [data-theme] без :root — за да може карта или преглед в Настройките да носи
+   своя тема, без да я налага на цялото приложение (виж themes.css). */
+:root,
+[data-theme="dark"] {
+  /* тъмна тема — основна; true black matches the logo plate and OLED screens. */
+  --bg: #000000;
+  --bg-elevated: #0c0c10;
+  --bg-sunken: #050508;
   /* A hairline of light, not a grey line: the edge a lit surface has. */
   --border: rgba(255, 255, 255, 0.085);
   --edge-light: rgba(255, 255, 255, 0.045);
@@ -41,14 +41,16 @@
   --blue: #ffffff;
   --blue-soft: rgba(255, 255, 255, 0.10);
   --purple: #c44bfb;   /* вторичен акцент за AI, върху тъмен фон: 5.31:1 */
+  /* the palette's signature hue: sidebar edge, logo glow, background light */
+  --tint: #a855f7;
   --pink: #ffffff;
   --shadow: rgba(0, 0, 0, 0.4);
   /* Two shadows, not one: a tight contact shadow and a soft ambient one. The
      single grey shadow under every card is the tell of a template. */
   --shadow-contact: 0 1px 2px rgba(0, 0, 0, 0.45);
   --shadow-ambient: 0 22px 48px -22px rgba(0, 0, 0, 0.65);
-  --aurora: rgba(168, 85, 247, 0.22);
-  --aurora-2: rgba(232, 121, 249, 0.16);
+  --aurora: rgba(145, 25, 245, 0.28);
+  --aurora-2: rgba(226, 107, 254, 0.18);
   /* Glass: a translucent surface over the aurora, frosted. The alpha is high
      enough that text keeps its contrast whatever drifts behind it. */
   --glass: rgba(20, 20, 26, 0.70);
@@ -74,8 +76,8 @@
   --on-ai: #0d0d10;
 
   /* меко осветяване на фона — вече неутрално, за да не връща зелен оттенък */
-  --ambient-a: rgba(168, 85, 247, 0.12);
-  --ambient-b: rgba(255, 255, 255, 0.03);
+  --ambient-a: rgba(145, 25, 245, 0.16);
+  --ambient-b: rgba(124, 58, 237, 0.08);
 
   --font-body: 'Inter', system-ui, sans-serif;
   --font-heading: 'Manrope', 'Inter', sans-serif;
@@ -121,7 +123,7 @@
   :root { --gutter: 16px; }
 }
 
-:root[data-theme="light"] {
+[data-theme="light"] {
   --bg: #f3f3f6;
   --bg-elevated: #ffffff;
   --bg-sunken: #e9e9ee;
@@ -145,6 +147,7 @@
   --blue: #16161a;
   --blue-soft: rgba(0, 0, 0, 0.07);
   --purple: #7b2ff7;   /* върху светъл фон: 5.85:1 */
+  --tint: #7c3aed;
   --pink: #16161a;
   --shadow: rgba(0, 0, 0, 0.14);
   --shadow-contact: 0 1px 2px rgba(22, 22, 26, 0.08);
@@ -167,6 +170,11 @@
 
   --ambient-a: rgba(124, 58, 237, 0.08);
   --ambient-b: rgba(0, 0, 0, 0.03);
+}
+
+:root[data-theme="light"] .sidebar {
+  background: var(--bg-elevated);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--tint) 35%, transparent);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -205,7 +213,7 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--purple);
   outline-offset: 2px;
 }
 
@@ -234,8 +242,9 @@ body {
      Две много меки петна светлина дават дълбочина на празното пространство, без
      да отвличат вниманието. fixed — не "плуват" при скрол. */
   background:
-    radial-gradient(60vw 50vh at 18% 0%, var(--ambient-a), transparent 70%),
-    radial-gradient(55vw 45vh at 100% 100%, var(--ambient-b), transparent 70%);
+    radial-gradient(70vw 55vh at 12% -8%, var(--ambient-a), transparent 72%),
+    radial-gradient(60vw 50vh at 100% 100%, var(--ambient-b), transparent 68%),
+    var(--bg);
   background-attachment: fixed;
 }
 
@@ -244,8 +253,9 @@ body {
      не се побира и се реже по средата на думата */
   width: 256px;
   flex: 0 0 256px;
-  background: var(--bg-elevated);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tint) 6%, transparent) 0%, transparent 28%), var(--bg-elevated);
   border-right: 1px solid var(--border);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--tint) 55%, transparent);
   display: flex;
   flex-direction: column;
   padding: 20px 16px;
@@ -256,10 +266,6 @@ body {
 }
 
 .sidebar-brand { display: flex; align-items: center; gap: 11px; padding: 2px 6px 22px; }
-/* No disc behind the mark — it sits on the sidebar directly, as asked. The
-   artwork is a silhouette, so it is drawn as a mask in the theme's ink: white on
-   the dark theme, near-black on the light one. An <img> forced white could only
-   ever do the first, which is why it used to need a black circle to sit on. */
 .sidebar-logo {
   width: 46px;
   height: 46px;
@@ -268,17 +274,15 @@ body {
   align-items: center;
   justify-content: center;
 }
-/* The <img> stays in the markup for the tests that check every asset is
-   referenced, but the drawing is the pseudo-element: an image would paint its
-   own white pixels over any colour we gave it. */
-.sidebar-logo img { display: none; }
-.sidebar-logo::before {
-  content: "";
+.sidebar-logo img {
+  display: block;
   width: 100%;
   height: 100%;
-  background: var(--text);
-  -webkit-mask: url('logo-icon.png') center / contain no-repeat;
-  mask: url('logo-icon.png') center / contain no-repeat;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 18px color-mix(in srgb, var(--tint) 45%, transparent));
+}
+:root[data-theme="light"] .sidebar-logo img {
+  filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--tint) 28%, transparent));
 }
 .brand { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
 .brand .name {
@@ -674,15 +678,14 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(60vw, 620px);
-  height: min(60vw, 620px);
+  width: min(62vw, 640px);
+  height: min(62vw, 640px);
   background: url('logo-icon.png') center/contain no-repeat;
-  filter: brightness(0) invert(1);
-  opacity: 0.028;
+  opacity: 0.045;
   pointer-events: none;
   z-index: 0;
 }
-:root[data-theme="light"] .main-area::before { filter: brightness(0); opacity: 0.02; }
+:root[data-theme="light"] .main-area::before { opacity: 0.035; }
 /* Съдържанието минава отгоре, иначе водният знак го застъпва. */
 .main-area > * { position: relative; z-index: 1; }
 
@@ -1025,22 +1028,20 @@ body {
 .splash-logo {
   width: 208px;
   height: 208px;
-  border-radius: 50%;
-  background: var(--bg-sunken);
-  box-shadow: 0 8px 28px var(--shadow);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(120% 120% at 30% 20%, color-mix(in srgb, var(--purple) 14%, transparent), transparent 55%), var(--bg-sunken);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    var(--shadow-contact),
+    0 24px 48px -20px color-mix(in srgb, var(--tint) 35%, transparent);
   display: grid;
   place-items: center;
 }
-/* The mountain is a silhouette. As a mask it takes the theme's ink, so it reads
-   white on the dark theme and near-black on the light one — an <img> of white
-   pixels could only ever do the first. */
-.splash-logo::before {
-  content: "";
+.splash-logo img {
   width: 148px;
   height: 148px;
-  background: var(--text);
-  -webkit-mask: url('logo.png?v=17') center / contain no-repeat;
-  mask: url('logo.png?v=17') center / contain no-repeat;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 24px color-mix(in srgb, var(--tint) 40%, transparent));
 }
 .splash .loading-text {
   margin-top: 18px;
@@ -2302,7 +2303,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   background: var(--ai-gradient-soft);
 }
 .nav-ai.active {
-  box-shadow: inset 0 0 0 1px rgba(168, 85, 247, 0.28);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--purple) 28%, transparent);
 }
 .nav-ai .nav-chevron { color: rgba(217, 162, 255, 0.65); }
 
@@ -2366,8 +2367,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* Телефонът е препоръчаният път, затова носи знака на ClimbAI. Не крещи —
    само се различава достатъчно, за да се посегне първо към него. */
-.entry-choice-ai { border-color: rgba(168, 85, 247, 0.35); }
-.entry-choice-ai:hover { border-color: rgba(168, 85, 247, 0.6); }
+.entry-choice-ai { border-color: color-mix(in srgb, var(--purple) 35%, transparent); }
+.entry-choice-ai:hover { border-color: color-mix(in srgb, var(--purple) 60%, transparent); }
 .entry-choice-ai .entry-choice-icon { color: #c78bff; }
 .entry-choice-ai .entry-choice-title {
   color: #c084fc;
@@ -2610,7 +2611,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 .tour-hole {
   position: fixed;
   border-radius: 14px;
-  box-shadow: 0 0 0 2px var(--purple), 0 0 22px rgba(196, 75, 251, 0.45);
+  box-shadow: 0 0 0 2px var(--purple), 0 0 22px color-mix(in srgb, var(--purple) 45%, transparent);
   pointer-events: none;
 }
 .tour-card {
@@ -2762,7 +2763,7 @@ body.tour-open .sidebar { transition: none; }
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--bg-elevated, var(--bg));
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 0 0 rgba(196, 75, 251, 0.0);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 0 0 color-mix(in srgb, var(--purple) 0%, transparent);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -2772,7 +2773,7 @@ body.tour-open .sidebar { transition: none; }
 .ai-fab .climbai-mark { width: 30px; height: 30px; }
 .ai-fab:hover {
   transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3), 0 0 0 6px rgba(196, 75, 251, 0.18);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3), 0 0 0 6px color-mix(in srgb, var(--purple) 18%, transparent);
 }
 @media (max-width: 860px) { .ai-fab { right: 16px; bottom: 16px; width: 52px; height: 52px; } }
 
@@ -2927,7 +2928,7 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
 #question:focus, .follow-up textarea:focus, .code-input:focus, .settings-card input:focus {
   outline: none;
   border-color: var(--purple);
-  box-shadow: 0 0 0 3px rgba(196, 75, 251, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 18%, transparent);
 }
 .tour-replay { white-space: nowrap; }
 
@@ -3037,7 +3038,7 @@ body::before {
 .ai-fab { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 0 1px var(--glass-border), 0 0 34px -6px var(--ai-glow); }
 .ai-fab::after {
   content: ""; position: absolute; inset: -6px; border-radius: 50%;
-  border: 1px solid rgba(196, 75, 251, 0.35);
+  border: 1px solid color-mix(in srgb, var(--purple) 35%, transparent);
   animation: climby-halo 3.2s ease-out infinite;
   pointer-events: none;
 }
@@ -3060,7 +3061,7 @@ body::before {
   color: var(--text); cursor: pointer; white-space: nowrap;
   transition: border-color .2s ease, box-shadow .25s ease, background-color .2s ease;
 }
-.quick:hover { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(196, 75, 251, 0.14); }
+.quick:hover { border-color: var(--purple); box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 14%, transparent); }
 .composer textarea { width: 100%; min-height: 84px; }
 .composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
 .composer-hint { font-size: 12px; color: var(--text-faint); }
@@ -3163,7 +3164,7 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
   border-radius: 14px; border: 1px solid var(--glass-border);
   background: var(--glass); color: var(--text);
 }
-.chat-input-row textarea:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(196, 75, 251, 0.18); }
+.chat-input-row textarea:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 18%, transparent); }
 .chat-send { width: 42px; height: 42px; min-width: 0; padding: 0; border-radius: 50%; flex: none; }
 .chat-send svg { width: 20px; height: 20px; }
 .ai-fab.is-open { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 0 2px var(--purple), 0 0 34px -6px var(--ai-glow); }
@@ -3535,7 +3536,8 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
 .btn-secondary:hover { border-color: var(--accent); color: var(--text); }
 
 /* ============================================================================
-   Settings, full screen
+   Settings, full screen (on a phone — on anything wider it is a window, see
+   "Settings as a window" at the end of this file)
    ----------------------------------------------------------------------------
    It was a floating card with its own scrollbar, and the rows inside it were a
    column of segmented controls all of different widths, right-aligned, so the
@@ -4172,3 +4174,72 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
    panels would otherwise sit between the cards and the question, pushing the
    answer below the fold. */
 #view-tutor:has(#qa:not(.hidden)) .home-grid { display: none; }
+
+
+/* ============================================================================
+   Settings as a window
+   ----------------------------------------------------------------------------
+   Full screen hid the app, and the app is what a theme is being chosen for.
+   On anything wider than a phone Settings is a window again: the app stays
+   visible around it, the section list sits on its left, and only the right
+   side scrolls. The grid and the dropdowns from the full-screen version stay.
+   ========================================================================= */
+@media (min-width: 760px) {
+  .settings-overlay#settingsOverlay {
+    padding: 24px;
+    background: color-mix(in srgb, var(--scrim) 70%, transparent);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+  #settingsOverlay .settings-card {
+    width: min(1120px, 100%);
+    height: min(780px, calc(100dvh - 48px));
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    background: var(--bg);
+    box-shadow: inset 0 1px 0 var(--edge-light), 0 40px 90px -30px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  }
+  #settingsOverlay .settings-card > h2 {
+    position: static;
+    flex: none;
+    padding: 18px 24px 16px;
+    background: var(--bg-elevated);
+  }
+  #settingsOverlay .settings-close { position: absolute; top: 14px; right: 16px; margin: 0; }
+  #settingsOverlay .settings-body {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 0;
+  }
+  .settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    position: static;
+    padding: 16px 12px;
+    border-right: 1px solid var(--border);
+    background: var(--bg-elevated);
+    overflow-y: auto;
+    align-self: stretch;
+  }
+  .settings-nav-link.active { color: var(--text); background: var(--accent-soft); }
+  #settingsOverlay .settings-main {
+    max-width: none;
+    margin: 0;
+    padding: 4px 28px 40px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-top: 12px;
+  }
+  #settingsOverlay .settings-group { scroll-margin-top: 12px; }
+}

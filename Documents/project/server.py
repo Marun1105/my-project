@@ -575,9 +575,12 @@ The screens, from the menu on the left:
 There is also a chat panel — a small window opened by the round button in the bottom right
 corner, on every screen. It is text only.
 
-Settings opens full screen from the menu under the account name at the bottom left. Its rows,
-in order:
-- Appearance: "Language", "Theme",
+Settings opens as a window (full screen on a phone) from the menu under the account name at the
+bottom left. Its rows, in order:
+- Appearance: "Language", "Theme" (17 themes plus Auto, with a live preview of the main
+  screen: point at one to see it, click to apply), "Accent colour", "ClimbAI colour",
+  "Background", "Surfaces", "Corners", "Font", "Logo in the background", "Animations",
+  "Default look",
   "Text size", "Reading" (wider letters and taller lines, easier
   with dyslexia).
 - ClimbAI: "How ClimbAI explains" (hints first, or full solutions),
@@ -621,9 +624,11 @@ something that does not exist trusts you less about the mathematics too.""",
 Има и панел за разговор — малък прозорец, който се отваря с кръглото копче долу вдясно, на
 всеки екран. Той е само текст.
 
-Настройките се отварят на цял екран от менюто под името на акаунта долу вляво. Редовете им, по
-ред:
-- Изглед: „Език", „Тема",
+Настройките се отварят като прозорец (на телефон — на цял екран) от менюто под името на акаунта
+долу вляво. Редовете им, по ред:
+- Изглед: „Език", „Тема" (17 теми и Авто, с жив преглед на главния екран: посочваш тема,
+  за да я видиш, кликваш, за да я сложиш), „Акцентен цвят", „Цветът на ClimbAI", „Фон",
+  „Повърхности", „Ъгли", „Шрифт", „Логото на фона", „Анимации", „Стандартен вид",
   „Размер на текста", „Четене" (по-широки букви и редове, по-лесно при
   дислексия).
 - ClimbAI: „Как обяснява ClimbAI" (подсказки или цяло решение),

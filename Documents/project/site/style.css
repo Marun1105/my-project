@@ -4,8 +4,8 @@
    theme). One bold element — the sentence. Everything else reads like a letter. */
 
 :root {
-  --night: #140f1f;
-  --night-2: #1d1530;
+  --night: #000000;
+  --night-2: #0c0c10;
   --day: #f6f2ff;
   --paper: #ffffff;
   --ink: #16161a;
@@ -64,7 +64,12 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--violet-bright);
   color: #fff;
   text-decoration: none;
 }
-.brand img { width: 40px; height: 40px; border-radius: 50%; }
+.brand img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 14px rgba(145, 25, 245, 0.5));
+}
 
 .hero h1 {
   font: 500 clamp(2.4rem, 7vw, 5.4rem)/1.02 var(--display);
