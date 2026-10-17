@@ -110,7 +110,7 @@ const Tutor = (() => {
     clearSteps();
     el.classList.remove('hidden', 'error', 'reading');
     el.classList.add('thinking');
-    el.innerHTML = sparkSvg('spark-spin') + ' ' + t('scanner.thinking');
+    el.replaceChildren(AIActivity.create('thinking', t('scanner.thinking')));
   }
 
   // Half a minute of "Thinking…" looks frozen. The server does not report
@@ -128,6 +128,7 @@ const Tutor = (() => {
     el.classList.remove('hidden', 'error');
     el.classList.add('thinking', 'reading');
     el.innerHTML = '';
+    el.appendChild(AIActivity.create('reading', t('loading.reading')));
     const list = document.createElement('ol');
     list.className = 'read-steps';
     const items = STEPS.map(step => {
@@ -190,6 +191,7 @@ const Tutor = (() => {
       // Тук отиват снимани страници и се чака дълго обяснение. Първият въпрос
       // чака и прочитането на страницата, затова срокът му е по-дълъг.
       timeout: reading ? Net.AI_READ_TIMEOUT_MS : Net.AI_TIMEOUT_MS,
+      loadingKey: reading ? 'loading.reading' : 'loading.ai',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -201,6 +203,7 @@ const Tutor = (() => {
         question, lang: I18n.get(), history,
         mode: window.Prefs ? Prefs.get('tutor') : 'hints',
         surface: 'tutor',
+        memory: token && window.Memory ? Memory.request() : null,
       }),
     });
   }

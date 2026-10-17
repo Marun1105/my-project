@@ -283,7 +283,8 @@ def test_an_unproven_account_cannot_capture_someone_who_proves_the_address():
     unproven password stops working.
     """
     client.post("/auth/register", json={
-        "display_name": "Squatter", "email": "victim@school.org", "password": "squatter123",
+        "display_name": "Squatter", "email": "victim@school.org",
+        "phone": "+15550000010", "password": "squatter123",
     })
     db = SessionLocal()
     squatted = db.query(User).filter(User.email == "victim@school.org").first()

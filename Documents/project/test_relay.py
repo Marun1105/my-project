@@ -18,6 +18,7 @@ os.environ["TRUSTED_PROXY_HOPS"] = "0"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from conftest import phone_for_test_account  # noqa: E402
 import rate_limit  # noqa: E402
 import relay  # noqa: E402
 import server  # noqa: E402
@@ -77,10 +78,14 @@ def _fake(monkeypatch, reader_text=None, reader_error=None, reader_stop="end_tur
 
 def _login(email):
     rate_limit._hits.clear()
-    client.post("/auth/register", json={"display_name": "A", "email": email, "password": "testpass123"})
+    client.post("/auth/register", json={
+        "display_name": "A", "email": email, "phone": phone_for_test_account(email),
+        "password": "testpass123",
+    })
     db = SessionLocal()
     u = db.query(User).filter(User.email == email).first()
     u.is_email_verified = True
+    u.is_phone_verified = True
     db.commit()
     db.close()
     res = client.post("/auth/login", json={"email": email, "password": "testpass123"})

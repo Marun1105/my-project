@@ -6,76 +6,70 @@
    българските заглавия — смяната се вижда само на латиница. */
 
 :root {
-  /* тъмна тема — основна */
-  /* Никъде чисто черно: #000 върху OLED дъно изглежда като дупка в екрана и
-     ръбовете на картите изчезват. Тонът е едва доловимо студен, за да не изглежда
-     сиво-мръсен, но си остава неутрален. */
-  --bg: #0a0a0d;
-  --bg-elevated: #141419;
-  --bg-sunken: #060608;
-  /* A hairline of light, not a grey line: the edge a lit surface has. */
-  --border: rgba(255, 255, 255, 0.085);
-  --edge-light: rgba(255, 255, 255, 0.045);
-  --text: #f7f7f8;
-  --text-dim: #a4a4ad;
-  /* Третото стъпало носи истински текст — етикетите на полетата в покой и всеки
-     placeholder. При #70707a то стоеше на 3.96:1 върху --bg и 3.65:1 върху
-     картите, тоест под прага за четим текст. #8a8a94 дава 5.68:1 и 5.23:1 и пак
-     остава явно по-тихо от --text-dim (7.85:1) — стъпалата си остават три. */
-  --text-faint: #8a8a94;
-  /* Черно-бяло: единственият цвят в приложението е вълната на AI бутоните.
-     Затова всичко, което по-рано беше зелено/лилаво/червено, тук е бяло с
-     различна плътност — разликата се носи от контраста и тежестта, не от тон. */
-  --accent: #ffffff;
-  --accent-strong: #d6d6d6;
-  --accent-soft: rgba(255, 255, 255, 0.12);
-  /* текст върху "акцент" фон: акцентът е бял, значи текстът е черен */
-  --on-accent: #0d0d10;
-  --warn: #c9c9c9;
-  --warn-soft: rgba(255, 255, 255, 0.09);
-  /* Danger is red. The palette kept violet as its only colour, but a
-     destructive action that looks like every other action is a trap. */
-  --danger: #f87171;
-  --danger-strong: #ef4444;
-  --danger-soft: rgba(248, 113, 113, 0.14);
-  --blue: #ffffff;
-  --blue-soft: rgba(255, 255, 255, 0.10);
-  --purple: #c44bfb;   /* вторичен акцент за AI, върху тъмен фон: 5.31:1 */
-  --pink: #ffffff;
-  --shadow: rgba(0, 0, 0, 0.4);
-  /* Two shadows, not one: a tight contact shadow and a soft ambient one. The
-     single grey shadow under every card is the tell of a template. */
-  --shadow-contact: 0 1px 2px rgba(0, 0, 0, 0.45);
-  --shadow-ambient: 0 22px 48px -22px rgba(0, 0, 0, 0.65);
-  --aurora: rgba(168, 85, 247, 0.22);
-  --aurora-2: rgba(232, 121, 249, 0.16);
-  /* Glass: a translucent surface over the aurora, frosted. The alpha is high
-     enough that text keeps its contrast whatever drifts behind it. */
-  --glass: rgba(20, 20, 26, 0.70);
-  --glass-strong: rgba(20, 20, 26, 0.84);
-  --glass-border: rgba(255, 255, 255, 0.11);
-  --glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02) 40%, rgba(196, 75, 251, 0.10));
+  /* GitHub-style dark: neutral greys carry the interface, and the logo's own
+     deep violet is spent only as an accent — buttons, the active menu item,
+     ClimbAI. Values follow GitHub's Primer dark palette so the greys sit
+     together the way they do there. */
+  --bg: #0d1117;
+  --bg-elevated: #151b23;
+  --bg-sunken: #010409;
+  --border: #3d444d;
+  --edge-light: rgba(255, 255, 255, 0.04);
+  --text: #f0f6fc;
+  --text-dim: #9198a1;
+  /* Faint text is still readable on both the page and elevated surfaces (5.1:1). */
+  --text-faint: #848d97;
+  /* Two violets, because one cannot do both jobs on dark: #8957e5 carries white
+     text on a button (4.6:1) but is too dark to be text itself (3.8:1 on a
+     card). --accent fills, --accent-fg is the violet you read. */
+  --accent: #8957e5;
+  --accent-strong: #a371f7;
+  --accent-fg: #ab7df8;
+  --accent-soft: rgba(137, 87, 229, 0.15);
+  --on-accent: #ffffff;
+  --warn: #d29922;
+  --warn-soft: rgba(187, 128, 9, 0.15);
+  /* Destructive actions stay red so they remain distinct from the violet accent. */
+  --danger: #f85149;
+  --danger-strong: #da3633;
+  --danger-soft: rgba(248, 81, 73, 0.1);
+  --on-danger: #ffffff;
+  --success: #3fb950;
+  --success-soft: rgba(46, 160, 67, 0.15);
+  --blue: #ab7df8;
+  --blue-soft: rgba(137, 87, 229, 0.12);
+  --purple: #ab7df8;
+  --pink: #ab7df8;
+  /* Menu rows, as GitHub draws them: a grey wash on hover, a lighter one when
+     selected, and a violet bar at the edge of the selected row. */
+  --nav-hover: rgba(101, 108, 118, 0.2);
+  --nav-active: rgba(101, 108, 118, 0.24);
+  --shadow: rgba(1, 4, 9, 0.6);
+  --shadow-contact: 0 0 0 transparent;
+  --shadow-ambient: 0 0 0 transparent;
+  /* Dropdowns and dialogs still lift off the page; flat cards do not. */
+  --shadow-overlay: 0 8px 24px rgba(1, 4, 9, 0.75);
+  --aurora: transparent;
+  --aurora-2: transparent;
+  /* The old glass surfaces are plain, opaque surfaces now. */
+  --glass: var(--bg-elevated);
+  --glass-strong: var(--bg-elevated);
+  --glass-border: var(--border);
+  --glass-sheen: none;
   /* затъмняването зад всички пълноекранни слоеве — един токен, за да не се
      разминават с по няколко стотни при всяко ново добавяне */
-  --scrim: rgba(0, 0, 0, 0.5);
+  --scrim: rgba(1, 4, 9, 0.6);
 
-  /* Единственият цвят: виолетовото на ClimbAI. Тоновете са взети от самия знак
-     (#9119f5, #e26bfe, #f8c1ff), но долният край е отрязан нарочно — под
-     #a855f7 черният текст пада под 4.5:1, а текстът върху вълната е черен,
-     както на всеки бутон. Така най-тъмният тон държи 4.90:1, а най-светлият 13:1.
-     Синьото... по-точно виолетовото се повтаря най-накрая, за да няма шев. */
-  --ai-gradient: linear-gradient(100deg, #a855f7 0%, #c44bfb 30%, #e26bfe 60%, #f8c1ff 82%, #a855f7 100%);
-  --ai-gradient-soft: linear-gradient(100deg, rgba(168, 85, 247, 0.18), rgba(226, 107, 254, 0.16), rgba(248, 193, 255, 0.14));
-  --ai-glow: rgba(168, 85, 247, 0.38);
-  /* Отделен градиент за ТЕКСТ. Този за фон има светъл край (#f8c1ff), който
-     върху тъмно е красив, а върху светло изчезва: 1.46:1 срещу почти бял
-     сайдбар. Текстът има нужда от собствени тонове, а не от тези на фона. */
-  --ai-text-gradient: linear-gradient(100deg, #c084fc 0%, #e879f9 45%, #f0abfc 70%, #c084fc 100%);
-  --on-ai: #0d0d10;
+  /* ClimbAI's gradient stays inside the logo's violets, dark enough for white
+     text everywhere along it (4.6:1 at its lightest point). */
+  --ai-gradient: linear-gradient(100deg, #6e40c9 0%, #8957e5 50%, #6e40c9 100%);
+  --ai-gradient-soft: linear-gradient(100deg, rgba(137, 87, 229, 0.16), rgba(137, 87, 229, 0.1));
+  --ai-glow: rgba(137, 87, 229, 0.25);
+  --ai-text-gradient: linear-gradient(100deg, #ab7df8 0%, #c297ff 50%, #ab7df8 100%);
+  --on-ai: #ffffff;
 
-  /* меко осветяване на фона — вече неутрално, за да не връща зелен оттенък */
-  --ambient-a: rgba(168, 85, 247, 0.12);
-  --ambient-b: rgba(255, 255, 255, 0.03);
+  --ambient-a: transparent;
+  --ambient-b: transparent;
 
   --font-body: 'Inter', system-ui, sans-serif;
   --font-heading: 'Manrope', 'Inter', sans-serif;
@@ -107,8 +101,8 @@
   --fs-input: 16px;
 
   --radius-sm: 6px;
-  --radius: 10px;
-  --radius-lg: 14px;
+  --radius: 8px;
+  --radius-lg: 12px;
   --content-width: 720px;
   --gutter: 24px;
   /* Големината на тапване, под която пръстът започва да греши. Установена е още
@@ -121,52 +115,64 @@
   :root { --gutter: 16px; }
 }
 
+/* GitHub-style light: white page, #f6f8fa for the menu and sunken fields,
+   one grey for every line, and the same violet family as the logo. */
 :root[data-theme="light"] {
-  --bg: #f3f3f6;
+  --bg: #ffffff;
   --bg-elevated: #ffffff;
-  --bg-sunken: #e9e9ee;
-  --border: rgba(22, 22, 26, 0.10);
-  --edge-light: rgba(255, 255, 255, 0.9);
-  --text: #16161a;
-  --text-dim: #585858;
-  /* Същото и на светло: #8a8a8a падаше до 3.14:1 върху --bg. #6e6e73 държи
-     4.62:1 върху фона и 4.95:1 върху картите, а спрямо --text-dim (6.48:1)
-     разликата се вижда. */
-  --text-faint: #6e6e73;
-  --accent: #16161a;
-  --accent-strong: #262626;
-  --accent-soft: rgba(0, 0, 0, 0.08);
+  --bg-sunken: #f6f8fa;
+  --border: #d1d9e0;
+  --edge-light: transparent;
+  --text: #1f2328;
+  --text-dim: #59636e;
+  /* Keep subdued labels readable on both the page and the grey menu (5.0:1). */
+  --text-faint: #636c76;
+  --accent: #8250df;
+  --accent-strong: #6639ba;
+  --accent-fg: #8250df;
+  --accent-soft: rgba(130, 80, 223, 0.1);
   --on-accent: #ffffff;
-  --warn: #444444;
-  --warn-soft: rgba(0, 0, 0, 0.07);
-  --danger: #dc2626;
-  --danger-strong: #b91c1c;
-  --danger-soft: rgba(220, 38, 38, 0.10);
-  --blue: #16161a;
-  --blue-soft: rgba(0, 0, 0, 0.07);
-  --purple: #7b2ff7;   /* върху светъл фон: 5.85:1 */
-  --pink: #16161a;
-  --shadow: rgba(0, 0, 0, 0.14);
-  --shadow-contact: 0 1px 2px rgba(22, 22, 26, 0.08);
-  --shadow-ambient: 0 22px 48px -24px rgba(22, 22, 26, 0.22);
-  --aurora: rgba(124, 58, 237, 0.16);
-  --aurora-2: rgba(217, 70, 239, 0.12);
-  --glass: rgba(255, 255, 255, 0.66);
-  --glass-strong: rgba(255, 255, 255, 0.82);
-  --glass-border: rgba(22, 22, 26, 0.12);
-  --glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3) 40%, rgba(124, 58, 237, 0.08));
-  --scrim: rgba(0, 0, 0, 0.45);
+  --warn: #9a6700;
+  --warn-soft: rgba(212, 167, 44, 0.15);
+  --danger: #d1242f;
+  --danger-strong: #a40e26;
+  --danger-soft: rgba(255, 129, 130, 0.15);
+  --on-danger: #ffffff;
+  --success: #1a7f37;
+  --success-soft: rgba(74, 194, 107, 0.15);
+  --blue: #8250df;
+  --blue-soft: rgba(130, 80, 223, 0.08);
+  --purple: #8250df;
+  --pink: #8250df;
+  --nav-hover: rgba(129, 139, 152, 0.15);
+  --nav-active: rgba(129, 139, 152, 0.18);
+  --shadow: rgba(31, 35, 40, 0.15);
+  --shadow-contact: 0 1px 0 rgba(31, 35, 40, 0.04);
+  --shadow-ambient: 0 0 0 transparent;
+  --shadow-overlay: 0 8px 24px rgba(66, 74, 83, 0.12), 0 1px 3px rgba(31, 35, 40, 0.12);
+  --aurora: transparent;
+  --aurora-2: transparent;
+  --glass: var(--bg-elevated);
+  --glass-strong: var(--bg-elevated);
+  --glass-border: var(--border);
+  --glass-sheen: none;
+  --scrim: rgba(31, 35, 40, 0.5);
 
-  /* вълната е една и съща в двете теми — тя е самоличността на ClimbAI */
-  --ai-gradient: linear-gradient(100deg, #a855f7 0%, #c44bfb 30%, #e26bfe 60%, #f8c1ff 82%, #a855f7 100%);
-  --ai-gradient-soft: linear-gradient(100deg, rgba(168, 85, 247, 0.16), rgba(226, 107, 254, 0.14), rgba(248, 193, 255, 0.12));
-  --ai-glow: rgba(168, 85, 247, 0.3);
+  /* The same violets as on dark; white text holds 6.5:1 at the darkest end
+     and 4.6:1 at the lightest. */
+  --ai-gradient: linear-gradient(100deg, #6e40c9 0%, #8957e5 50%, #6e40c9 100%);
+  --ai-gradient-soft: linear-gradient(100deg, rgba(130, 80, 223, 0.1), rgba(130, 80, 223, 0.06));
+  --ai-glow: rgba(130, 80, 223, 0.2);
   /* На светло текстът тръгва от тъмните лилави: 4.5:1 и нагоре. */
-  --ai-text-gradient: linear-gradient(100deg, #6d28d9 0%, #9333ea 45%, #7c3aed 75%, #6d28d9 100%);
-  --on-ai: #0d0d10;
+  --ai-text-gradient: linear-gradient(100deg, #8250df 0%, #6639ba 50%, #8250df 100%);
+  --on-ai: #ffffff;
 
-  --ambient-a: rgba(124, 58, 237, 0.08);
-  --ambient-b: rgba(0, 0, 0, 0.03);
+  --ambient-a: transparent;
+  --ambient-b: transparent;
+}
+
+:root[data-theme="light"] .sidebar {
+  background: var(--bg-sunken);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -204,8 +210,9 @@ html[data-theme="light"] { color-scheme: light; }
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--accent);
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--purple);
   outline-offset: 2px;
 }
 
@@ -244,25 +251,33 @@ body {
      не се побира и се реже по средата на думата */
   width: 256px;
   flex: 0 0 256px;
-  background: var(--bg-elevated);
+  background: var(--bg-sunken);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 20px 16px;
+  padding: 16px;
   position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
 }
 
-.sidebar-brand { display: flex; align-items: center; gap: 11px; padding: 2px 6px 22px; }
-/* No disc behind the mark — it sits on the sidebar directly, as asked. The
-   artwork is a silhouette, so it is drawn as a mask in the theme's ink: white on
-   the dark theme, near-black on the light one. An <img> forced white could only
-   ever do the first, which is why it used to need a black circle to sit on. */
+/* The brand row is GitHub's header row: the mark and the name on one line,
+   nothing glowing behind them, and a line under it that separates it from
+   the menu. The tagline lives on the sign-in card; here it wrapped onto two
+   lines at every width. */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 24px 14px;
+  margin: 0 -16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar .brand .tagline { display: none; }
 .sidebar-logo {
-  width: 46px;
-  height: 46px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -276,18 +291,21 @@ body {
   content: "";
   width: 100%;
   height: 100%;
-  background: var(--text);
-  -webkit-mask: url('logo-icon.png') center / contain no-repeat;
-  mask: url('logo-icon.png') center / contain no-repeat;
+  object-fit: contain;
 }
+/* The mountain is drawn in deep violets; on the near-black menu its darker
+   faces disappeared. A small lift keeps the whole shape readable. */
+:root:not([data-theme="light"]) .sidebar-logo img,
+:root:not([data-theme="light"]) .mobile-brand-mark { filter: brightness(1.45) saturate(1.1); }
 .brand { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
 .brand .name {
   font-family: var(--font-brand);
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text);
 }
+.entry-gate-brand .brand .name { font-size: 20px; }
 .brand .tagline {
   font-size: 10px;
   letter-spacing: 0.04em;
@@ -303,28 +321,46 @@ body {
   margin-top: 2px;
 }
 
+/* Menu rows the way GitHub draws them: 32px tall, normal-weight text in the
+   main text colour, grey icons, a grey wash on hover. The selected row turns
+   bold, gets a lighter wash, and a short violet bar at its left edge — the
+   one place the menu uses colour. */
 .side-nav { display: flex; flex-direction: column; gap: 2px; }
 .nav-link {
   flex: none;
   width: 100%;
+  min-height: 32px;
   text-align: left;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font: inherit;
   font-size: 14px;
-  font-weight: 600;
-  padding: 10px 12px;
+  font-weight: 400;
+  line-height: 20px;
+  padding: 6px 8px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text);
   cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
+  position: relative;
+  transition: background 0.12s ease;
 }
-.nav-link:hover { color: var(--text); background: var(--accent-soft); }
-.nav-link.active { color: var(--text); background: var(--accent-soft); }
-.nav-link.active { position: relative; }
+.nav-link .nav-icon { width: 16px; height: 16px; flex: none; margin: 0 1px; color: var(--text-dim); }
+.nav-link:hover { background: var(--nav-hover); }
+.nav-link.active { background: var(--nav-active); font-weight: 600; }
+.nav-link.active .nav-icon { color: var(--text); }
+.nav-link.active::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: calc(50% - 12px);
+  width: 4px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--accent-fg);
+}
 
 .nav-group { display: flex; flex-direction: column; }
 .nav-parent { justify-content: flex-start; }
@@ -333,7 +369,7 @@ body {
    изрично — инак се разтяга като надпис и избутва думата надясно, встрани от
    останалите редове. */
 .nav-link > span:not(.nav-badge):not(.nav-ai-mark) { flex: 1; min-width: 0; }
-.nav-chevron { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-faint); transition: transform 0.2s ease; }
+.nav-chevron { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-dim); transition: transform 0.2s ease; }
 .nav-group.expanded .nav-chevron { transform: rotate(180deg); }
 
 .nav-children {
@@ -350,7 +386,7 @@ body {
   .nav-group:hover .nav-chevron { transform: rotate(180deg); }
 }
 .nav-children-inner { overflow: hidden; min-height: 0; display: flex; flex-direction: column; padding-top: 2px; }
-.nav-child { position: relative; padding-left: 26px; font-size: 13px; }
+.nav-child { position: relative; padding-left: 32px; }
 
 .sidebar-spacer { flex: 1; }
 
@@ -396,8 +432,7 @@ body {
 }
 .theme-switch-option:hover { color: var(--text); }
 .theme-switch-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-/* Избраното се различава по плътен фон, а не по цвят — приложението е черно-бяло,
-   така че разликата трябва да се вижда и без тон. */
+/* The selected option uses both a filled surface and the violet accent. */
 .theme-switch-option.active {
   background: var(--accent);
   color: var(--on-accent);
@@ -407,25 +442,8 @@ body {
   align-items: flex-start;
   gap: 10px;
 }
-/* В страничното меню редът е тесен, затова етикетът стои над избора. */
-.account-menu-theme {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-}
-.account-menu-theme-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--text-faint);
-}
-.account-menu-theme .theme-switch { width: 100%; }
-.account-menu-theme .theme-switch-option { flex: 1; text-align: center; padding: 7px 6px; }
-
 /* ---------- account cluster (bottom of sidebar): avatar + name + settings/logout menu ---------- */
-.sidebar-account { position: relative; padding: 10px 0 2px; border-top: 1px solid var(--border); margin-top: 8px; }
+.sidebar-account { position: relative; padding: 12px 0 0; border-top: 1px solid var(--border); margin-top: 8px; }
 .account-btn {
   width: 100%;
   display: flex;
@@ -439,7 +457,7 @@ body {
   text-align: left;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
-.account-btn:hover, .account-btn[aria-expanded="true"] { background: var(--accent-soft); border-color: var(--border); }
+.account-btn:hover, .account-btn[aria-expanded="true"] { background: var(--nav-hover); }
 .account-avatar {
   width: 30px;
   height: 30px;
@@ -448,11 +466,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--ai-gradient);
-  background-size: 200% 100%;
-  animation: climby-ai-wave 7s linear infinite;
-  color: var(--on-ai);
-  font-weight: 700;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
   font-size: 13px;
 }
 .account-info { flex: 1; min-width: 0; }
@@ -475,9 +491,9 @@ body {
   bottom: calc(100% + 6px);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 12px 32px var(--shadow);
-  padding: 6px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+  padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -501,7 +517,7 @@ body {
   cursor: pointer;
 }
 .account-menu-item svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-dim); }
-.account-menu-item:hover { background: var(--accent-soft); }
+.account-menu-item:hover { background: var(--nav-hover); }
 .account-menu-item.danger { color: var(--danger); }
 .account-menu-item.danger svg { color: var(--danger); }
 .account-menu-item.danger:hover { background: var(--danger-soft); color: var(--danger); }
@@ -554,6 +570,15 @@ body {
   transform: translate(-50%, -50%);
 }
 .entry-gate-card { margin: 32px 0; animation: climby-rise 0.3s ease both; }
+.auth-security-note {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
 .entry-gate-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
 .entry-gate-brand .sidebar-logo { width: 60px; height: 60px; }
 
@@ -606,6 +631,7 @@ body {
   justify-content: center;
   padding: 20px;
 }
+html.settings-open { overflow: hidden; }
 .settings-card {
   position: relative;
   width: 100%;
@@ -649,7 +675,7 @@ body {
   position: fixed;
   inset: 0;
   background: var(--scrim);
-  /* Тъмно върху тъмно не разделя: черен воал върху #0d0d10 почти не се вижда и
+  /* Тъмно върху тъмно не разделя: черен воал върху charcoal почти не се вижда и
      менюто изглежда залепено за съдържанието отзад. Замъгляването отделя по
      фокус, а не по светлина, затова работи еднакво и на двете теми. */
   backdrop-filter: blur(3px);
@@ -665,25 +691,9 @@ body {
   align-items: center;
   position: relative;
 }
-/* Голямото лого стои в дъното на приложението — достатъчно едро, за да се
-   вижда, че е планина, и достатъчно бледо, за да не се чете през него текст.
-   Стои под съдържанието и не хваща мишката. */
-.main-area::before {
-  content: "";
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(60vw, 620px);
-  height: min(60vw, 620px);
-  background: url('logo-icon.png') center/contain no-repeat;
-  filter: brightness(0) invert(1);
-  opacity: 0.028;
-  pointer-events: none;
-  z-index: 0;
-}
-:root[data-theme="light"] .main-area::before { filter: brightness(0); opacity: 0.02; }
-/* Съдържанието минава отгоре, иначе водният знак го застъпва. */
+/* The big faded mountain behind the content is gone: cut off by the window
+   edge it looked like a mistake, not a background. The logo lives in the
+   menu, whole. */
 .main-area > * { position: relative; z-index: 1; }
 
 /* ---------- mobile top bar (hidden on desktop) ---------- */
@@ -711,6 +721,8 @@ body {
   cursor: pointer;
   flex: none;
 }
+.mobile-branding { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mobile-brand-mark { display: block; width: 30px; height: 30px; object-fit: contain; }
 .mobile-brand { font-family: var(--font-brand); font-size: 17px; font-weight: 600; color: var(--text); }
 
 @media (max-width: 860px) {
@@ -719,11 +731,16 @@ body {
     top: 0;
     left: 0;
     z-index: 50;
+    height: 100vh;
+    height: 100dvh;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
     transform: translateX(-100%);
-    transition: transform 0.2s ease;
+    /* a closed drawer must not be reachable with Tab */
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0s linear 0.2s;
     box-shadow: 0 0 32px var(--shadow);
   }
-  .sidebar.open { transform: translateX(0); }
+  .sidebar.open { transform: translateX(0); visibility: visible; transition-delay: 0s; }
   .sidebar-overlay.hidden { display: none; }
   .mobile-bar { display: flex; }
 }
@@ -774,7 +791,7 @@ body {
 }
 .field input:focus { outline: none; border-color: var(--accent); }
 .field:has(input:focus) .field-icon,
-.field:has(input:not(:placeholder-shown)) .field-icon { color: var(--accent); }
+.field:has(input:not(:placeholder-shown)) .field-icon { color: var(--accent-fg); }
 
 .field label {
   position: absolute;
@@ -793,7 +810,7 @@ body {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--accent);
+  color: var(--accent-fg);
 }
 
 /* the strength "bar" is a tiny mountain ridge — your password climbs higher as it gets stronger */
@@ -805,11 +822,8 @@ body {
   overflow: hidden;
   clip-path: polygon(0% 100%, 6% 55%, 14% 100%, 24% 25%, 34% 100%, 44% 65%, 54% 100%, 64% 15%, 74% 100%, 84% 45%, 94% 100%, 100% 70%, 100% 100%);
 }
-/* Силата расте само нагоре. По-рано четирите степени бяха четири цвята, които в
-   черно-бяло са едно и също бяло — "слаба" излизаше най-ярката лента от всички.
-   Тук лентата е винаги --accent и се различава по плътност: слабата е едва
-   загатната, силната е плътна. Класовете чакат auth.js да ги слага вместо
-   inline цвят (виж бележката в доклада). */
+/* Strength remains distinguishable without relying on color alone: opacity and
+   the matching label both progress with the score. */
 .pw-strength-fill {
   display: block;
   height: 100%;
@@ -832,14 +846,9 @@ body {
   color: var(--text-dim);
   text-align: center;
 }
-.auth-switch a { color: var(--blue); font-weight: 600; text-decoration: none; }
+.auth-switch a { color: var(--blue); font-weight: 600; text-decoration: none; display: inline-block; padding: 12px 6px; margin: -12px -6px; }
 .auth-switch a:hover { text-decoration: underline; }
-/* Кутията се показва в най-лошия момент — ученикът вече е спрян. Затова има
-   собствено място за дишане и не дели правило с .hint (по-рано `hint auth-error`
-   вземаше подравняването от .hint и текстът опираше в рамката).
-   Разликата "грешка"/"готово" не може да мине през цвят — приложението е
-   черно-бяло. Носят я знакът и плътността: плътен кръг с "!" и пълна рамка при
-   грешка, очертан кръг с отметка и тиха рамка при успех. */
+/* Errors have their own space and semantic danger color; success stays quieter. */
 .auth-error {
   width: 100%;
   display: flex;
@@ -865,7 +874,7 @@ body {
   margin-top: 1px;
   border-radius: 50%;
   background: var(--danger);
-  color: var(--on-accent);
+  color: var(--on-danger);
   font-size: 11px;
   font-weight: 700;
   line-height: 18px;
@@ -970,6 +979,110 @@ body {
   color: var(--text-dim);
   text-align: center;
 }
+.focus-start-card {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  width: min(100%, 520px);
+  box-sizing: border-box;
+  margin: 18px 0;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--purple) 32%, var(--border));
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(ellipse at 8% 0%, color-mix(in srgb, var(--purple) 15%, transparent), transparent 58%),
+    var(--bg-elevated);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--shadow) 72%, transparent);
+}
+.focus-scan-icon {
+  position: relative;
+  display: grid;
+  width: 60px;
+  height: 60px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--purple) 35%, var(--border));
+  border-radius: 18px;
+  color: var(--purple);
+  background: color-mix(in srgb, var(--purple) 11%, var(--bg-sunken));
+}
+.focus-scan-icon svg { width: 38px; height: 38px; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.focus-start-copy { display: grid; min-width: 0; gap: 6px; }
+.focus-start-eyebrow { color: var(--purple); font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.focus-start-copy > strong { color: var(--text); font-size: 16px; line-height: 1.3; }
+.focus-start-copy > p { margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+.focus-start-copy > small { color: var(--success); font-size: 11px; line-height: 1.4; }
+.focus-start-progress {
+  position: relative;
+  height: 4px;
+  margin: 3px 0;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--border);
+}
+.focus-start-progress > span {
+  display: block;
+  width: 38%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--purple), var(--accent));
+}
+.focus-start-progress.is-indeterminate > span { animation: focus-start-sweep 1.5s ease-in-out infinite; }
+.focus-scan-icon.is-loading::after {
+  position: absolute;
+  inset: 5px;
+  content: "";
+  border: 2px solid transparent;
+  border-top-color: var(--purple);
+  border-right-color: color-mix(in srgb, var(--purple) 42%, transparent);
+  border-radius: 50%;
+  animation: focus-start-spin 1.1s linear infinite;
+}
+.focus-sample-progress { display: flex; gap: 6px; margin: 3px 0; }
+.focus-sample-progress span {
+  width: 26px;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--border);
+  transition: background .2s ease, box-shadow .2s ease;
+}
+.focus-sample-progress span.is-active { background: var(--purple); box-shadow: 0 0 10px color-mix(in srgb, var(--purple) 55%, transparent); }
+.focus-sample-progress span.is-complete { background: var(--success); }
+.focus-scan-icon.is-scanning::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(transparent 42%, color-mix(in srgb, var(--purple) 24%, transparent) 50%, transparent 58%);
+  animation: focus-scan-pass 1.8s ease-in-out infinite;
+}
+.focus-scan-line { position: absolute; z-index: 1; right: 8px; left: 8px; height: 1px; background: var(--purple); box-shadow: 0 0 9px var(--purple); opacity: .8; animation: focus-scan-line 1.8s ease-in-out infinite; }
+.focus-identity-check { margin: 0 0 18px; }
+@keyframes focus-start-spin { to { transform: rotate(360deg); } }
+@keyframes focus-start-sweep {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(310%); }
+}
+@keyframes focus-scan-line {
+  0%, 100% { top: 13px; }
+  50% { top: 34px; }
+}
+@keyframes focus-scan-pass {
+  0%, 100% { transform: translateY(-45%); }
+  50% { transform: translateY(45%); }
+}
+@media (max-width: 480px) {
+  .focus-start-card { grid-template-columns: 48px minmax(0, 1fr); gap: 12px; margin: 14px 0; padding: 16px; border-radius: var(--radius-lg); }
+  .focus-scan-icon { width: 48px; height: 48px; border-radius: 15px; }
+  .focus-scan-icon svg { width: 32px; height: 32px; }
+  .focus-start-copy > strong { font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-start-progress.is-indeterminate > span,
+  .focus-scan-icon.is-loading::after,
+  .focus-scan-line,
+  .focus-scan-icon.is-scanning::after { animation: none; }
+}
 
 .view {
   width: 100%;
@@ -1025,9 +1138,9 @@ body {
 .splash-logo {
   width: 208px;
   height: 208px;
-  border-radius: 50%;
+  border-radius: var(--radius-lg);
   background: var(--bg-sunken);
-  box-shadow: 0 8px 28px var(--shadow);
+  border: 1px solid var(--border);
   display: grid;
   place-items: center;
 }
@@ -1038,9 +1151,8 @@ body {
   content: "";
   width: 148px;
   height: 148px;
-  background: var(--text);
-  -webkit-mask: url('logo.png?v=17') center / contain no-repeat;
-  mask: url('logo.png?v=17') center / contain no-repeat;
+  object-fit: contain;
+  filter: none;
 }
 .splash .loading-text {
   margin-top: 18px;
@@ -1126,7 +1238,7 @@ img.result { object-fit: contain; background: var(--bg-sunken); }
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 .filter-swatch:hover { color: var(--text); }
-.filter-swatch.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.filter-swatch.active { border-color: var(--accent); color: var(--accent-fg); background: var(--accent-soft); }
 
 /* ---------- batch pages: thumbnail strip + "ask about N pages" ---------- */
 .page-strip { width: 100%; margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
@@ -1197,7 +1309,7 @@ img.result { object-fit: contain; background: var(--bg-sunken); }
   align-items: center;
   justify-content: center;
 }
-.page-thumb-add:hover { border-color: var(--accent); color: var(--accent); }
+.page-thumb-add:hover { border-color: var(--accent); color: var(--accent-fg); }
 
 .controls {
   width: 100%;
@@ -1238,7 +1350,6 @@ button:disabled { opacity: 0.4; cursor: default; }
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 6px 20px var(--ai-glow);
 }
 .btn-ai:hover { filter: brightness(1.1); }
 .btn-ai .spark { width: 16px; height: 16px; flex-shrink: 0; display: flex; }
@@ -1340,7 +1451,51 @@ button:disabled { opacity: 0.4; cursor: default; }
   animation: climby-ai-wave 7s linear infinite;
 }
 .answer.thinking { color: var(--text-dim); font-style: italic; }
-.answer.thinking .spark-spin { animation: spark-spin 1.6s linear infinite; }
+.ai-activity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  color: var(--text-dim);
+  font-style: normal;
+  font-weight: 600;
+}
+.ai-activity-artwork {
+  position: relative;
+  display: grid;
+  flex: none;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  /* The bird and the ring were filmed on black and are blended with "screen",
+     which drops the black. On the light theme's pale grey that same blend
+     washed the violet out to almost white — the loops were there and could not
+     be seen. The tile is black in both themes, so they look as they were made. */
+  background: #000;
+}
+.ai-activity-poster,
+.ai-activity-video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: screen;
+}
+.ai-activity-video { opacity: 0; transition: opacity 180ms ease; }
+.ai-activity-artwork.is-playing .ai-activity-video { opacity: 1; }
+.ai-activity-label { line-height: 1.45; }
+.ai-activity--compact { gap: 10px; min-height: 42px; }
+.ai-activity--compact .ai-activity-artwork {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius);
+}
+.ai-activity--compact .ai-activity-label { font-size: 13px; }
 @keyframes spark-spin {
   from { transform: rotate(0deg) scale(1); }
   50% { transform: rotate(180deg) scale(1.15); }
@@ -1363,7 +1518,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   padding: 2px 5px;
   font-size: 0.9em;
 }
-.card strong { color: var(--accent); }
+.card strong { color: var(--accent-fg); }
 .card .katex { font-size: 1.05em; }
 
 /* ---------- gentle, encouraging error state ---------- */
@@ -1501,17 +1656,12 @@ button:disabled { opacity: 0.4; cursor: default; }
 .pill {
   font-size: 12px;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-fg);
   background: var(--accent-soft);
   border-radius: 999px;
   padding: 3px 10px;
 }
-/* Кое домашно е закъсняло и кое е за днес е най-важното нещо в целия чеклист,
-   а в черно-бяло --blue и --danger са един и същи бял. Затова разликата е в
-   формата, не в тона: обикновеният срок е само текст, "за днес" е очертан
-   кръгъл етикет, а просроченото е плътно запълнено — най-плътното нещо в реда,
-   което се вижда преди да си го прочел. И трите имат еднакви размери, за да
-   стоят на един ред. */
+/* Deadline urgency uses semantic color as well as distinct pill treatments. */
 .deadline {
   font-size: 12px;
   font-weight: 600;
@@ -1577,7 +1727,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   padding: 0;
   font-size: 13px;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-fg);
   cursor: pointer;
 }
 /* ---------- компютър без камера: качването е основният път, не грешка ---------- */
@@ -1624,8 +1774,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   padding: 0 5px;
   margin-left: auto;
   border-radius: 999px;
-  /* Беше червено с бял текст. В черно-бялото --danger е бяло, така че белият
-     текст изчезваше и оставаше само едно бяло петно до "Чеклист". */
+  /* The count remains legible as a compact violet badge. */
   background: var(--accent);
   color: var(--on-accent);
   font-size: 11px;
@@ -1715,7 +1864,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.22em;
-  color: var(--accent);
+  color: var(--accent-fg);
   background: var(--accent-soft);
   border: 1px solid var(--accent);
   border-radius: var(--radius);
@@ -1817,7 +1966,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   cursor: pointer;
   transition: color 0.15s ease;
 }
-.task-split:hover:not(:disabled) { color: var(--accent); }
+.task-split:hover:not(:disabled) { color: var(--accent-fg); }
 .task-split:disabled { cursor: default; opacity: 0.7; }
 /* Серията вече не стои вътре в центрирания етап на камерата, а сама в колоната.
    Затова се подравнява отляво, като всичко останало на екрана — центрирана между
@@ -1853,7 +2002,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--text);
   animation: climby-rise 0.35s ease both;
 }
-.explainer strong { color: var(--accent); }
+.explainer strong { color: var(--accent-fg); }
 
 
 /* ---------- избор на роля при регистрация ---------- */
@@ -1922,7 +2071,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   padding: 4px 10px;
   border-radius: var(--radius-sm);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-fg);
   font-weight: 600;
 }
 .class-student {
@@ -1939,13 +2088,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* ---------- икони в менюто ---------- */
 .nav-icon {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
-  opacity: 0.7;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
 }
-.nav-link.active .nav-icon { opacity: 1; }
-.nav-child .nav-icon { width: 15px; height: 15px; flex-basis: 15px; }
 
 /* ---------- превключвател на дялове ---------- */
 /* Двата дяла в Историята мерят около 355 px, а на телефон от 360 px за тях
@@ -2178,7 +2324,7 @@ button:disabled { opacity: 0.4; cursor: default; }
    Правят се с осем градиента вместо с четири елемента: рамка е, не съдържание,
    и няма работа в разметката. */
 .phone-qr-frame {
-  --bracket: var(--text-dim);
+  --bracket: var(--accent);
   --arm: 20px;
   --thick: 2px;
   display: inline-block;
@@ -2208,7 +2354,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   font-size: 11px;
   line-height: 1.5;
   word-break: break-all;
-  color: #16161a;
+  color: #1b1228;
 }
 
 .phone-code-label {
@@ -2310,37 +2456,10 @@ button:disabled { opacity: 0.4; cursor: default; }
   width: 100%;
   height: 100%;
   display: block;
-  /* Сиянието идва от самия знак, а не от кутия зад него — така работи и когато
-     знакът е сменен с картинка с прозрачен фон. */
-  filter: drop-shadow(0 0 5px var(--ai-glow));
 }
 
-/* Надписът взима същия градиент. Цветът отдолу е истински, а не украса:
-   ако браузърът не разбира background-clip, текстът пак се чете. */
-.nav-ai > span:not(.nav-badge):not(.nav-ai-mark) {
-  color: #c084fc;
-  background: var(--ai-text-gradient);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: climby-ai-wave 9s linear infinite;
-}
-
-.nav-ai:hover,
-.nav-ai.active {
-  background: var(--ai-gradient-soft);
-}
-.nav-ai.active {
-  box-shadow: inset 0 0 0 1px rgba(168, 85, 247, 0.28);
-}
-.nav-ai .nav-chevron { color: rgba(217, 162, 255, 0.65); }
-
-/* Вълната е бавна нарочно: това е ред от меню, който стои на екрана през цялото
-   време, а не бутон, който викаш. Достатъчно е да се усети, че е живо. */
-@media (prefers-reduced-motion: reduce) {
-  .nav-ai > span:not(.nav-badge):not(.nav-ai-mark) { animation: none; }
-}
+/* The ClimbAI row reads like every other row; its violet mark is enough to
+   tell it apart. A gradient on the words made the menu look like two menus. */
 
 /* ---------- ClimbAI: първият екран ---------- */
 /* Досега камерата тръгваше сама при отваряне на раздела. Лампичката светваше,
@@ -2396,17 +2515,9 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* Телефонът е препоръчаният път, затова носи знака на ClimbAI. Не крещи —
    само се различава достатъчно, за да се посегне първо към него. */
-.entry-choice-ai { border-color: rgba(168, 85, 247, 0.35); }
-.entry-choice-ai:hover { border-color: rgba(168, 85, 247, 0.6); }
-.entry-choice-ai .entry-choice-icon { color: #c78bff; }
-.entry-choice-ai .entry-choice-title {
-  color: #c084fc;
-  background: var(--ai-text-gradient);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
+.entry-choice-ai:hover { border-color: var(--accent-fg); }
+.entry-choice-ai .entry-choice-icon { color: var(--accent-fg); }
+.entry-choice-ai .entry-choice-title { color: var(--accent-fg); }
 
 /* ---------- рисунката "как стига дотук" ---------- */
 
@@ -2440,10 +2551,10 @@ button:disabled { opacity: 0.4; cursor: default; }
    собствена крива, но общ ритъм — затова изглежда като едно движение, а не като
    четири независими трепкания. */
 .howto-qr { animation: howto-qr 6s ease-in-out infinite; }
-.howto-ping { animation: howto-ping 6s ease-out infinite; stroke: var(--ai-strong, #c78bff); }
+.howto-ping { animation: howto-ping 6s ease-out infinite; stroke: var(--accent-fg); }
 .howto-page { animation: howto-page 6s ease-in-out infinite; }
-.howto-page-card { fill: var(--bg-elevated); stroke: #c78bff; }
-.howto-page-lines { stroke: #c78bff; stroke-width: 1.4; opacity: .75; }
+.howto-page-card { fill: var(--bg-elevated); stroke: var(--accent-fg); }
+.howto-page-lines { stroke: var(--accent-fg); stroke-width: 1.4; opacity: .75; }
 
 @keyframes howto-qr {
   0%, 4%   { opacity: 0; transform: scale(.9); }
@@ -2579,11 +2690,9 @@ button:disabled { opacity: 0.4; cursor: default; }
 .nav-ai-mark.climbai-mark {
   /* Знакът е плетеница от тънки линии, не плътна форма: под 20 пиксела тя се
      слива в петно. Затова тук е по-едър от иконките наоколо. */
-  width: 22px;
-  height: 22px;
-  background: var(--ai-text-gradient);
-  background-size: 200% 100%;
-  filter: drop-shadow(0 0 5px var(--ai-glow));
+  width: 18px;
+  height: 18px;
+  background: var(--accent-fg);
 }
 
 /* Върху AI копчетата и значката: черно, като надписа до него. */
@@ -2640,7 +2749,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 .tour-hole {
   position: fixed;
   border-radius: 14px;
-  box-shadow: 0 0 0 2px var(--purple), 0 0 22px rgba(196, 75, 251, 0.45);
+  box-shadow: 0 0 0 2px var(--accent-fg);
   pointer-events: none;
 }
 .tour-card {
@@ -2649,7 +2758,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   background: var(--bg-elevated, var(--bg));
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 18px 18px 14px;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
 }
@@ -2779,7 +2888,14 @@ body.tour-open .sidebar { transition: none; }
   background: url('climbai-mark.png?v=17') center / contain no-repeat;
   filter: none;
 }
-.nav-ai-mark.climbai-mark.climbai-mark--color { width: 22px; height: 22px; }
+.nav-ai-mark.climbai-mark.climbai-mark--color,
+.ai-fab .climbai-mark.climbai-mark--color,
+.climbai-mark.climbai-mark--color.chat-mark {
+  -webkit-mask: url('climbai-mark.png?v=17') center / contain no-repeat;
+  mask: url('climbai-mark.png?v=17') center / contain no-repeat;
+  background: var(--accent-fg);
+}
+.nav-ai-mark.climbai-mark.climbai-mark--color { width: 18px; height: 18px; }
 
 /* ---------- ClimbAI in the corner ---------- */
 .ai-fab {
@@ -2792,17 +2908,17 @@ body.tour-open .sidebar { transition: none; }
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--bg-elevated, var(--bg));
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 0 0 rgba(196, 75, 251, 0.0);
+  box-shadow: var(--shadow-overlay);
   display: grid;
   place-items: center;
   cursor: pointer;
   padding: 0;
   transition: transform .18s ease, box-shadow .35s ease;
 }
-.ai-fab .climbai-mark { width: 30px; height: 30px; }
+.ai-fab .climbai-mark { width: 26px; height: 26px; }
 .ai-fab:hover {
-  transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3), 0 0 0 6px rgba(196, 75, 251, 0.18);
+  border-color: var(--accent-fg);
+  background: var(--bg-sunken);
 }
 @media (max-width: 860px) { .ai-fab { right: 16px; bottom: 16px; width: 52px; height: 52px; } }
 
@@ -2833,12 +2949,8 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
   transition: opacity .35s ease;
   pointer-events: none;
 }
-.entry-choice:hover::after { opacity: 1; animation: climby-ai-wave 4s linear infinite; }
-.nav-link.nav-ai.active {
-  background: linear-gradient(100deg, var(--ai-gradient-soft));
-  background-size: 200% 100%;
-  animation: climby-ai-wave 12s linear infinite;
-}
+.entry-choice::after { background: var(--accent-fg); }
+.entry-choice:hover::after { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   body, .sidebar, .card, .view, .entry-choice, .settings-panel, .btn-ai, .ai-badge, .ai-fab { transition: none; }
   .btn-ai:hover, .entry-choice:hover::after, .nav-link.nav-ai.active { animation: none; }
@@ -2894,7 +3006,7 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
   position: relative;
   display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
   padding: 16px 16px 14px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background: var(--bg-elevated, var(--bg));
   color: var(--text);
@@ -2957,7 +3069,7 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
 #question:focus, .follow-up textarea:focus, .code-input:focus, .settings-card input:focus {
   outline: none;
   border-color: var(--purple);
-  box-shadow: 0 0 0 3px rgba(196, 75, 251, 0.18);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .tour-replay { white-space: nowrap; }
 
@@ -2967,14 +3079,74 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
 .focus-intro {
   display: grid;
   grid-template-columns: 1fr auto;
+  width: 100%;
   gap: 18px 24px;
   align-items: center;
 }
 .focus-intro .focus-toggle-row { margin: 0; grid-column: 1; grid-row: 1; }
-.focus-intro .hint { margin: 0; grid-column: 1; grid-row: 2; }
+.focus-intro .focus-verify-notice { grid-column: 1; grid-row: 2; }
+.focus-intro .hint { margin: 0; grid-column: 1; grid-row: 3; }
+.focus-intro .focus-safety { grid-column: 1 / -1; grid-row: 4; }
+.focus-verify-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--text);
+}
+.focus-verify-notice span { display: grid; gap: 3px; }
+.focus-verify-notice strong { font-size: 14px; }
+.focus-verify-notice small { color: var(--text-dim); font-size: 12px; line-height: 1.5; font-weight: 400; }
+.focus-safety {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.focus-safety p {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.focus-safety-check,
+.focus-safety-warning {
+  display: inline-grid;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+}
+.focus-safety-check {
+  color: var(--success);
+  background: var(--success-soft);
+}
+.focus-safety-caveat { color: var(--warn) !important; }
+.focus-safety-warning {
+  color: var(--warn);
+  background: var(--warn-soft);
+}
+.focus-verify-paused {
+  display: grid;
+  gap: 10px;
+  width: min(100%, 420px);
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-lg);
+  background: var(--warn-soft);
+  text-align: center;
+}
+.focus-verify-paused p { color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+.focus-verify-paused .btn-primary { justify-self: center; width: auto; }
 .focus-ring {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 1 / span 3;
   width: 96px; height: 96px;
   border-radius: 50%;
   /* At rest it is a dial, not a gauge. It used to show a 62% arc while
@@ -2997,87 +3169,44 @@ body, .sidebar, .card, .view, .entry-choice, .settings-panel {
 .focus-intro:has(#focusOff.hidden) .focus-ring { display: none; }
 @media (max-width: 560px) {
   .focus-intro { grid-template-columns: 1fr; }
-  .focus-ring { grid-row: auto; justify-self: center; }
+  .focus-ring { grid-column: 1; grid-row: auto; justify-self: center; }
 }
 
 /* ---------- presence ---------- */
 /* The aurora is the room the app lives in: two colours, large, drifting so
    slowly that it is felt rather than watched. It sits behind everything,
    including the sidebar, and every surface is glass over it. */
+/* The drifting violet aurora behind everything is gone: GitHub's surfaces
+   are flat, and the colour behind the text was what made it read murky. */
 body { position: relative; }
-body::before {
-  content: "";
-  position: fixed;
-  inset: -20%;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(42% 38% at 22% 18%, var(--aurora), transparent 70%),
-    radial-gradient(36% 34% at 78% 72%, var(--aurora-2), transparent 70%),
-    radial-gradient(30% 30% at 60% 10%, var(--aurora), transparent 70%);
-  animation: climby-aurora 38s ease-in-out infinite alternate;
-  will-change: transform;
-}
-@keyframes climby-aurora {
-  from { transform: translate3d(-3%, -2%, 0) rotate(0deg); }
-  to   { transform: translate3d(3%, 3%, 0) rotate(4deg); }
-}
 /* Only the shell needs lifting above the aurora: the overlays are fixed with
    their own z-index and already sit above it. */
 .app-shell { position: relative; z-index: 1; }
 
 /* Glass surfaces. Frosted, with a sheen along the top-left edge — the way light
    crosses a pane — and a hairline that is brighter than the surface. */
-.card, .sidebar, .auth-card, .settings-card, .tour-card, .entry-choice, .paper-card, .turn-user, .follow-up textarea, .ai-fab, .paper-back, .speak-btn {
-  background: var(--glass);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  backdrop-filter: blur(18px) saturate(150%);
-  border-color: var(--glass-border);
+.card, .auth-card, .settings-card, .tour-card, .entry-choice, .paper-card, .turn-user, .follow-up textarea, .ai-fab, .paper-back, .speak-btn {
+  background: var(--bg-elevated);
+  border-color: var(--border);
 }
 .card, .auth-card, .settings-card, .tour-card, .entry-choice, .paper-card {
-  background-image: var(--glass-sheen);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), var(--shadow-contact), var(--shadow-ambient);
+  box-shadow: var(--shadow-contact);
 }
-.sidebar { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 30%); }
+/* dialogs float above the page; they are the surfaces that keep a shadow */
+.auth-card, .settings-card, .tour-card { box-shadow: var(--shadow-overlay); }
 /* The gate is frosted, not transparent: the app behind is a hint of a room,
    not a page competing with the sign-in card. */
-.entry-gate {
-  background: var(--bg);
-  background: color-mix(in srgb, var(--bg) 80%, transparent);
-  -webkit-backdrop-filter: blur(22px) saturate(120%);
-  backdrop-filter: blur(22px) saturate(120%);
-}
-.explainer { background: var(--glass-strong); }
+.entry-gate { background: var(--bg); }
+.explainer { background: var(--bg-elevated); }
 
-/* Titles carry the colour. */
-.page-header h1, .paper-title, .tour-title, .auth-card h2 {
-  background: var(--ai-text-gradient);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: climby-ai-wave 14s linear infinite;
-}
+/* Titles are plain text in the main text colour, as on GitHub. */
+.page-header h1, .paper-title, .tour-title, .auth-card h2 { color: var(--text); }
 
-/* Glow where the app is alive: the active item, the AI button, the corner. */
-.nav-link.active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 24px -10px var(--ai-glow); }
-.nav-link.nav-ai.active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 10px 30px -8px var(--ai-glow); }
-.btn-ai { box-shadow: 0 8px 28px -4px var(--ai-glow), 0 0 0 1px rgba(255, 255, 255, 0.08) inset; }
-.btn-ai:hover { box-shadow: 0 12px 36px -4px var(--ai-glow), 0 0 0 1px rgba(255, 255, 255, 0.14) inset; }
-.ai-fab { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 0 1px var(--glass-border), 0 0 34px -6px var(--ai-glow); }
-.ai-fab::after {
-  content: ""; position: absolute; inset: -6px; border-radius: 50%;
-  border: 1px solid rgba(196, 75, 251, 0.35);
-  animation: climby-halo 3.2s ease-out infinite;
-  pointer-events: none;
-}
-@keyframes climby-halo { 0% { transform: scale(.92); opacity: .8; } 100% { transform: scale(1.25); opacity: 0; } }
-.entry-choice.entry-choice-ai, .paper-card.is-active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 14px 40px -12px var(--ai-glow); }
-.answer::before { height: 3px; box-shadow: 0 0 18px var(--ai-glow); }
-
-@media (prefers-reduced-motion: reduce) {
-  body::before, .page-header h1, .paper-title, .tour-title, .auth-card h2, .ai-fab::after { animation: none; }
-}
+/* No glow. Buttons and the corner button sit flat; colour alone marks them. */
+.btn-ai { box-shadow: none; }
+.btn-ai:hover { box-shadow: none; }
+.entry-choice.entry-choice-ai, .paper-card.is-active { box-shadow: var(--shadow-contact); }
+.answer::before { height: 3px; }
 
 /* ---------- the composer ---------- */
 .composer { padding: 18px 20px 16px; }
@@ -3090,7 +3219,7 @@ body::before {
   color: var(--text); cursor: pointer; white-space: nowrap;
   transition: border-color .2s ease, box-shadow .25s ease, background-color .2s ease;
 }
-.quick:hover { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(196, 75, 251, 0.14); }
+.quick:hover { border-color: var(--purple); box-shadow: 0 0 0 3px var(--accent-soft); }
 .composer textarea { width: 100%; min-height: 84px; }
 .composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
 .composer-hint { font-size: 12px; color: var(--text-faint); }
@@ -3147,7 +3276,7 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
   width: min(400px, calc(100vw - 32px));
   height: min(600px, calc(100vh - 120px));
   display: flex; flex-direction: column;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--glass-border);
   background: var(--glass-strong);
   background-image: var(--glass-sheen);
@@ -3175,6 +3304,34 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 .chat-icon svg { width: 18px; height: 18px; }
 .chat-icon:hover { color: var(--text); border-color: var(--glass-border); background: var(--glass); }
 .chat-log { flex: 1; overflow-y: auto; padding: 14px 14px 6px; display: flex; flex-direction: column; gap: 10px; }
+.chat-memory-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 14px;
+  border-top: 1px solid var(--glass-border);
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.chat-memory-status { min-width: 0; }
+.chat-memory-status.is-active { color: var(--accent-strong); }
+.chat-memory-manage {
+  flex: none;
+  width: auto;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent-strong);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.chat-memory-manage:hover { background: var(--accent-soft); }
+.chat-memory-manage:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .chat-empty { margin: auto; padding: 0 28px; text-align: center; color: var(--text-dim); font-size: 14px; line-height: 1.55; }
 .chat-msg { max-width: 88%; padding: 10px 14px; border-radius: 16px; font-size: 14.5px; line-height: 1.55; position: relative; }
 .chat-user { align-self: flex-end; background: var(--ai-gradient); color: var(--on-ai); border-bottom-right-radius: 4px; white-space: pre-wrap; }
@@ -3184,7 +3341,7 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 .chat-ai .speak-btn { top: 6px; right: 6px; width: 30px; height: 30px; }
 .chat-ai .speak-btn svg { width: 16px; height: 16px; }
 .chat-thinking { color: var(--text-dim); font-style: italic; }
-.chat-thinking .spark-spin { animation: spark-spin 1.6s linear infinite; }
+.chat-thinking .ai-activity { min-height: 42px; }
 .chat-error { color: var(--warn); border-color: var(--warn); }
 .chat-input-row { display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px 12px; border-top: 1px solid var(--glass-border); }
 .chat-input-row textarea {
@@ -3193,7 +3350,7 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
   border-radius: 14px; border: 1px solid var(--glass-border);
   background: var(--glass); color: var(--text);
 }
-.chat-input-row textarea:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(196, 75, 251, 0.18); }
+.chat-input-row textarea:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px var(--accent-soft); }
 .chat-send { width: 42px; height: 42px; min-width: 0; padding: 0; border-radius: 50%; flex: none; }
 .chat-send svg { width: 20px; height: 20px; }
 .ai-fab.is-open { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 0 2px var(--purple), 0 0 34px -6px var(--ai-glow); }
@@ -3267,15 +3424,6 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 @media (min-width: 1440px) {
   :root { --content-width: 980px; --gutter: 32px; }
 
-  .main-area::before {
-    width: min(34vw, 560px);
-    height: min(34vw, 560px);
-    left: auto;
-    right: -4vw;
-    top: auto;
-    bottom: -6vh;
-    transform: none;
-  }
 
   /* ---- The Route, two columns ---- */
   #checklistApp {
@@ -3347,12 +3495,12 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 }
 .account-form input:focus { outline: none; border-color: var(--accent); }
 .account-form button { flex: 0 0 auto; }
-.settings-note.is-error { color: #f87171; }
+.settings-note.is-error { color: var(--danger); }
 .account-danger { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 14px; }
 .btn-danger {
   font: inherit; font-weight: 600; font-size: 14px;
   padding: 10px 16px; border-radius: var(--radius);
-  background: var(--danger-strong); color: #fff; border: 1px solid var(--danger-strong); cursor: pointer;
+  background: var(--danger-strong); color: var(--on-danger); border: 1px solid var(--danger-strong); cursor: pointer;
 }
 .btn-danger:hover { filter: brightness(1.1); }
 
@@ -3431,7 +3579,7 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 .entry-paste-hint { width: 100%; margin: 12px 0 0; font-size: 12.5px; color: var(--text-faint); }
 /* the whole ClimbAI view lights up while a file is being dragged over the app */
 body.is-dragging-file #view-tutor:not(.hidden) .entry-choices { outline: 2px dashed var(--accent); outline-offset: 10px; border-radius: var(--radius-lg); }
-body.is-dragging-file #view-tutor:not(.hidden) .entry-paste-hint { color: var(--accent); }
+body.is-dragging-file #view-tutor:not(.hidden) .entry-paste-hint { color: var(--accent-fg); }
 
 /* ---------- show/hide password (password-eye.js) ---------- */
 .has-eye { position: relative; }
@@ -3483,7 +3631,7 @@ body.is-dragging-file #view-tutor:not(.hidden) .entry-paste-hint { color: var(--
 }
 .copy-btn svg { width: 16px; height: 16px; }
 .copy-btn:hover { color: var(--text); border-color: var(--accent); }
-.copy-btn.is-done { color: var(--accent); border-color: var(--accent); }
+.copy-btn.is-done { color: var(--accent-fg); border-color: var(--accent); }
 /* sharing the corner with the read-aloud button: copy steps to its left, and
    the card makes room for two instead of one */
 .answer:has(.speak-btn) .copy-btn { right: 54px; }
@@ -3518,11 +3666,11 @@ body.is-dragging-file #view-tutor:not(.hidden) .entry-paste-hint { color: var(--
 .toast.is-going { opacity: 0; transform: translateY(10px); }
 .toast-text { flex: 1; min-width: 0; }
 .toast-action {
-  flex: none; border: 0; background: transparent; color: var(--accent);
+  flex: none; border: 0; background: transparent; color: var(--accent-fg);
   font: inherit; font-weight: 600; cursor: pointer; padding: 4px 6px; border-radius: 8px;
 }
 .toast-action:hover { background: var(--accent-soft); }
-.toast-good .toast-text { color: var(--accent); }
+.toast-good .toast-text { color: var(--accent-fg); }
 @media (prefers-reduced-motion: reduce) {
   .toast { transition: none; opacity: 1; transform: none; }
 }
@@ -3531,7 +3679,7 @@ body.is-dragging-file #view-tutor:not(.hidden) .entry-paste-hint { color: var(--
 .offline-bar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 3100;
   padding: 9px 16px; text-align: center; font-size: 13px; font-weight: 500;
-  background: var(--danger); color: #fff;
+  background: var(--danger); color: var(--on-danger);
 }
 .offline-bar.hidden { display: none; }
 body.is-offline .app-shell { padding-top: 35px; }
@@ -3551,8 +3699,8 @@ button, .entry-choice, .chat-starter, .quiz-grade, .task-delete, .nav-link {
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
               transform 0.08s ease, filter 0.15s ease;
 }
-button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
-.nav-link:active, .theme-switch-option:active {
+button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
+.theme-switch-option:active {
   transform: scale(0.97);
 }
 /* a card is big; scaling the whole thing looks like a bounce, so it presses in */
@@ -3636,6 +3784,52 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
   grid-column: 1 / -1;
   margin: 6px 0 0;
 }
+.settings-update-control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 200px;
+  grid-column: 2;
+  grid-row: 1;
+}
+.settings-update-control .settings-note { text-align: right; }
+#settingsUpdateBtn:disabled { cursor: wait; opacity: .7; }
+
+.net-wake-status {
+  position: fixed;
+  z-index: 4000;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-contact), var(--shadow-ambient);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.net-wake-indicator {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  animation: net-wake-pulse 1.2s ease-in-out infinite;
+}
+@keyframes net-wake-pulse {
+  50% { opacity: .5; transform: scale(.85); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-activity-video { display: none; }
+  .ai-activity-video, .net-wake-indicator { animation: none; transition: none; }
+}
 
 /* ---------- the dropdowns ---------- */
 .settings-select {
@@ -3667,18 +3861,16 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
 .voice-picker { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; width: 100%; }
 .voice-card {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 14px;
   padding: 11px 14px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-sunken);
-  cursor: pointer;
 }
 .voice-card:hover { border-color: var(--accent); }
-.voice-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.voice-card.is-picked { border-color: var(--accent); background: var(--accent-soft); }
+.voice-card:has(.voice-select.is-picked) { border-color: var(--accent); background: var(--accent-soft); }
 
 .voice-play {
   flex: none; padding: 0;
@@ -3691,8 +3883,22 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
   cursor: pointer;
 }
 .voice-play svg { width: 15px; height: 15px; margin-left: 1px; }
+.voice-play:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .voice-card:hover .voice-play { border-color: var(--accent); }
 .voice-card.is-playing .voice-play { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.voice-select {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+.voice-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
 /* while it talks, the triangle gives way to three bars that move with it */
 .voice-card.is-playing .voice-play svg { display: none; }
 .voice-bars { display: none; align-items: flex-end; gap: 2px; height: 14px; }
@@ -3709,9 +3915,9 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
 .voice-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .voice-name { font-weight: 600; font-size: 14.5px; }
 .voice-meta { font-size: 12px; color: var(--text-faint); }
-.voice-tick { color: var(--accent); opacity: 0; }
+.voice-tick { flex: none; color: var(--accent-fg); opacity: 0; }
 .voice-tick svg { width: 18px; height: 18px; display: block; }
-.voice-card.is-picked .voice-tick { opacity: 1; }
+.voice-select.is-picked .voice-tick { opacity: 1; }
 
 .voice-none {
   padding: 14px 16px;
@@ -3737,7 +3943,7 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
   border: 1.5px solid var(--danger);
   font-weight: 700;
 }
-.btn-danger-outline:hover { background: var(--danger); color: #fff; }
+.btn-danger-outline:hover { background: var(--danger); color: var(--on-danger); }
 .account-danger .settings-note { color: var(--danger); opacity: 0.95; }
 #settingsOverlay .account-danger {
   border: 1.5px solid var(--danger);
@@ -3767,7 +3973,7 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
   border-radius: var(--radius);
   background: var(--bg-sunken);
 }
-.suggest-icon { color: var(--accent); display: block; }
+.suggest-icon { color: var(--accent-fg); display: block; }
 .suggest-icon svg { width: 20px; height: 20px; display: block; }
 .suggest-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .suggest-title { font-weight: 600; font-size: 14px; line-height: 1.4; }
@@ -3789,7 +3995,7 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
 .suggest-card.is-added { border-color: var(--accent); background: var(--accent-soft); }
 .suggest-done {
   display: inline-flex; align-items: center; gap: 6px;
-  font-size: 13px; font-weight: 600; color: var(--accent);
+  font-size: 13px; font-weight: 600; color: var(--accent-fg);
 }
 .suggest-done svg { width: 15px; height: 15px; }
 /* in a chat bubble the card must not push past the bubble's own padding */
@@ -4048,10 +4254,10 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
 /* ---------- Focus: the session and its history side by side ---------- */
 .focus-layout { width: 100%; display: flex; flex-direction: column; }
 .focus-main { width: 100%; display: flex; flex-direction: column; align-items: center; min-width: 0; }
-@media (min-width: 1100px) {
-  .focus-layout {
+@media (min-width: 1280px) {
+  .focus-layout:has(> .session-history:not(.hidden)) {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
     gap: 32px;
     align-items: start;
   }
@@ -4115,7 +4321,7 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
 /* ---------- Settings: grouped, with a section list on a wide screen ---------- */
 #settingsOverlay .settings-card { background: var(--bg); }
 #settingsOverlay .settings-body {
-  max-width: 1040px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 10px var(--gutter) 72px;
 }
@@ -4124,8 +4330,8 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
 @media (min-width: 1100px) {
   #settingsOverlay .settings-body {
     display: grid;
-    grid-template-columns: 190px minmax(0, 760px);
-    gap: 48px;
+    grid-template-columns: 220px minmax(0, 780px);
+    gap: 36px;
     justify-content: center;
   }
   #settingsOverlay .settings-main { margin: 0; }
@@ -4136,28 +4342,46 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
     position: sticky;
     top: 86px;
     align-self: start;
-    padding-top: 18px;
+    padding: 18px 10px 18px 0;
+    border-right: 1px solid var(--border);
   }
 }
 .settings-nav-link {
   flex: none;
+  position: relative;
   text-align: left;
-  padding: 9px 12px;
+  min-height: 32px;
+  padding: 6px 8px;
+  margin-left: 8px;
   background: none;
   border: 0;
-  border-radius: var(--radius);
-  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  color: var(--text);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
+  line-height: 20px;
+  cursor: pointer;
 }
-.settings-nav-link:hover { color: var(--text); background: var(--accent-soft); }
+.settings-nav-link:hover { background: var(--nav-hover); }
+.settings-nav-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.settings-nav-link[aria-current="location"] { background: var(--nav-active); font-weight: 600; }
+.settings-nav-link[aria-current="location"]::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: calc(50% - 12px);
+  width: 4px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--accent-fg);
+}
 .settings-body:has(#accountRows.hidden) .settings-nav-account { display: none; }
 
 .settings-group {
-  margin-top: 18px;
+  margin-top: 22px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   scroll-margin-top: 84px;
   box-shadow: inset 0 1px 0 var(--edge-light);
@@ -4167,20 +4391,60 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
 #settingsOverlay #accountRows > .settings-section {
   max-width: none;
   margin: 0;
-  padding: 18px 22px 4px;
+  padding: 22px 24px 8px;
 }
 #settingsOverlay .settings-group > .settings-row,
 #settingsOverlay #accountRows > .settings-row {
   max-width: none;
   margin: 0;
-  padding: 15px 22px;
+  padding: 17px 24px;
 }
 #settingsOverlay .settings-group > .settings-section + .settings-row { border-top: 0; }
+.settings-description { margin: 0 24px 8px; }
+.memory-options { display: grid; gap: 8px; padding: 8px 24px 14px; }
+.memory-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+.memory-option:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.memory-option input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+.memory-option span { display: grid; gap: 4px; }
+.memory-option strong { font-size: 14px; font-weight: 650; }
+.memory-option small { color: var(--text-faint); font-size: 12px; font-weight: 400; line-height: 1.45; }
+.memory-note-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 76px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+.memory-note-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.memory-note-input:disabled { opacity: .55; cursor: not-allowed; }
+.memory-privacy { margin: 0 24px 12px; padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+.memory-storage-error { margin: 0 24px 12px; color: var(--danger); }
+.memory-actions { align-items: flex-start; flex-direction: column; padding: 14px 24px 18px; }
+.memory-actions .settings-note { margin: 0; }
+.memory-actions button { width: auto; }
+.settings-access-links { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
+.settings-access-link { width: auto; min-width: 150px; }
+.settings-access-row .settings-note { grid-column: 1 / -1; }
+.settings-access-row .settings-access-links { grid-column: 1 / -1; }
+@media (min-width: 1100px) {
+  #settingsOverlay .settings-card > h2 { padding-left: max(var(--gutter), calc((100vw - 1036px) / 2)); }
+}
 
-/* ---------- the watermark ---------- */
-/* On a phone the content covers the whole screen and the mountain showed
-   through the middle of it as clutter. It stays on a monitor, in its corner. */
-@media (max-width: 860px) { .main-area::before { display: none; } }
 
 .route-side { width: 100%; }
 .route-plan { margin-top: 16px; }
@@ -4192,13 +4456,478 @@ button:active, .entry-choice:active, .chat-starter:active, .quiz-grade:active,
   #settingsOverlay .settings-row:not(.settings-row-stack) { grid-template-columns: minmax(0, 1fr); }
   #settingsOverlay .settings-row > .settings-control { grid-column: 1; grid-row: auto; justify-self: stretch; min-width: 0; }
   #settingsOverlay .settings-row > .settings-control .settings-select { width: 100%; }
+  .settings-update-control { grid-column: 1; grid-row: auto; align-items: stretch; min-width: 0; }
+  .settings-update-control .settings-note { text-align: left; }
+  #settingsUpdateBtn { width: 100%; }
   #settingsOverlay .settings-group > .settings-row,
   #settingsOverlay #accountRows > .settings-row { padding: 14px 16px; }
   #settingsOverlay .settings-group > .settings-section,
   #settingsOverlay #accountRows > .settings-section { padding: 16px 16px 2px; }
+  .settings-description { margin: 0 16px 8px; }
+  .memory-options { padding: 8px 16px 14px; }
+  .memory-privacy { margin: 0 16px 12px; }
+  .memory-actions { padding: 14px 16px 18px; }
+  .memory-actions button { width: 100%; }
+  .chat-memory-bar { align-items: flex-start; }
 }
 
 /* Once a page is being asked about, the conversation is the screen: the home
    panels would otherwise sit between the cards and the question, pushing the
    answer below the fold. */
 #view-tutor:has(#qa:not(.hidden)) .home-grid { display: none; }
+
+/* ---------- ClimbAI test, flashcards and timer cards (smart.js) ---------- */
+.smart-card {
+  margin-top: 12px;
+  border: 1.5px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  background: linear-gradient(160deg, var(--accent-soft), transparent 55%), var(--bg-sunken);
+  overflow: hidden;
+}
+.smart-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px 12px; }
+.smart-icon {
+  flex: none; width: 36px; height: 36px; border-radius: 12px;
+  display: grid; place-items: center;
+  color: var(--on-accent); background: var(--accent);
+  box-shadow: 0 6px 16px -6px var(--accent);
+}
+.smart-icon svg { width: 20px; height: 20px; }
+.smart-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.smart-title { font-weight: 700; font-size: 15px; line-height: 1.3; }
+.smart-meta { font-size: 12px; color: var(--text-faint); }
+.smart-bar { height: 4px; background: var(--border); }
+.smart-bar-fill { display: block; height: 100%; width: 0; background: var(--accent); transition: width .35s ease; }
+.smart-body { display: flex; flex-direction: column; gap: 12px; align-items: stretch; padding: 14px 16px 16px; }
+.smart-count { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-fg); }
+.smart-q { margin: 0; font-size: 16px; font-weight: 650; line-height: 1.45; }
+
+.smart-options { display: flex; flex-direction: column; gap: 8px; }
+.smart-option {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 11px 12px; font: inherit; font-size: 14.5px; color: var(--text);
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius);
+  cursor: pointer; transition: border-color .15s, background .15s, transform .15s, opacity .2s;
+}
+.smart-option:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); transform: translateX(2px); }
+.smart-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.smart-letter {
+  flex: none; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;
+  font-size: 12.5px; font-weight: 700; color: var(--accent-fg); background: var(--accent-soft);
+}
+.smart-option-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.smart-mark { flex: none; width: 18px; height: 18px; }
+.smart-option:disabled { cursor: default; }
+.smart-option.is-right { border-color: var(--success); background: var(--success-soft); color: var(--text); }
+.smart-option.is-right .smart-letter { background: var(--success); color: #06210f; }
+.smart-option.is-right .smart-mark { color: var(--success); }
+.smart-option.is-wrong { border-color: var(--danger); background: var(--danger-soft); animation: smart-shake .32s; }
+.smart-option.is-wrong .smart-letter { background: var(--danger); color: #2b0707; }
+.smart-option.is-wrong .smart-mark { color: var(--danger); }
+.smart-option.is-dim { opacity: .55; }
+
+.smart-feedback { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: var(--radius); font-size: 13.5px; line-height: 1.45; animation: smart-rise .25s ease; }
+.smart-feedback.is-right { background: var(--success-soft); border: 1px solid var(--success); }
+.smart-feedback.is-wrong { background: var(--danger-soft); border: 1px solid var(--danger); }
+
+.smart-btn {
+  flex: none; width: auto; align-self: flex-start;
+  padding: 9px 16px; font-size: 13.5px; font-weight: 650;
+  color: var(--on-accent); background: var(--accent);
+  border: 1.5px solid transparent; border-radius: var(--radius-sm, 10px); cursor: pointer;
+  transition: background .15s, transform .1s;
+}
+.smart-btn:hover { background: var(--accent-strong, var(--accent)); }
+.smart-btn:active { transform: scale(.97); }
+.smart-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.smart-btn--quiet { color: var(--text); background: transparent; border-color: var(--border); }
+.smart-btn--quiet:hover { background: var(--accent-soft); }
+.smart-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.smart-flip { display: block; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; perspective: 900px; }
+.smart-flip:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--radius); }
+.smart-flip-inner { position: relative; display: grid; transition: transform .5s cubic-bezier(.3,.7,.2,1); transform-style: preserve-3d; }
+.smart-flip.is-flipped .smart-flip-inner { transform: rotateY(180deg); }
+.smart-flip-face {
+  grid-area: 1 / 1; display: flex; flex-direction: column; gap: 10px; justify-content: center; align-items: center;
+  min-height: 150px; padding: 20px 18px; text-align: center; border-radius: var(--radius);
+  border: 1.5px solid var(--border); background: var(--bg); backface-visibility: hidden;
+}
+.smart-flip-back { transform: rotateY(180deg); border-color: var(--accent); background: var(--accent-soft); }
+.smart-flip-tag { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-fg); }
+.smart-flip-text { font-size: 17px; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
+.smart-flip-hint, .smart-flip-why { font-size: 12px; color: var(--text-faint); }
+
+.smart-result { display: flex; align-items: center; gap: 16px; }
+.smart-result-text { display: flex; flex-direction: column; gap: 4px; font-size: 14px; line-height: 1.45; }
+.smart-result-text b { font-size: 16px; }
+.smart-ring { position: relative; flex: none; width: 84px; height: 84px; }
+.smart-ring svg { width: 100%; height: 100%; }
+.smart-ring circle { fill: none; stroke-width: 7; }
+.smart-ring-bg { stroke: var(--border); }
+.smart-ring-fg { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset .9s cubic-bezier(.3,.7,.2,1); }
+.smart-ring-label { position: absolute; inset: 0; display: flex; align-items: baseline; justify-content: center; align-content: center; gap: 1px; padding-top: 28px; font-size: 12px; color: var(--text-faint); }
+.smart-ring-label b { font-size: 22px; color: var(--text); line-height: 1; }
+
+.smart-timer { display: flex; align-items: center; gap: 14px; padding: 14px 16px; flex-wrap: wrap; }
+.smart-dial {
+  flex: none; width: 64px; height: 64px; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  border: 3px solid var(--accent); background: var(--accent-soft); color: var(--accent-fg);
+}
+.smart-dial .smart-icon { display: none; }
+.smart-dial b { font-size: 22px; line-height: 1; color: var(--text); }
+.smart-dial span { font-size: 11px; }
+.smart-timer-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 140px; }
+.smart-timer .smart-btn { align-self: center; }
+
+.chat-ai .smart-card { margin-top: 12px; }
+@keyframes smart-rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes smart-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .smart-flip-inner, .smart-ring-fg, .smart-bar-fill, .smart-option, .smart-btn { transition: none; }
+  .smart-option.is-wrong, .smart-feedback { animation: none; }
+}
+.smart-option:disabled { color: var(--text); opacity: 1; }
+.smart-option.is-dim:disabled { opacity: .5; }
+
+/* ---------- Settings polish: softer fields, section list, connection cards ---------- */
+/* Fields are the page colour inside a card, with the same grey line as
+   everything else — GitHub's inputs, with no violet tint in the grey. */
+#settingsOverlay {
+  --field: var(--bg);
+  --field-line: var(--border);
+}
+:root[data-theme="light"] #settingsOverlay { --field: var(--bg-sunken); --field-line: var(--border); }
+#settingsOverlay .theme-switch,
+#settingsOverlay .settings-select,
+#settingsOverlay .voice-card,
+#settingsOverlay .memory-option,
+#settingsOverlay .memory-note-input,
+#settingsOverlay .account-form input {
+  background-color: var(--field);
+  border-color: var(--field-line);
+}
+#settingsOverlay .voice-card:has(.voice-select.is-picked) { background: var(--accent-soft); border-color: var(--accent); }
+#settingsOverlay .memory-option:hover { border-color: var(--accent); }
+#settingsOverlay .memory-privacy { background: var(--accent-soft); color: var(--text); }
+.settings-access-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.settings-access-link {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  text-align: left;
+  background-color: var(--field, var(--bg-sunken));
+  border: 1px solid var(--field-line, var(--border));
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.settings-access-link:hover { border-color: var(--accent); background-color: var(--accent-soft); }
+.settings-access-link strong { font-size: 14px; font-weight: 650; }
+.settings-access-link small { color: var(--text-faint); font-size: 12px; font-weight: 400; line-height: 1.4; }
+
+/* ==========================================================================
+   Settings, GitHub-style
+   --------------------------------------------------------------------------
+   Laid out the way GitHub's settings pages are: a section list on the left,
+   and on the right flat sections, each opening with a plain heading and a
+   line under it — no boxes around sections, no small grey capitals. A row is
+   the label in bold with its explanation under it, and the control on the
+   right. Controls are GitHub's: compact segmented switches with a raised
+   selected option, 32px dropdowns and buttons in the control grey, and a
+   danger zone with a red outline rather than a red block. Violet stays where
+   it means something: focus, the picked voice, the section you are in.
+   Written last on purpose, so it wins over the earlier passes above.
+   ========================================================================== */
+#settingsOverlay {
+  --control-bg: #212830;
+  --control-hover: #262c36;
+  --control-selected: var(--bg);
+}
+:root[data-theme="light"] #settingsOverlay {
+  --control-bg: #eff2f5;
+  --control-hover: #e6eaef;
+  --control-selected: #ffffff;
+  --field: #ffffff;
+}
+
+/* the page itself: the title bar is the page colour, like GitHub's */
+#settingsOverlay .settings-card > h2 {
+  background: var(--bg);
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 600;
+  padding-top: 18px;
+  padding-bottom: 16px;
+}
+#settingsOverlay .settings-body { padding-top: 24px; }
+
+/* sections: flat, a heading with a rule under it */
+#settingsOverlay .settings-group {
+  margin-top: 40px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
+}
+#settingsOverlay .settings-main > .settings-group:first-child { margin-top: 0; }
+#settingsOverlay .settings-group > .settings-section,
+#settingsOverlay #accountRows > .settings-section {
+  /* GitHub uses one plain face for these; Manrope's Cyrillic is a display cut */
+  font: 600 20px/1.4 var(--font-body);
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--text);
+  margin: 0 0 8px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--border);
+}
+#settingsOverlay .settings-description {
+  margin: 8px 0 4px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* rows: label and note on the left, control on the right */
+#settingsOverlay .settings-group > .settings-row,
+#settingsOverlay #accountRows > .settings-row {
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+#settingsOverlay .settings-group > .settings-section + .settings-row,
+#settingsOverlay .settings-group > .settings-description + .settings-row,
+#settingsOverlay #accountRows > .settings-section + .settings-row { border-top: 0; }
+#settingsOverlay .settings-row:not(.settings-row-stack) {
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 24px;
+  row-gap: 4px;
+}
+#settingsOverlay .settings-row > :first-child { font-size: 14px; font-weight: 600; color: var(--text); }
+#settingsOverlay .settings-row > :first-child small { font-size: 13px; font-weight: 400; color: var(--text-dim); }
+#settingsOverlay .settings-row:not(.settings-row-stack) > .settings-note {
+  grid-column: 1;
+  grid-row: 2;
+  margin: 0;
+}
+#settingsOverlay .settings-row:not(.settings-row-stack) > .settings-control,
+#settingsOverlay .settings-row:not(.settings-row-stack) > :first-child + button {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  min-width: 0;
+}
+/* with a note under the label, the control centres on both lines; without
+   one, a second empty row would push the label above the control's middle */
+#settingsOverlay .settings-row:not(.settings-row-stack):has(> .settings-note) > .settings-control,
+#settingsOverlay .settings-row:not(.settings-row-stack):has(> .settings-note) > :first-child + button { grid-row: 1 / span 2; }
+#settingsOverlay .settings-row:not(.settings-row-stack) > :first-child { align-self: center; }
+#settingsOverlay .settings-note { font-size: 13px; font-weight: 400; color: var(--text-dim); }
+
+/* Language and Theme sit on one line too: label left, switch right */
+#settingsOverlay .settings-row-stack:has(> .theme-switch) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 24px;
+}
+#settingsOverlay .settings-row-stack:has(> .theme-switch) > .theme-switch { grid-column: 2; grid-row: 1; }
+
+/* the segmented switch */
+#settingsOverlay .theme-switch {
+  display: inline-flex;
+  width: auto;
+  gap: 0;
+  padding: 0;
+  background: var(--control-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+#settingsOverlay .theme-switch-option {
+  flex: none;
+  width: auto;
+  min-height: 30px;
+  padding: 0 14px;
+  margin: -1px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 400;
+}
+#settingsOverlay .theme-switch-option:hover:not(.active) { background: var(--control-hover); }
+#settingsOverlay .theme-switch-option.active {
+  background: var(--control-selected);
+  border-color: var(--border);
+  color: var(--text);
+  font-weight: 600;
+}
+@media (pointer: coarse) {
+  #settingsOverlay .theme-switch-option { min-height: var(--tap); }
+}
+
+/* dropdowns */
+#settingsOverlay .settings-select {
+  min-width: 180px;
+  height: 32px;
+  padding: 0 32px 0 12px;
+  font-size: 14px;
+  font-weight: 400;
+  background-color: var(--control-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-position: calc(100% - 17px) calc(50% + 1px), calc(100% - 12px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+}
+#settingsOverlay .settings-select:hover { background-color: var(--control-hover); border-color: var(--border); }
+
+/* buttons: GitHub's default button */
+#settingsOverlay .btn-secondary {
+  width: auto;
+  min-height: 32px;
+  padding: 5px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text);
+  background: var(--control-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+#settingsOverlay .btn-secondary:hover { background: var(--control-hover); border-color: var(--border); }
+
+/* text fields */
+#settingsOverlay .account-form { max-width: 440px; gap: 8px; }
+#settingsOverlay .account-form input,
+#settingsOverlay .memory-note-input {
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--field);
+}
+#settingsOverlay .account-form input { height: 32px; padding: 5px 12px; }
+#settingsOverlay .account-form input:focus,
+#settingsOverlay .memory-note-input:focus {
+  outline: none;
+  border-color: var(--accent-fg);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* memory: a plain checklist, not a stack of boxes */
+#settingsOverlay .memory-options { gap: 0; padding: 4px 0 8px; }
+#settingsOverlay .memory-option {
+  gap: 10px;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+#settingsOverlay .memory-option:hover { border: 0; }
+#settingsOverlay .memory-option:focus-within { box-shadow: none; }
+#settingsOverlay .memory-option input { width: 16px; height: 16px; margin-top: 2px; }
+#settingsOverlay .memory-option strong { font-weight: 600; }
+#settingsOverlay .memory-option small { font-size: 13px; color: var(--text-dim); }
+#settingsOverlay .memory-note-input { max-width: 560px; margin-left: 26px; width: calc(100% - 26px); }
+#settingsOverlay .memory-privacy {
+  margin: 8px 0 16px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent-fg) 40%, transparent);
+  border-left-width: 1px;
+  border-radius: var(--radius-sm);
+}
+#settingsOverlay .memory-storage-error { margin: 0 0 12px; }
+#settingsOverlay .settings-group > .memory-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 24px;
+  padding: 16px 0;
+}
+#settingsOverlay .memory-actions > .settings-note { grid-row: 1; font-weight: 400; color: var(--text-dim); font-size: 13px; }
+#settingsOverlay .memory-actions button { grid-column: 2; grid-row: 1; }
+
+/* voices: GitHub-style selectable rows */
+#settingsOverlay .voice-card {
+  border-width: 1px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg);
+  padding: 10px 12px;
+}
+#settingsOverlay .voice-card:hover { border-color: var(--text-faint); }
+#settingsOverlay .voice-card:has(.voice-select.is-picked) { border-color: var(--accent-fg); background: var(--accent-soft); }
+#settingsOverlay .voice-play { width: 32px; height: 32px; border-width: 1px; background: var(--control-bg); }
+#settingsOverlay .voice-none { border-width: 1px; border-radius: var(--radius-sm); }
+
+/* family & classes */
+#settingsOverlay .settings-access-row { padding-top: 12px; }
+#settingsOverlay .settings-access-link {
+  border-radius: var(--radius-sm);
+  background-color: var(--bg);
+  padding: 12px 16px;
+}
+#settingsOverlay .settings-access-link:hover { border-color: var(--accent-fg); background-color: var(--bg); }
+#settingsOverlay .settings-access-link strong { font-weight: 600; color: var(--accent-fg); }
+#settingsOverlay .settings-access-link small { font-size: 13px; color: var(--text-dim); }
+
+/* danger zone: a red outline around calm text, the action on the right */
+#settingsOverlay #accountRows > .account-danger {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 24px;
+  row-gap: 4px;
+  margin: 24px 0 40px;
+  padding: 16px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: none;
+}
+#settingsOverlay .account-danger > span:first-child { grid-column: 1; grid-row: 1; color: var(--text); font-weight: 600; }
+#settingsOverlay .account-danger > .settings-note { grid-column: 1; grid-row: 2; margin: 0; color: var(--text-dim); opacity: 1; }
+#settingsOverlay .account-danger > #accountDeleteBtn { grid-column: 2; grid-row: 1 / span 2; }
+#settingsOverlay .account-danger > #accountDeleteForm,
+#settingsOverlay .account-danger > #accountDeleteMsg { grid-column: 1 / -1; margin-top: 12px; }
+#settingsOverlay .btn-danger-outline {
+  min-height: 32px;
+  padding: 5px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--danger);
+  background: var(--control-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+#settingsOverlay .btn-danger-outline:hover { color: var(--on-danger); background: var(--danger-strong); border-color: var(--danger-strong); }
+#settingsOverlay .btn-danger {
+  min-height: 32px;
+  padding: 5px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+}
+
+/* a phone is one column: label, its note, then the control at full width */
+@media (max-width: 560px) {
+  #settingsOverlay .settings-row:not(.settings-row-stack),
+  #settingsOverlay .settings-row-stack:has(> .theme-switch),
+  #settingsOverlay .settings-group > .memory-actions,
+  #settingsOverlay #accountRows > .account-danger { grid-template-columns: minmax(0, 1fr); row-gap: 10px; }
+  #settingsOverlay .settings-row:not(.settings-row-stack) > .settings-note { grid-row: auto; }
+  #settingsOverlay .settings-row:not(.settings-row-stack) > .settings-control,
+  #settingsOverlay .settings-row:not(.settings-row-stack) > :first-child + button,
+  #settingsOverlay .settings-row:not(.settings-row-stack):has(> .settings-note) > .settings-control,
+  #settingsOverlay .settings-row:not(.settings-row-stack):has(> .settings-note) > :first-child + button,
+  #settingsOverlay .settings-row-stack:has(> .theme-switch) > .theme-switch,
+  #settingsOverlay .memory-actions button,
+  #settingsOverlay .account-danger > #accountDeleteBtn { grid-column: 1; grid-row: auto; justify-self: stretch; }
+  #settingsOverlay .theme-switch { display: flex; }
+  #settingsOverlay .theme-switch-option { flex: 1; }
+  #settingsOverlay .settings-group > .settings-row,
+  #settingsOverlay #accountRows > .settings-row { padding: 14px 0; }
+  #settingsOverlay #accountRows > .account-danger { padding: 14px; }
+  #settingsOverlay .memory-note-input { margin-left: 0; width: 100%; }
+}

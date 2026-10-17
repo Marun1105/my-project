@@ -11,10 +11,17 @@
 # `server.client.messages.create` (an instance attribute) still wins over this
 # class-level default, so existing stubs keep working.
 import os
+import hashlib
 
 os.environ["ANTHROPIC_API_KEY"] = "sk-test-never-real"
 
 import pytest  # noqa: E402
+
+
+def phone_for_test_account(email: str) -> str:
+    """Give every test account a stable, distinct phone for required-SMS flows."""
+    number = int.from_bytes(hashlib.sha256(email.lower().encode()).digest()[:8], "big") % 10_000_000_000
+    return f"+1{number:010d}"
 
 
 class UnstubbedAnthropicCall(RuntimeError):

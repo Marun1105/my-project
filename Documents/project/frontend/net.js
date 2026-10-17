@@ -61,8 +61,8 @@ const Net = (() => {
   }
 
   // Чака сървъра да се вдигне. Връща true, ако е отговорил в рамките на бюджета.
-  async function _waitForWake() {
-    _showBanner();
+  async function _waitForWake(loading) {
+    if (loading) loading.update('net.waking');
     const deadline = Date.now() + WAKE_BUDGET_MS;
     try {
       while (Date.now() < deadline) {
@@ -71,25 +71,8 @@ const Net = (() => {
       }
       return false;
     } finally {
-      _hideBanner();
+      if (loading) loading.update('loading.generic');
     }
-  }
-
-  let _banner = null;
-
-  function _showBanner() {
-    if (!_banner) {
-      _banner = document.createElement('div');
-      _banner.className = 'wake-banner';
-      _banner.setAttribute('role', 'status');
-      document.body.appendChild(_banner);
-    }
-    _banner.textContent = window.t ? window.t('net.waking') : 'Сървърът се събужда…';
-    _banner.classList.remove('hidden');
-  }
-
-  function _hideBanner() {
-    if (_banner) _banner.classList.add('hidden');
   }
 
   // Същият подпис като fetch, с една добавка: options.timeout казва колко дълго тази
@@ -98,28 +81,38 @@ const Net = (() => {
   // минути. Затова срокът се задава от викащия, а не е една стойност за всички.
   // Ключът се маха, преди да стигне до fetch — той не го разбира.
   async function request(url, options = {}) {
-    const { timeout = ATTEMPT_TIMEOUT_MS, ...init } = options;
+    const {
+      timeout = ATTEMPT_TIMEOUT_MS,
+      loadingKey = 'loading.generic',
+      loadingVars = null,
+      ...init
+    } = options;
     // Устройството само знае, че няма мрежа. Без тази проверка заявката влизаше
     // в пътя "сървърът спи" и чакаше цяла минута, за да каже накрая същото,
     // което браузърът е знаел от първата секунда.
     if (navigator.onLine === false) {
       throw new Error(window.t ? window.t('net.offlineShort') : 'No internet connection.');
     }
-    let res;
+    const loading = window.Loading ? window.Loading.begin(loadingKey, loadingVars) : null;
     try {
-      res = await _fetch(url, init, timeout);
-    } catch (err) {
-      // Мрежова грешка: повтаряме само ако сървърът наистина е бил долу.
-      if (await _isAwake()) throw err;
-      if (!(await _waitForWake())) throw err;
-      return _fetch(url, init, timeout);
-    }
+      let res;
+      try {
+        res = await _fetch(url, init, timeout);
+      } catch (err) {
+        // Мрежова грешка: повтаряме само ако сървърът наистина е бил долу.
+        if (await _isAwake()) throw err;
+        if (!(await _waitForWake(loading))) throw err;
+        return await _fetch(url, init, timeout);
+      }
 
-    if (COLD_START_STATUSES.includes(res.status)) {
-      // Приложението не е видяло заявката — безопасно е да я пратим пак.
-      if (await _waitForWake()) return _fetch(url, init, timeout);
+      if (COLD_START_STATUSES.includes(res.status)) {
+        // Приложението не е видяло заявката — безопасно е да я пратим пак.
+        if (await _waitForWake(loading)) return await _fetch(url, init, timeout);
+      }
+      return res;
+    } finally {
+      if (loading) loading.end();
     }
-    return res;
   }
 
   // Едно пращане, натиснато два пъти, прави две еднакви задачи. Докато заявката

@@ -1,6 +1,5 @@
-/* subjects.css — лентата с предмети (филтър на Маршрута).
-   Ползва само токените от style.css :root — никакъв твърдо зададен цвят,
-   лентата е строго сива, без изключения (AI градиентът не важи тук). */
+/* subjects.css — the Route subject filter. It uses shared surface tokens and
+   the violet accent for selected and focused chips. */
 
 /* In the Route, above the list — not pinned to the window. Pinned, it covered
    the last task on a phone and cut its own chips off on a monitor. The chips
@@ -51,9 +50,7 @@
 .subject-chip:active { transform: scale(0.97); }
 .subject-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* активно състояние — разчита само на плътност/контраст, без цвят:
-   плътен --accent фон (бял на тъмна тема, почти черен на светла) плюс
-   удебелен текст, така разликата се вижда и без цветоусещане */
+/* A filled violet surface and stronger type make the selected state clear. */
 .subject-chip.active {
   background: var(--accent);
   border-color: var(--accent);
@@ -65,4 +62,3 @@
   .subject-chip { transition: none; }
   .subject-chip:active { transform: none; }
 }
-

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Climby — privacy policy</title>
 <meta name="description" content="What Climby collects, what it never keeps, who else touches the data, and how to have it deleted. In plain words.">
+<meta name="theme-color" content="#0b0911">
 <link rel="icon" href="climby.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +19,7 @@
 <main class="doc">
   <div class="wrap prose">
     <h1>Privacy policy</h1>
-    <p class="date">Last updated 21 September 2026</p>
+    <p class="date">Last updated 10 October 2026</p>
 
     <p>Climby is a homework tutor for students in grades 1 to 12. It is made by one person, Martin Hristov, in Bulgaria. This page says what the app collects, what it deliberately does not keep, who else handles the data on the way, and how to have it removed. It is written to be read, not skimmed for the exit.</p>
 
@@ -27,17 +28,17 @@
       <li>Photos you send to the tutor are read once and discarded. They are not stored.</li>
       <li>What is stored: your account, your tasks, the text of your questions and the tutor's answers, and how long you studied.</li>
       <li>Parents and teachers who are linked to a student see numbers only — never the text of a task or a question.</li>
-      <li>The study camera never sends an image anywhere. It runs on your device and is off unless you turn it on.</li>
+      <li>The study camera never sends an image anywhere. It runs on your device and is off unless you turn it on. Starting a Focus session requires a brief face check; its temporary reference stays in memory only for that session.</li>
       <li>You can download everything, or delete the account and everything in it, from Settings — immediately, no email needed.</li>
     </ul>
 
     <h2>What we collect, and why</h2>
 
-    <p><strong>Account.</strong> A display name, an email address, and a password (stored as a hash, never in the clear). Optionally a username and a phone number, if you choose to add them. If you sign in with Google, we receive your Google email and name and nothing else; we do not see your Google password.</p>
+    <p><strong>Account.</strong> A display name, an email address, and a password (stored as a one-way hash, never in the clear). A username is optional. New password-based accounts must provide and verify a phone number by SMS as well as verify their email. Existing accounts without a phone can continue to sign in. If you sign in with Google, we receive your Google email and name and nothing else; we do not see your Google password.</p>
 
     <p><strong>Questions and answers.</strong> When you ask the tutor something — by photo or in the chat — the text of your question and of the answer is saved to your history so you can look back at it. The photo itself is not saved (see below).</p>
 
-    <p><strong>What the chat can see.</strong> When you use the chat while signed in, your pending tasks and your last few questions are sent along with your message, so the tutor can answer "what should I start with?" or refer to something you asked before. They go to the AI provider only to answer that message and are not stored there. The chat says this on its first screen; a guest's chat sends nothing of the kind.</p>
+    <p><strong>ClimbAI memory.</strong> In Settings, a signed-in student can choose whether chat uses their profile grade, unfinished tasks, a short summary of up to seven recent focus sessions, a few earlier questions, and/or a note they write. Every category starts off. The city in a profile is never included automatically, and ClimbAI does not infer personality or location. The note and category choices are stored in this browser on this device, not in the Climby account. If selected, the relevant context is sent with the chat request through Climby to Anthropic to answer that message; categories turned off are not included. The note is not saved as a separate server memory, but question and answer history continues to be saved as described above. Turns in the current chat are sent for continuity. A guest cannot use account memory, though their current chat still works.</p>
 
     <p><strong>Tasks.</strong> What you type into the Route: a task, a subject, a deadline, and whether it's done.</p>
 
@@ -55,6 +56,8 @@
 
     <p><strong>Camera frames from the study timer.</strong> The Ascent timer can, if you switch it on, check whether someone is at the desk. That check happens entirely in the app on your device. No frame is uploaded, saved, or seen by anyone. The camera is off by default.</p>
 
+    <p><strong>Required face check for Focus.</strong> Before a Focus session starts, Climby compares a few face descriptors on your device and keeps a temporary reference in memory only for that session. The check also pauses the session if it can no longer match the face, and requires a match before resuming. The reference is erased when the session ends; it is never written to storage or sent to Climby or an AI provider. This is a continuity check, not liveness detection or secure identity authentication. The face-processing library and model are downloaded from jsDelivr; as with any web request, jsDelivr sees your IP address and request metadata, but not camera frames or face descriptors.</p>
+
     <p><strong>What parents and teachers see.</strong> A linked parent or teacher sees how many tasks you finished, how many are pending or overdue, how many minutes you studied this week, and how many days in a row. They never see the text of a task, a question, or an answer. This is a design decision, not a setting: a student who knows every question is being read stops asking honestly, and asking is the point.</p>
 
     <h2>Who else handles the data</h2>
@@ -65,9 +68,10 @@
       <li><strong>Render</strong> — hosts the server that runs Climby.</li>
       <li><strong>Neon</strong> — hosts the database where your account, tasks, history and sessions are stored.</li>
       <li><strong>Resend</strong> — sends the verification and password-reset emails. It sees your email address and the message.</li>
-      <li><strong>Twilio</strong> — sends a verification text if you add a phone number. It sees the number and the code.</li>
+      <li><strong>Twilio</strong> — sends the SMS verification text required for new password-based accounts. It sees the number and the code.</li>
       <li><strong>Google</strong> — only if you choose to sign in with Google.</li>
       <li><strong>GitHub</strong> — hosts the app downloads and this page.</li>
+      <li><strong>jsDelivr</strong> — delivers the face-processing library and recognition model. It receives the download request and your IP address, but not camera frames or face descriptors.</li>
     </ul>
     <p>We do not sell data, show advertising, or share data with anyone for marketing. There is no analytics or tracking in the app.</p>
 
@@ -85,7 +89,7 @@
     <p>If you are in the European Union you also have the right to complain to your data protection authority; in Bulgaria that is the Commission for Personal Data Protection (КЗЛД).</p>
 
     <h2>Security</h2>
-    <p>Connections to the server are encrypted. Passwords are hashed. A phone linked to the app receives a key that can do exactly two things — upload a photo and ask whether it is still linked — and nothing else. A lost phone can send you a photo; it cannot read anything.</p>
+    <p>When using hosted Climby, connections to the server use HTTPS; remote PostgreSQL database connections use TLS. Passwords are hashed. Account data is not end-to-end encrypted, and the app does not add application-level encryption at rest; stored-data protection depends on the database provider. A phone linked to the app receives a key that can do exactly two things — upload a photo and ask whether it is still linked — and nothing else. A lost phone can send you a photo; it cannot read anything.</p>
 
     <h2>Changes</h2>
     <p>If this policy changes in a way that matters, the date at the top changes. The full history of this page is public in the <a href="https://github.com/Marun1105/my-project">source repository</a>.</p>

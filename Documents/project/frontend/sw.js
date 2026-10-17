@@ -17,11 +17,11 @@
 // ТРЯБВА да се вдигне — инак хората продължават да виждат старата, а на диска
 // стои новата. Точно това се случи при смяната на знака на ClimbAI: файлът беше
 // нов, екранът показваше стария и нищо не подсказваше защо.
-const CACHE = 'climby-shell-v31';
+const CACHE = 'climby-shell-v38';
 
 // Файлове, чието съдържание не се променя под същото име. Само за тях кешът изпреварва
 // мрежата; всичко останало от нашия произход тръгва по мрежата.
-const IMMUTABLE = /\.(?:woff2?|ttf|otf|eot|png|jpe?g|gif|svg|webp|ico)$/i;
+const IMMUTABLE = /\.(?:woff2?|ttf|otf|eot|png|jpe?g|gif|svg|webp|ico|webm)$/i;
 
 const SHELL = [
   './',
@@ -30,8 +30,11 @@ const SHELL = [
   './config.js',
   './prefs.js',
   './i18n.js',
+  './memory.js',
   './toast.js',
   './net.js',
+  './loading.js',
+  './ai-activity.js',
   './offline.js',
   './classes.js',
   './subjects.js',
@@ -58,6 +61,7 @@ const SHELL = [
   './vendor/qrcode.min.js',
   './papers.js',
   './suggest.js',
+  './smart.js',
   './chat.js',
   './voices.js',
   './speak.js',
@@ -68,6 +72,7 @@ const SHELL = [
   './checklist.js',
   './ai-planner.js',
   './history.js',
+  './face-verification.js',
   './focus.js',
   './sessions.js',
   './mirror.js',
@@ -82,6 +87,10 @@ const SHELL = [
   './logo.png',
   './logo-icon.png',
   './climbai-mark.png',
+  './media/climbai-thinking.webm',
+  './media/climbai-thinking-poster.jpg',
+  './media/climbai-reading.webm',
+  './media/climbai-reading-poster.jpg',
   './logo-favicon.png',
   './icon-192.png',
   './icon-512.png',
@@ -115,6 +124,10 @@ function offlineResponse() {
 self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
+  // A <video> asks for its file in pieces (Range). The cache can only hand back
+  // the whole file, and a piece cannot be cached (cache.put refuses a 206), so
+  // these requests go straight to the network or to app:// in the desktop app.
+  if (req.headers.has('range')) return;
 
   const url = new URL(req.url);
   // Само нашите собствени файлове се кешират — заявките към бекенда и към CDN-ите

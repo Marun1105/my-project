@@ -26,10 +26,15 @@ PW = "testpass123"
 
 def _login(email, role="student"):
     rate_limit._hits.clear()
-    client.post("/auth/register", json={"display_name": email.split("@")[0], "email": email, "password": PW, "role": role})
+    client.post("/auth/register", json={
+        "display_name": email.split("@")[0], "email": email,
+        "phone": "+1555" + str(sum(map(ord, email)) % 10_000_000).zfill(7),
+        "password": PW, "role": role,
+    })
     db = SessionLocal()
     user = db.query(User).filter(User.email == email).first()
     user.is_email_verified = True
+    user.is_phone_verified = True
     if role != "student":
         user.role = role
     db.commit()
@@ -171,7 +176,10 @@ def test_deletion_removes_everything_and_the_session_with_it():
     assert client.get("/auth/me", headers=h).status_code == 401
     # the address is free again
     rate_limit._hits.clear()
-    assert client.post("/auth/register", json={"display_name": "Again", "email": "del2@example.com", "password": PW}).status_code == 200
+    assert client.post("/auth/register", json={
+        "display_name": "Again", "email": "del2@example.com",
+        "phone": "+15550000009", "password": PW,
+    }).status_code == 200
 
 
 def test_deleting_one_side_of_a_link_leaves_the_other_account_whole():

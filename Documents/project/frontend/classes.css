@@ -5,9 +5,8 @@
  * има повече мълчание и по-малко рамки, отколкото другаде в приложението —
  * подредбата носи смисъла, не украсата.
  *
- * Цвят няма никакъв: единственото цветно в Climby е вълната на AI-то, а класът
- * не е AI функция. Всичко идва от токените на style.css, така че светлата тема
- * се получава сама — нито един цвят не е записан направо. */
+ * All surfaces use the shared tokens from style.css, so both themes and the
+ * violet interaction accent stay consistent without local palette overrides. */
 
 /* ---------- списък с класове ---------- */
 

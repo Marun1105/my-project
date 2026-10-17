@@ -82,6 +82,7 @@ const Checklist = (() => {
       const token = Auth.getToken();
       const res = await Net.fetch(BACKEND + '/plan/split', {
         timeout: Net.AI_TIMEOUT_MS,   // an AI answer, not a database read
+        loadingKey: 'loading.ai',
         method: 'POST',
         // the account's own limit, not the shared guest one (see ai-planner.js)
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },

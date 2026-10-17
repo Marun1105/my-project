@@ -18,6 +18,7 @@ os.environ["TRUSTED_PROXY_HOPS"] = "0"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from conftest import phone_for_test_account  # noqa: E402
 import rate_limit  # noqa: E402
 import server  # noqa: E402
 from db import SessionLocal  # noqa: E402
@@ -31,10 +32,14 @@ SOLVED = f"{FENCE}climby-solved\n{{}}\n{FENCE}"
 
 def _login(email):
     rate_limit._hits.clear()
-    client.post("/auth/register", json={"display_name": "A", "email": email, "password": "testpass123"})
+    client.post("/auth/register", json={
+        "display_name": "A", "email": email, "phone": phone_for_test_account(email),
+        "password": "testpass123",
+    })
     db = SessionLocal()
     user = db.query(User).filter(User.email == email).first()
     user.is_email_verified = True
+    user.is_phone_verified = True
     db.commit()
     uid = user.id
     db.close()

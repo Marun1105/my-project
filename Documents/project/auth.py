@@ -19,6 +19,7 @@ from schemas import (
     ForgotPasswordRequest,
     LoginRequest,
     RegisterRequest,
+    RegistrationPhoneVerifyRequest,
     ResendCodeRequest,
     ResetPasswordRequest,
     UserOut,
@@ -151,6 +152,16 @@ def _phone_taken(db: Session, phone: str, except_user_id: Optional[str] = None) 
     if except_user_id:
         q = q.filter(User.id != except_user_id)
     return q.first() is not None
+
+
+def _send_registration_phone_code(user: User, db: Session) -> bool:
+    """Issue an SMS code only after the registration email has been verified."""
+    code = _issue_code(db, user, CodePurpose.verify_phone)
+    try:
+        sms_service.send_verification_sms(user.phone, code)
+    except RuntimeError:
+        return False
+    return True
 
 
 def _issue_code(db: Session, user: User, purpose: CodePurpose) -> str:
@@ -288,6 +299,8 @@ def register(body: RegisterRequest, request: Request, background: BackgroundTask
                         message="Too many sign-up attempts. Please wait a moment and try again.")
     email = normalize_email(body.email)
     phone = normalize_phone(body.phone)
+    if not phone:
+        raise HTTPException(400, "A phone number is required.")
 
     # Регистрацията беше последното място, което казваше на глас кой адрес има
     # профил: 400 "вече има акаунт" за зает, 200 за свободен. Затова всичко
@@ -310,8 +323,8 @@ def register(body: RegisterRequest, request: Request, background: BackgroundTask
         background.add_task(email_service.send_account_exists_email, email)
         return NEUTRAL
 
-    # Потребителското име е по желание, но щом го има — е уникално.
-    if body.username and db.query(User).filter(User.username == body.username).first():
+    # Потребителското име не различава главни и малки букви при вход.
+    if body.username and db.query(User).filter(func.lower(User.username) == body.username.lower()).first():
         raise HTTPException(400, "That username is taken. Please choose another.")
     # Само ПОТВЪРДЕН номер заема мястото си. Иначе достатъчно беше някой да се
     # регистрира с чужд номер, без да го потвърждава, за да остане собственикът
@@ -358,7 +371,7 @@ def register(body: RegisterRequest, request: Request, background: BackgroundTask
     return NEUTRAL
 
 
-@router.post("/verify-email", response_model=AuthResponse)
+@router.post("/verify-email")
 def verify_email(body: VerifyEmailRequest, request: Request, db: Session = Depends(get_db)):
     rate_limit.enforce(request, "verify-email", max_calls=10, window_seconds=3600,
                         message="Too many attempts. Please wait a moment and try again.")
@@ -380,7 +393,52 @@ def verify_email(body: VerifyEmailRequest, request: Request, db: Session = Depen
 
     user.is_email_verified = True
     db.commit()
+    if user.phone:
+        sent = _send_registration_phone_code(user, db)
+        return {
+            "status": "phone_verification_required",
+            "sms_sent": sent,
+        }
     return AuthResponse(token=security.create_access_token(user.id, user.token_version), user=UserOut.model_validate(user))
+
+
+@router.post("/verify-registration-phone", response_model=AuthResponse)
+def verify_registration_phone(
+    body: RegistrationPhoneVerifyRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    rate_limit.enforce(request, "verify-registration-phone", max_calls=10, window_seconds=3600,
+                       message="Too many attempts. Please wait a moment and try again.")
+    user = db.query(User).filter(_email_matches(body.email)).first()
+    if not user or not user.is_email_verified or not user.phone or user.is_phone_verified:
+        security.verify_code(body.code, security.DUMMY_PASSWORD_HASH)
+        raise HTTPException(400, "That code is incorrect or has expired. Request a new SMS code and try again.")
+    if not _consume_code(db, user, CodePurpose.verify_phone, body.code):
+        raise HTTPException(400, "That code is incorrect or has expired. Request a new SMS code and try again.")
+    if _phone_taken(db, user.phone, except_user_id=user.id):
+        raise HTTPException(400, "That phone number is already verified on another account.")
+    user.is_phone_verified = True
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(400, "That phone number is already verified on another account.")
+    return AuthResponse(
+        token=security.create_access_token(user.id, user.token_version),
+        user=UserOut.model_validate(user),
+    )
+
+
+@router.post("/resend-registration-phone")
+def resend_registration_phone(body: ResendCodeRequest, request: Request, db: Session = Depends(get_db)):
+    rate_limit.enforce(request, "resend-registration-phone", max_calls=5, window_seconds=3600,
+                       message="Too many attempts. Please wait a moment and try again.")
+    user = db.query(User).filter(_email_matches(body.email)).first()
+    sent = False
+    if user and user.is_email_verified and user.phone and not user.is_phone_verified:
+        sent = _send_registration_phone_code(user, db)
+    return {"status": "ok", "sms_sent": sent}
 
 
 @router.post("/resend-code")
@@ -406,18 +464,24 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     # безброй: без лимит паролата на всеки акаунт е въпрос на време и скрипт.
     rate_limit.enforce(request, "login", max_calls=20, window_seconds=900,
                         message="Too many sign-in attempts. Please wait a moment and try again.")
-    user = db.query(User).filter(_email_matches(body.email)).first()
+    identifier = body.identifier.strip()
+    if "@" in identifier:
+        user = db.query(User).filter(_email_matches(identifier)).first()
+    else:
+        user = db.query(User).filter(func.lower(User.username) == identifier.lower()).first()
     # Сравнението се прави ВИНАГИ, дори когато акаунт няма. Иначе непознатият
     # адрес се връщаше за няколко милисекунди, а познатият — за четвърт секунда,
     # и всеки можеше да провери кой имейл има профил, колкото и общо да е
     # написано съобщението.
     if not user:
         security.verify_password(body.password, security.DUMMY_PASSWORD_HASH)
-        raise HTTPException(401, "Incorrect email or password.")
+        raise HTTPException(401, "Incorrect username or email, or password.")
     if not security.verify_password(body.password, user.password_hash):
-        raise HTTPException(401, "Incorrect email or password.")
+        raise HTTPException(401, "Incorrect username or email, or password.")
     if not user.is_email_verified:
         raise HTTPException(403, "Please verify your email address before signing in.")
+    if user.phone and not user.is_phone_verified:
+        raise HTTPException(403, "Please verify your phone number before signing in.")
     return AuthResponse(token=security.create_access_token(user.id, user.token_version), user=UserOut.model_validate(user))
 
 

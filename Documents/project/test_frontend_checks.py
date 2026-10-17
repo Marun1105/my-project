@@ -5,10 +5,12 @@
 # Пускане:  python -m pytest test_frontend_checks.py -q
 import os
 import re
+from pathlib import Path
 
 import pytest
 
 FRONTEND = os.path.join(os.path.dirname(__file__), "frontend")
+REPOSITORY = Path(__file__).resolve().parent
 
 
 def _read(name):
@@ -46,11 +48,62 @@ def test_both_languages_define_the_same_keys(i18n):
     assert bg == en, f"само в bg: {sorted(bg - en)} | само в en: {sorted(en - bg)}"
 
 
+def test_sidebar_labels_use_plain_language_in_both_locales(i18n):
+    labels = {
+        "bg": {
+            "nav.tutor": "Попитай ClimbAI",
+            "nav.checklist": "Домашни задачи",
+            "nav.history": "Завършени задачи",
+            "nav.focus": "Таймер за учене",
+            "nav.family": "Семеен напредък",
+            "nav.classes": "Класове",
+        },
+        "en": {
+            "nav.tutor": "Ask ClimbAI",
+            "nav.checklist": "Homework",
+            "nav.history": "Completed work",
+            "nav.focus": "Study timer",
+            "nav.family": "Family progress",
+            "nav.classes": "Classes",
+        },
+    }
+    for lang, expected in labels.items():
+        start = i18n.index(f"{lang}: {{")
+        end = i18n.index("en: {" if lang == "bg" else "\n  };", start + 1)
+        block = i18n[start:end]
+        for key, value in expected.items():
+            assert f"'{key}': '{value}'" in block
+
+
 def test_every_key_used_in_html_exists(html, i18n):
     bg = _dict_keys(i18n, "bg")
     used = set(re.findall(r'data-i18n(?:-placeholder|-aria)?="([^"]+)"', html))
     missing = sorted(used - bg)
     assert not missing, f"липсват преводи за: {missing}"
+
+
+def test_memory_is_opt_in_disclosed_and_managed_in_settings(html, i18n):
+    memory = _read("memory.js")
+    assert 'checklist: false' in memory
+    assert 'learning_level: false' in memory
+    assert 'focus_sessions: false' in memory
+    assert 'previous_questions: false' in memory
+    assert 'personal_enabled: false' in memory
+    for control_id in ("memoryGrade", "memoryChecklist", "memoryFocus", "memoryQuestions", "memoryPersonal"):
+        assert re.search(rf'<input id="{control_id}" type="checkbox">', html)
+    assert 'id="memoryClear"' in html
+    assert 'id="chatMemoryManage"' in html
+    assert 'Selected context is sent with ClimbAI questions' in i18n
+    assert 'memory.js' in _read("sw.js")
+
+
+def test_chat_sends_only_explicit_memory_selection():
+    chat = _read("chat.js")
+    assert "context: false" in chat
+    assert "memory: token && window.Memory ? Memory.request() : null" in chat
+    assert "climby:memory-changed" in chat
+    assert "selected && selected.checklist" in chat
+    assert "memory: token && window.Memory ? Memory.request() : null" in _read("tutor.js")
 
 
 # HTML-ските ключове се проверяват по-горе, но модулите викат t('...') и от кода —
@@ -756,6 +809,7 @@ _MAP_MUST_NAME = [
     "settings.reading", "settings.secTutor", "settings.tutorMode", "settings.autoread",
     "settings.voice", "settings.secApp", "settings.tour", "settings.version",
     "settings.checkUpdates", "settings.devicesTitle", "settings.secAccount",
+    "settings.secConnections", "settings.familyLink", "settings.classesLink",
     "settings.profileTitle", "account.passwordTitle", "account.exportTitle",
     "account.deleteTitle",
 ]
@@ -839,16 +893,13 @@ def test_a_chosen_preference_is_visible_as_well_as_announced():
 
 
 def test_the_quiz_marks_the_answer_you_picked():
-    """--accent is #ffffff in the dark theme, so `color: #fff` on it made the
-    picked grade a blank white tile."""
+    """The picked grade uses the theme's paired foreground and accent tokens."""
     css = _read("style.css")
     assert ".quiz-grade.is-picked, #quizHeard .chat-starter.is-picked { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }" in css
 
 
 def test_no_accent_surface_hardcodes_its_text_colour():
-    """The theme flips --accent between near-black and white, so any rule that
-    writes a literal light colour on an accent background is invisible in one
-    theme or the other."""
+    """Theme-specific accent surfaces must not use a fixed foreground color."""
     css = _read("style.css")
     lines = css.split("\n")
     for i, line in enumerate(lines):
@@ -867,6 +918,29 @@ def test_no_accent_surface_hardcodes_its_text_colour():
                 f"{lines[start].split('{')[0].strip()} writes {c} on the accent — "
                 f"use var(--on-accent), which flips with the theme"
             )
+
+
+def test_github_style_theme_defaults_dark_and_keeps_light_mode():
+    css = _read("style.css")
+    theme = _read("theme.js")
+    html = _read("index.html")
+    assert "return MODES.includes(saved) ? saved : 'dark';" in theme
+    assert "--bg: #0d1117;" in css and "--accent: #8957e5;" in css
+    assert ':root[data-theme="light"]' in css and "--accent: #8250df;" in css
+    assert 'data-theme-mode="light"' in html and 'data-theme-mode="dark"' in html
+    assert "themeColor.content = theme === 'light' ? '#ffffff' : '#0d1117';" in theme
+
+
+def test_brand_assets_are_used_on_app_and_public_surfaces():
+    html = _read("index.html")
+    with open(os.path.join(os.path.dirname(__file__), "site", "index.html"), encoding="utf-8") as f:
+        site = f.read()
+    assert 'src="logo-icon.png"' in html and 'src="logo.png"' in html
+    assert 'src="climby.png"' in site and 'content="climby-dark.jpg"' in site
+    assert os.path.isfile(os.path.join(os.path.dirname(__file__), "site", "climby-dark.jpg"))
+    assert os.path.isfile(os.path.join(os.path.dirname(__file__), "desktop", "build", "icon.ico"))
+    for name in ("logo-icon.png", "logo.png", "logo-favicon.png", "icon-192.png", "icon-512.png"):
+        assert os.path.isfile(os.path.join(FRONTEND, name)), f"missing branded asset {name}"
 
 
 def test_every_password_field_gets_its_own_wrapper():
@@ -919,6 +993,34 @@ def test_settings_fills_the_screen():
     # and the control sits beside its label, not under it
     assert "#settingsOverlay .settings-row > .settings-control" in css
     assert "grid-column: 2; grid-row: 1;" in css
+
+
+def test_family_and_classes_are_reached_from_settings_with_role_visibility():
+    html = _read("index.html")
+    sidebar = html[html.index('<nav class="side-nav">'):html.index("</nav>", html.index('<nav class="side-nav">'))]
+    assert 'data-view="family"' not in sidebar
+    assert 'data-view="classes"' not in sidebar
+    assert 'data-settings-view="family"' in html and 'data-settings-view="classes"' in html
+    assert 'data-settings-jump="setConnections"' in html
+    assert 'id="setConnections"' in html
+    assert 'data-settings-role="parent student"' in html
+    assert 'data-settings-role="teacher student"' in html
+    settings = _read("settings.js")
+    assert "updateSettingsAccess" in settings and "Nav.activate(btn.dataset.settingsView)" in settings
+
+
+def test_theme_selector_only_appears_in_settings():
+    html = _read("index.html")
+    assert html.count('data-theme-mode=') == 3
+    assert html.index('data-theme-mode="auto"') > html.index('id="settingsOverlay"')
+
+
+def test_voice_picker_uses_separate_keyboard_accessible_preview_and_choice_controls():
+    js = _read("voices.js")
+    assert "setAttribute('role', 'radiogroup')" in js
+    assert "setAttribute('role', 'radio')" in js
+    assert "ArrowDown" in js and "ArrowRight" in js
+    assert "voice.pickerHint" in js or "settings.voice" in js
 
 
 def test_the_motion_setting_is_gone_everywhere():
@@ -1100,7 +1202,8 @@ def test_the_camera_is_released_when_the_screen_is_not_showing():
     js = _read("focus.js")
     body = js[js.index("function suspendCamera()"):js.index("async function resumeCamera()")]
     assert "dropMedia(stream)" in body and "stopTracking()" in body
-    assert "sessionStart" not in body, "the clock must keep running"
+    assert "sessionStart = null" not in body, "the clock must keep running"
+    assert "sessionStart" in body, "identity verification must pause when its camera is suspended"
 
 
 def test_leaving_while_the_camera_is_still_opening_cancels_it():
@@ -1122,6 +1225,89 @@ def test_the_camera_is_asked_for_the_same_thing_in_both_places():
     js = _read("focus.js")
     assert js.count("getUserMedia(CAMERA)") == 2
     assert "const CAMERA = {" in js
+
+
+def test_face_verification_is_required_before_each_focus_session():
+    html = _read("index.html")
+    js = _read("focus.js")
+    translations = _read("i18n.js")
+    privacy = _read(os.path.join("..", "site", "privacy.html"))
+    service_worker = _read("sw.js")
+
+    assert 'class="focus-verify-notice"' in html
+    assert 'id="focusVerifyToggle"' not in html
+    assert "Изцяло по избор" not in html
+    assert "same person continues the session" not in html
+    assert 'id="focusStatus"' in html
+    assert 'id="focusVerifyPaused" class="focus-verify-paused hidden" role="alert"' in html
+    assert html.index('src="face-verification.js"') < html.index('src="focus.js"')
+    assert "'./face-verification.js'" in service_worker
+    assert "VERIFY_KEY" not in js
+    assert "await enrollIdentity(video, attempt)" in js
+    assert js.index("await enrollIdentity(video, attempt)") < js.index("sessionStart = Date.now();")
+    assert "if (!recognitionReady)" in js
+    assert "Optional face matching" not in privacy
+    assert "If you want, turn on the check" not in translations
+    assert "it's entirely optional" not in translations
+    assert "verifyAndResume" in js and "checkIdentity(descriptor)" in js
+    assert "referenceDescriptor.fill(0)" in js
+    assert "FaceVerification.createMonitor(referenceDescriptor" in js
+    assert "temporary reference in memory only for that session" in privacy
+    assert "not liveness detection or secure identity authentication" in privacy
+    for key in ("focus.verifyCancelled", "focus.verifyCameraNeeded", "focus.verifyPausedStatus"):
+        assert translations.count(f"'{key}'") == 2, f"{key} must exist in both languages"
+
+
+def test_desktop_update_check_has_visible_progress_and_results():
+    html = _read("index.html")
+    settings = _read("settings.js")
+    assert 'id="settingsUpdateStatus"' in html and 'role="status" aria-live="polite"' in html
+    assert "bridge.onUpdateStatus(receiveUpdateStatus)" in settings
+    assert "bridge.checkForUpdates().then(result =>" in settings
+    assert "settings.updateChecking" in settings and "settings.updateError" in settings
+
+
+def test_loading_stays_in_context_and_backend_wake_uses_a_compact_notice():
+    html = _read("index.html")
+    net = _read("net.js")
+    loading = _read("loading.js")
+    service_worker = _read("sw.js")
+    assert 'id="appLoading"' not in html
+    assert 'id="netWakeStatus"' in html and 'aria-live="polite"' in html
+    assert html.index('src="loading.js"') < html.index('src="net.js"')
+    assert "'./loading.js'" in service_worker
+    assert "window.Loading.begin(loadingKey, loadingVars)" in net
+    assert "loading.end()" in net
+    assert "SHOW_DELAY_MS" in loading and "MIN_VISIBLE_MS" in loading
+    assert loading.count("climby:lang-changed") == 1
+    assert "nextKey === 'net.waking'" in loading
+    assert ".net-wake-status" in _read("style.css")
+
+
+def test_climbai_video_loops_are_inline_and_respect_reduced_motion():
+    html = _read("index.html")
+    chat = _read("chat.js")
+    tutor = _read("tutor.js")
+    activity = _read("ai-activity.js")
+    css = _read("style.css")
+    service_worker = _read("sw.js")
+    assert html.index('src="ai-activity.js"') < html.index('src="chat.js"')
+    assert "AIActivity.create('thinking'" in chat
+    assert "AIActivity.create('thinking'" in tutor
+    assert "AIActivity.create('reading'" in tutor
+    assert "video.loop = true" in activity and "video.muted = true" in activity
+    assert "prefers-reduced-motion: reduce" in activity
+    assert "mix-blend-mode: screen" in css
+    assert "@media (prefers-reduced-motion: reduce)" in css
+    assert "'./media/climbai-thinking.webm'" in service_worker
+    assert "'./media/climbai-reading.webm'" in service_worker
+    for asset in (
+        "media/climbai-thinking.webm",
+        "media/climbai-thinking-poster.jpg",
+        "media/climbai-reading.webm",
+        "media/climbai-reading-poster.jpg",
+    ):
+        assert (REPOSITORY / "frontend" / asset).is_file(), f"missing ClimbAI activity asset: {asset}"
 
 
 def test_a_running_session_can_be_stopped_from_anywhere():

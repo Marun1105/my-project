@@ -39,8 +39,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Climby — Climb your way to success</title>
 <meta name="description" content="Climby помага на ученици 1–12 клас да разберат уроците си, да си организират домашните и да се изкачат до върха, стъпка по стъпка.">
-<meta name="theme-color" content="#060606" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#f6f6f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1117">
 <link rel="icon" href="logo-favicon.png">
 <link rel="apple-touch-icon" href="logo-favicon.png">
 <link rel="manifest" href="manifest.json">
@@ -53,6 +52,11 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
 </head>
 <body>
+
+<div id="netWakeStatus" class="net-wake-status hidden" role="status" aria-live="polite" aria-atomic="true">
+  <span class="net-wake-indicator" aria-hidden="true"></span>
+  <span id="netWakeMessage" data-i18n="net.waking">The server is waking up — hang on…</span>
+</div>
 
 <div id="entryGate" class="entry-gate">
   <button id="entryGateClose" class="entry-gate-close" type="button" data-i18n-aria="entry.skipAria" aria-label="Продължи без вход">✕</button>
@@ -68,12 +72,13 @@
     <div id="authIntro" class="explainer">
       <strong data-i18n="auth.why">Защо трябва да влезеш:</strong> <span data-i18n="auth.entryWhyBody">за да пазим чеклиста и историята ти в акаунт, видими от всяко устройство.</span>
     </div>
+    <p class="auth-security-note" data-i18n="auth.securityNote">Връзката е защитена с HTTPS, а паролите се пазят като еднопосочни хешове. Данните в акаунта не са криптирани от край до край — Climby трябва да ги обработва, за да работи.</p>
 
     <form novalidate id="loginForm" class="auth-form">
       <div class="field">
         <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
-        <input id="loginEmail" type="email" placeholder=" " autocomplete="email" autofocus>
-        <label for="loginEmail" data-i18n="auth.email">Имейл</label>
+        <input id="loginEmail" type="text" placeholder=" " autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
+        <label for="loginEmail" data-i18n="auth.loginIdentifier">Имейл или потребителско име</label>
       </div>
       <div class="field">
         <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
@@ -116,8 +121,8 @@
       </div>
       <div class="field">
         <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span>
-        <input id="registerPhone" type="tel" placeholder=" " autocomplete="tel" maxlength="32">
-        <label for="registerPhone" data-i18n="auth.phoneLabel">Телефон (по желание)</label>
+        <input id="registerPhone" type="tel" placeholder=" " autocomplete="tel" maxlength="32" required>
+        <label for="registerPhone" data-i18n="auth.phoneLabel">Телефон (задължителен)</label>
       </div>
       <div class="field">
         <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
@@ -157,7 +162,7 @@
     </form>
 
     <form novalidate id="verifyForm" class="auth-form hidden">
-      <div class="explainer" data-i18n="auth.verifyInfo">Изпратихме ти код за потвърждение по имейл. Провери пощата си (и папка спам).</div>
+      <div class="explainer" data-i18n="auth.verifyInfo">Изпратихме ти код за потвърждение по имейл. След това ще потвърдиш и телефона си с SMS.</div>
       <div class="field">
         <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="m9.5 12 2 2 3-3.5"/></svg></span>
         <input id="verifyCode" type="text" inputmode="numeric" placeholder=" " autocomplete="one-time-code">
@@ -165,6 +170,17 @@
       </div>
       <button id="verifyBtn" class="btn-primary" type="submit" data-i18n="auth.verifyBtn">Потвърди</button>
       <p class="auth-switch"><a href="#" id="resendCodeLink" data-i18n="auth.resendCode">Изпрати нов код</a></p>
+    </form>
+
+    <form novalidate id="verifyPhoneForm" class="auth-form hidden">
+      <div class="explainer" data-i18n="auth.verifyPhoneInfo">Имейлът е потвърден. Въведи SMS кода, изпратен на телефона, за да завършиш регистрацията. Използваме го за защита на акаунта, не за реклами.</div>
+      <div class="field">
+        <span class="field-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M10 18h4"/></svg></span>
+        <input id="verifyPhoneCode" type="text" inputmode="numeric" placeholder=" " autocomplete="one-time-code" maxlength="12">
+        <label for="verifyPhoneCode" data-i18n="auth.phoneCodeLabel">SMS код</label>
+      </div>
+      <button id="verifyPhoneBtn" class="btn-primary" type="submit" data-i18n="auth.verifyPhoneBtn">Потвърди телефона и влез</button>
+      <p class="auth-switch"><a href="#" id="resendPhoneCodeLink" data-i18n="auth.resendPhoneCode">Изпрати SMS кода отново</a></p>
     </form>
 
     <div id="roleForm" class="auth-form hidden">
@@ -257,21 +273,19 @@
   <div class="settings-card">
     <button id="settingsClose" class="entry-gate-close settings-close" type="button" data-i18n-aria="settings.closeAria" aria-label="Затвори настройките">✕</button>
     <h2 id="settingsTitle" data-i18n="settings.title">Настройки</h2>
-    <!-- Език и тема са един и същ вид избор: две-три възможности, всички видими
-         наведнъж. Затова изглеждат еднакво. Дотук езикът беше единствената
-         системна контрола в иначе изцяло начертан интерфейс и си личеше. -->
     <div class="settings-body">
-    <!-- Where things are, on a wide screen: the groups by name, one click away.
-         On a phone the list would only push the settings down, so it is hidden. -->
     <nav class="settings-nav" aria-label="Settings sections" data-i18n-aria-label="settings.navAria">
-      <button type="button" class="settings-nav-link" data-settings-jump="setAppearance" data-i18n="settings.secAppearance">Appearance</button>
+      <button type="button" class="settings-nav-link" data-settings-jump="setAppearance" aria-current="location" data-i18n="settings.secAppearance">Appearance</button>
       <button type="button" class="settings-nav-link" data-settings-jump="setTutor" data-i18n="settings.secTutor">ClimbAI</button>
+      <button type="button" class="settings-nav-link" data-settings-jump="setMemory" data-i18n="memory.title">ClimbAI memory</button>
       <button type="button" class="settings-nav-link" data-settings-jump="setApp" data-i18n="settings.secApp">The app</button>
+      <button type="button" class="settings-nav-link" data-settings-jump="setConnections" data-i18n="settings.secConnections">Family & classes</button>
       <button type="button" class="settings-nav-link settings-nav-account" data-settings-jump="accountRows" data-i18n="settings.secAccount">Account</button>
     </nav>
     <div class="settings-main">
     <section class="settings-group" id="setAppearance">
     <h3 class="settings-section" data-i18n="settings.secAppearance">Appearance</h3>
+    <p class="settings-note settings-description" data-i18n="settings.appearanceHint">Choose the language and look that feel right for you.</p>
     <div class="settings-row settings-row-stack">
       <span data-i18n="settings.language">Език</span>
       <div class="theme-switch" role="group" data-i18n-aria-label="settings.language" aria-label="Език">
@@ -331,8 +345,43 @@
     </div>
     <div class="settings-row settings-row-stack" id="voiceRow">
       <span class="settings-label" data-i18n="settings.voice">Voice</span>
+      <p class="settings-note" data-i18n="voice.pickerHint">Choose a voice and preview it before you use it.</p>
       <div id="voicePicker" class="voice-picker"></div>
     </div>
+    </section>
+    <section class="settings-group" id="setMemory">
+      <h3 class="settings-section" data-i18n="memory.title">ClimbAI memory</h3>
+      <p class="settings-note settings-description" data-i18n="memory.intro">Choose what ClimbAI may use across its screens. Everything starts off.</p>
+      <p id="memoryLoginHint" class="settings-note settings-description hidden" data-i18n="memory.loginHint">Sign in to opt in to using your saved app context. Chat still works without memory.</p>
+      <div class="memory-options">
+        <label class="memory-option">
+          <input id="memoryGrade" type="checkbox">
+          <span><strong data-i18n="memory.grade">School grade</strong><small data-i18n="memory.gradeHint">Use the grade in your profile to match explanations to your level. Your profile city is not included.</small></span>
+        </label>
+        <label class="memory-option">
+          <input id="memoryChecklist" type="checkbox">
+          <span><strong data-i18n="memory.checklist">Homework checklist</strong><small data-i18n="memory.checklistHint">Only your unfinished tasks, subjects and due dates.</small></span>
+        </label>
+        <label class="memory-option">
+          <input id="memoryFocus" type="checkbox">
+          <span><strong data-i18n="memory.focus">Focus sessions</strong><small data-i18n="memory.focusHint">A short total of recent time and focus percentage, not camera data.</small></span>
+        </label>
+        <label class="memory-option">
+          <input id="memoryQuestions" type="checkbox">
+          <span><strong data-i18n="memory.questions">Earlier ClimbAI questions</strong><small data-i18n="memory.questionsHint">A few recent questions, not full answer transcripts.</small></span>
+        </label>
+        <label class="memory-option">
+          <input id="memoryPersonal" type="checkbox">
+          <span><strong data-i18n="memory.personal">A note you write</strong><small data-i18n="memory.personalHint">Add learning preferences or details you choose. ClimbAI will not guess your personality or location.</small></span>
+        </label>
+        <textarea id="memoryPersonalNote" class="memory-note-input" maxlength="600" rows="3" disabled data-i18n-placeholder="memory.personalPlaceholder" placeholder="For example: Please use visual examples when explaining fractions."></textarea>
+      </div>
+      <p id="memoryStorageError" class="settings-note memory-storage-error hidden" role="alert" data-i18n="memory.storageError">Your memory choices could not be saved in this browser.</p>
+      <p class="settings-note memory-privacy" data-i18n="memory.privacy">Your choices and note stay on this device. Your profile grade is sent only if you select it; your profile city is never included. Selected context is sent with ClimbAI questions to Climby and its AI provider. Turns in the current conversation are also sent so replies make sense. Categories you turn off are not sent. This does not delete your existing account history.</p>
+      <div class="settings-row memory-actions">
+        <span class="settings-note" data-i18n="memory.controlHint">Change these choices anytime, or clear them now.</span>
+        <button id="memoryClear" class="btn-secondary" type="button" data-i18n="memory.clear">Clear memory choices and note</button>
+      </div>
     </section>
     <section class="settings-group" id="setApp">
     <h3 class="settings-section" data-i18n="settings.secApp">The app</h3>
@@ -344,7 +393,10 @@
          these is hidden, and nobody presses Alt to find a menu. -->
     <div class="settings-row hidden" id="settingsAboutRow">
       <span><span data-i18n="settings.version">Version</span> <strong id="settingsVersion">…</strong></span>
-      <button id="settingsUpdateBtn" class="btn-secondary tour-replay" type="button" data-i18n="settings.checkUpdates">Check for updates</button>
+      <div class="settings-update-control">
+        <span id="settingsUpdateStatus" class="settings-note" role="status" aria-live="polite"></span>
+        <button id="settingsUpdateBtn" class="btn-secondary tour-replay" type="button" data-i18n="settings.checkUpdates">Check for updates</button>
+      </div>
     </div>
     <!-- Свързаните телефони живеят тук, защото откачането е нещо, което се прави
          веднъж и обикновено набързо — при изгубен телефон. -->
@@ -352,7 +404,16 @@
       <span data-i18n="settings.devicesTitle">Свързани телефони</span>
       <div id="settingsDevices" class="device-list"></div>
     </div>
-
+    </section>
+    <section class="settings-group" id="setConnections">
+      <h3 class="settings-section" data-i18n="settings.secConnections">Family & classes</h3>
+      <p class="settings-note settings-description" data-i18n="settings.connectionsHint">Manage family links or the classes you teach or join.</p>
+      <div class="settings-row settings-row-stack settings-access-row">
+        <div class="settings-access-links">
+          <button class="btn-secondary settings-access-link" type="button" data-settings-view="family" data-settings-role="parent student"><strong data-i18n="settings.familyLink">Family progress</strong><small data-i18n="settings.familyLinkHint">Link a parent or see who follows your progress.</small></button>
+          <button class="btn-secondary settings-access-link" type="button" data-settings-view="classes" data-settings-role="teacher student"><strong data-i18n="settings.classesLink">Classes</strong><small data-i18n="settings.classesLinkHint">Join a class with a code, or manage the ones you teach.</small></button>
+        </div>
+      </div>
     </section>
     <!-- The account itself: change the password, take the data, leave. Signed-in
          only. Leaving is last and behind a confirmation, because it is total. -->
@@ -421,7 +482,7 @@
       </div>
       <div class="nav-group">
         <button class="nav-link nav-parent" data-view="checklist"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6.5h11M9.5 12h11M9.5 17.5h11"/><path d="m3 6.5 1.4 1.4L7 5.4"/><path d="m3 12 1.4 1.4L7 10.9"/><path d="m3 17.5 1.4 1.4L7 16.4"/></svg>
-          <span data-i18n="nav.checklist">Чеклист</span>
+          <span data-i18n="nav.checklist">Домашни задачи</span>
           <span id="checklistBadge" class="nav-badge hidden" role="status"></span>
           <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
@@ -430,16 +491,6 @@
             <button class="nav-link nav-child" data-view="history"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.2V12l3.2 2"/></svg><span data-i18n="nav.history">История</span></button>
           </div>
         </div>
-      </div>
-      <div class="nav-group" data-role="parent student">
-        <button class="nav-link nav-parent" data-view="family"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="3.2"/><path d="M2.5 19.5c0-3.1 2.7-5.2 6-5.2s6 2.1 6 5.2"/><circle cx="17.5" cy="10" r="2.4"/><path d="M17 14.6c2.3.3 4 1.9 4 4.9"/></svg>
-          <span data-i18n="nav.family">Родител</span>
-        </button>
-      </div>
-      <div class="nav-group" data-role="teacher student">
-        <button class="nav-link nav-parent" data-view="classes"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.2 2.5 9 12 13.8 21.5 9z"/><path d="M6.5 11.3V16c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-4.7"/></svg>
-          <span data-i18n="nav.classes">Клас</span>
-        </button>
       </div>
     </nav>
 
@@ -469,14 +520,6 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span data-i18n="account.settings">Настройки</span>
         </button>
-        <div class="account-menu-theme">
-          <span class="account-menu-theme-label" data-i18n="settings.theme">Тема</span>
-          <div class="theme-switch" role="group" data-i18n-aria-label="settings.theme" aria-label="Тема">
-          <button type="button" class="theme-switch-option" data-theme-mode="auto" aria-pressed="false" data-i18n="theme.auto">Авто</button>
-          <button type="button" class="theme-switch-option" data-theme-mode="light" aria-pressed="false" data-i18n="theme.light">Светла</button>
-          <button type="button" class="theme-switch-option" data-theme-mode="dark" aria-pressed="false" data-i18n="theme.dark">Тъмна</button>
-      </div>
-        </div>
         <button id="menuLoginBtn" class="account-menu-item hidden" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg>
           <span data-i18n="account.login">Влез</span>
@@ -508,8 +551,11 @@
   <div class="main-area">
 
     <header class="mobile-bar">
-      <button id="menuToggle" class="menu-toggle" type="button" data-i18n-aria="menu.open" aria-label="Отвори менюто"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-      <span class="mobile-brand">Climby</span>
+      <button id="menuToggle" class="menu-toggle" type="button" aria-controls="sidebar" aria-expanded="false" data-i18n-aria="menu.open" aria-label="Отвори менюто"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <span class="mobile-branding">
+        <img class="mobile-brand-mark" src="logo-icon.png" alt="">
+        <span class="mobile-brand">Climby</span>
+      </span>
     </header>
 
 <main id="view-tutor" class="view">
@@ -526,7 +572,7 @@
 <div id="splash" class="splash">
   <!-- A mask, not an <img>: the artwork is a silhouette, and a silhouette has to
        take the theme's ink colour or it vanishes on the light theme. -->
-  <span class="splash-logo" role="img" aria-label="Climby"></span>
+  <span class="splash-logo" role="img" aria-label="Climby"><img src="logo.png" alt="" width="148" height="148"></span>
   <p class="loading-text" data-i18n="scanner.loadingCamera">Зарежда камерата…</p>
 </div>
 
@@ -536,7 +582,7 @@
 <!-- Нарочно НЕ носи класа .stage: той е кутията на визьора, с аспект 3:4 за
      портретна снимка. Върху екран с избор това е просто голяма празна дупка. -->
 <div class="explainer help-note hidden">
-  <strong data-i18n="tutor.how">Как работи ClimbAI:</strong> <span data-i18n="tutor.howBody">снимаш задачата и получаваш пътя до отговора, а не само отговора — за да можеш следващата да я решиш сам. Самата снимка не се пази никъде. Каквото ClimbAI е прочел от страницата се записва, а по математика, физика и химия — и решение, което остава само на сървъра и по което те води, за да не чете страницата при всеки твой въпрос; в Изкачени остава какво си питал и какво е отговорено.</span>
+  <strong data-i18n="tutor.how">Как работи ClimbAI:</strong> <span data-i18n="tutor.howBody">снимаш задачата и получаваш пътя до отговора, а не само отговора — за да можеш следващата да я решиш сам. Самата снимка не се пази никъде. Каквото ClimbAI е прочел от страницата се записва, а по математика, физика и химия — и решение, което остава само на сървъра и по което те води, за да не чете страницата при всеки твой въпрос; в Завършени задачи остава какво си питал и какво е отговорено.</span>
 </div>
 
 <div id="entryStage" class="entry-stage">
@@ -951,11 +997,11 @@
 
 
   <div class="explainer help-note hidden">
-    <strong data-i18n="focus.how">Как работи фокус камерата:</strong> <span data-i18n="focus.howBody">следи тихо колко време си на бюрото, докато учиш. Не те прекъсва и не те подсеща по време на сесията — само брои. Разпознаването става изцяло на твоето устройство — снимки никога не се качват никъде и не се пазят.</span>
+    <strong data-i18n="focus.how">Как работи броячът:</strong> <span data-i18n="focus.howBody">Следи тихо колко време учиш. Всяка сесия започва след проверка на лицето на това устройство; ако лицето вече не съвпада, сесията спира до повторно потвърждение. Кадри и временният шаблон не се качват, а шаблонът се изтрива при края на сесията. Това не е сигурно удостоверяване.</span>
   </div>
 
-  <!-- Two columns on a wide screen: the session on the left, what the earlier
-       ones were on the right. One column everywhere else. -->
+  <!-- Show session history beside the timer only when it is available and the
+       viewport has room; otherwise the timer uses the full content width. -->
   <div class="focus-layout">
   <div class="focus-main">
   <!-- Серията е запис на вече учено, а не състояние на камерата. Стоеше вътре в
@@ -969,10 +1015,21 @@
         <input type="checkbox" id="focusEnableToggle">
         <span class="switch-track"></span>
       </label>
-      <span id="focusToggleLabel" data-i18n="focus.offLabel">Фокус камерата е изключена</span>
+      <span id="focusToggleLabel" data-i18n="focus.offLabel">Броячът е изключен</span>
+    </div>
+    <div class="focus-verify-notice">
+      <span>
+        <strong data-i18n="focus.verifyLabel">Required face check before each session</strong>
+        <small data-i18n="focus.verifyHint">A short on-device face match is required to start and continue each Focus session. Its temporary template is erased at session end. This is not secure authentication.</small>
+      </span>
     </div>
     <span class="focus-ring" aria-hidden="true"></span>
-    <p id="focusOff" class="hint" data-i18n="focus.offHint">Включи превключвателя отгоре, за да пробваш. Изцяло по избор — много ученици предпочитат да учат без камера, и това е напълно наред.</p>
+    <p id="focusOff" class="hint" data-i18n="focus.offHint">Включи брояча, когато искаш да следиш учебна сесия. Всяка сесия започва след кратка проверка на лицето на това устройство. Можеш да учиш и без него.</p>
+    <div class="focus-safety" aria-label="Camera privacy" data-i18n-aria-label="focus.safetyAria">
+      <p><span class="focus-safety-check" aria-hidden="true">✓</span><span data-i18n="focus.cameraLocal">Camera processing stays on this device.</span></p>
+      <p><span class="focus-safety-check" aria-hidden="true">✓</span><span data-i18n="focus.cameraNotStored">Camera frames are not uploaded or saved.</span></p>
+      <p class="focus-safety-caveat"><span class="focus-safety-warning" aria-hidden="true">!</span><span data-i18n="focus.cameraLimit">Face matching is a session check, not secure identity authentication or liveness detection.</span></p>
+    </div>
   </div>
 
   <div id="focusIdle" class="focus-stage hidden">
@@ -982,15 +1039,58 @@
   </div>
 
   <div id="focusLoading" class="focus-stage hidden">
-    <p class="hint" data-i18n="focus.loading">Подготвям камерата…</p>
+    <div class="focus-start-card focus-start-loading" role="status" aria-live="polite">
+      <span class="focus-scan-icon is-loading" aria-hidden="true">
+        <svg viewBox="0 0 48 48" fill="none">
+          <rect x="8" y="13" width="32" height="24" rx="7"/>
+          <circle cx="24" cy="25" r="6"/>
+          <path d="M17 13l2-4h10l2 4"/>
+        </svg>
+      </span>
+      <div class="focus-start-copy">
+        <span class="focus-start-eyebrow" data-i18n="focus.startEyebrow">ON-DEVICE SESSION CHECK</span>
+        <strong data-i18n="focus.loadingTitle">Getting your session ready</strong>
+        <p data-i18n="focus.loading">Preparing the camera…</p>
+        <div class="focus-start-progress is-indeterminate" aria-hidden="true"><span></span></div>
+        <small data-i18n="focus.startPrivacy">Your camera frames stay on this device.</small>
+      </div>
+    </div>
   </div>
 
   <div id="focusRunning" class="focus-stage hidden">
+    <section id="focusIdentityCheck" class="focus-start-card focus-identity-check hidden"
+             role="status" aria-live="polite" aria-atomic="true">
+      <span class="focus-scan-icon is-scanning" aria-hidden="true">
+        <svg viewBox="0 0 48 48" fill="none">
+          <path d="M17 10h-3a4 4 0 0 0-4 4v3m21-7h3a4 4 0 0 1 4 4v3M10 31v3a4 4 0 0 0 4 4h3m21-7v3a4 4 0 0 1-4 4h-3"/>
+          <circle cx="24" cy="21" r="7"/>
+          <path d="M14.5 36c1.8-5 5-7.5 9.5-7.5s7.7 2.5 9.5 7.5"/>
+        </svg>
+        <span class="focus-scan-line"></span>
+      </span>
+      <div class="focus-start-copy">
+        <span class="focus-start-eyebrow" data-i18n="focus.startEyebrow">ON-DEVICE SESSION CHECK</span>
+        <strong data-i18n="focus.verifyStartTitle">Quick face check</strong>
+        <p id="focusIdentityStep" data-i18n="focus.verifyEnroll">Stay in front of the camera for a moment to complete the check and start your session.</p>
+        <div class="focus-sample-progress" role="progressbar" aria-valuemin="0" aria-valuemax="3"
+             aria-valuenow="0" aria-label="Face check progress" data-i18n-aria-label="focus.verifyProgressLabel">
+          <span data-check-step="0"></span>
+          <span data-check-step="1"></span>
+          <span data-check-step="2"></span>
+        </div>
+        <small data-i18n="focus.startPrivacy">Your camera frames stay on this device.</small>
+      </div>
+    </section>
     <div class="focus-preview">
       <video id="focusVideo" autoplay playsinline muted></video>
       <canvas id="focusOverlay" class="focus-overlay"></canvas>
     </div>
-    <p class="focus-status" data-i18n="focus.runningStatus">Сесията тече — работи спокойно, ще преброя вместо теб.</p>
+    <p id="focusStatus" class="focus-status" data-i18n="focus.runningStatus">Сесията тече — работи спокойно, ще преброя вместо теб.</p>
+    <div id="focusVerifyPaused" class="focus-verify-paused hidden" role="alert" aria-live="assertive">
+      <strong data-i18n="focus.verifyPausedTitle">Session paused: this doesn’t look like the face that started it.</strong>
+      <p id="focusVerifyMessage" data-i18n="focus.verifyPausedHint">Move into the camera view. Your session will resume only after the original face is matched.</p>
+      <button id="focusVerifyResumeBtn" class="btn-primary" type="button" data-i18n="focus.verifyResume">Check and resume</button>
+    </div>
     <div class="controls">
       <button id="focusStopBtn" class="btn-ghost" type="button" data-i18n="focus.stopBtn">Приключи сесията</button>
     </div>
@@ -1185,6 +1285,10 @@
   </div>
   <div id="chatLog" class="chat-log" aria-live="polite">
   </div>
+  <div class="chat-memory-bar">
+    <span id="chatMemoryStatus" class="chat-memory-status" data-i18n="memory.chatOff">Memory is off. Choose what ClimbAI can use in Settings.</span>
+    <button id="chatMemoryManage" class="chat-memory-manage" type="button" data-i18n="memory.manage">Manage</button>
+  </div>
   <div id="chatEmpty" class="chat-empty">
     <p data-i18n="chat.empty">Ask anything — a problem, a word, a rule. I answer step by step.</p>
     <!-- A blank box with a blinking cursor is a blank page, and blank pages stop
@@ -1195,7 +1299,7 @@
       <button type="button" class="chat-starter" data-i18n="chat.starter3">Check my answer: 7 × 8 = 54</button>
       <button type="button" id="chatStarterRoute" class="chat-starter hidden" data-i18n="chat.starterRoute">What should I start with today?</button>
     </div>
-    <p id="chatSees" class="chat-sees hidden" data-i18n="chat.sees">ClimbAI can see your Route and your recent questions.</p>
+    <p id="chatSees" class="chat-sees hidden" data-i18n="chat.sees">ClimbAI only uses the app details you selected in Settings.</p>
   </div>
   <div class="chat-input-row">
     <textarea id="chatInput" rows="1" data-i18n-placeholder="chat.placeholder" placeholder="Напиши въпрос…"></textarea>
@@ -1207,6 +1311,9 @@
 <script src="config.js"></script>
 <script src="prefs.js"></script>
 <script src="i18n.js"></script>
+<script src="memory.js"></script>
+<script src="loading.js"></script>
+<script src="ai-activity.js"></script>
 <script src="toast.js"></script>
 <script src="net.js"></script>
 <script src="offline.js"></script>
@@ -1221,6 +1328,7 @@
 <script src="phone.js"></script>
 <script src="papers.js"></script>
 <script src="suggest.js"></script>
+<script src="smart.js"></script>
 <script src="chat.js"></script>
 <script src="voices.js"></script>
 <script src="speak.js"></script>
@@ -1232,6 +1340,7 @@
 <script src="subjects.js"></script>
 <script src="ai-planner.js"></script>
 <script src="history.js"></script>
+<script src="face-verification.js"></script>
 <script src="focus.js"></script>
 <script src="sessions.js"></script>
 <script src="mirror.js"></script>

@@ -12,6 +12,7 @@ os.environ["TRUSTED_PROXY_HOPS"] = "0"
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
+from conftest import phone_for_test_account  # noqa: E402
 import rate_limit  # noqa: E402
 import server  # noqa: E402
 import usage  # noqa: E402
@@ -161,11 +162,15 @@ def test_recording_failures_are_visible_in_healthz(monkeypatch):
 
 def _signed_in():
     email = "usage-user@example.com"
-    client.post("/auth/register", json={"display_name": "U", "email": email, "password": "testpass123"})
+    client.post("/auth/register", json={
+        "display_name": "U", "email": email, "phone": phone_for_test_account(email),
+        "password": "testpass123",
+    })
     from models import User
     db = SessionLocal()
     u = db.query(User).filter(User.email == email).first()
     u.is_email_verified = True
+    u.is_phone_verified = True
     db.commit()
     uid = u.id
     db.close()

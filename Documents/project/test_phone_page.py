@@ -33,6 +33,30 @@ def test_the_phone_asks_the_camera_for_a_real_photo():
     assert "grabBestFrame" in html, "no fallback for a browser without ImageCapture"
 
 
+def test_the_phone_uses_the_app_theme_and_violet_palette():
+    html = _phone()
+    with open(os.path.join(HERE, "frontend", "phone.js"), encoding="utf-8") as f:
+        phone_module = f.read()
+    assert "themeParam === 'light' || themeParam === 'dark' ? themeParam : null" in html
+    assert ':root[data-theme="light"]' in html
+    assert "theme: 'light'" in phone_module and "theme: 'dark'" in phone_module
+    assert "--accent: #8957e5;" in html and "--accent: #8250df;" in html
+
+
+def test_phone_keeps_language_and_theme_but_drops_the_pairing_secret():
+    html = _phone()
+    assert "document.documentElement.dataset.theme = effectiveTheme;" in html
+    assert "new URLSearchParams({ lang: lang, theme: theme })" in html
+    assert "history.replaceState(null, '', '/phone?' + savedParams.toString())" in html
+    assert "history.replaceState(null, '', '/phone');" not in html
+
+
+def test_phone_page_can_scroll_when_content_exceeds_the_viewport():
+    html = _phone()
+    assert "min-height: 100dvh;" in html
+    assert "html, body { height: 100%; }" not in html
+
+
 def test_the_fallback_picks_the_sharpest_of_several_frames():
     """One frame taken at an arbitrary instant catches the autofocus
     mid-hunt. Several, then the sharpest, is a comparison rather than a

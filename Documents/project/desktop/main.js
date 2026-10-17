@@ -8,6 +8,7 @@ const { app, BrowserWindow, Menu, dialog, protocol, net, session, shell, ipcMain
 const path = require('node:path');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
+const { Readable } = require('node:stream');
 const { initAutoUpdate, checkForUpdatesManually } = require('./updater');
 
 // Страницата се зарежда през собствена схема app://, а не през file://.
@@ -39,6 +40,47 @@ function _resolveInsideFrontend(urlPath) {
   const inside = path.relative(FRONTEND_DIR, target);
   if (inside.startsWith('..') || path.isAbsolute(inside)) return null;
   return target;
+}
+
+// ClimbAI's two loading loops (the bird and the ring) are videos. A <video>
+// asks for its file in pieces — "Range: bytes=…" — and loops by asking for the
+// start again. net.fetch() on a file: URL ignores that header, and under app://
+// the player could stall on its first frame, leaving only the still poster on
+// screen. Media files are therefore answered here, piece by piece, with 206.
+const MEDIA_TYPES = { '.webm': 'video/webm', '.mp4': 'video/mp4' };
+
+function _serveMedia(target, request) {
+  let size;
+  try {
+    size = fs.statSync(target).size;
+  } catch {
+    return new Response('Not found', { status: 404 });
+  }
+  const headers = {
+    'Content-Type': MEDIA_TYPES[path.extname(target).toLowerCase()],
+    'Accept-Ranges': 'bytes',
+  };
+  const range = /^bytes=(\d*)-(\d*)$/.exec((request.headers.get('range') || '').trim());
+  if (!range || (range[1] === '' && range[2] === '')) {
+    headers['Content-Length'] = String(size);
+    return new Response(Readable.toWeb(fs.createReadStream(target)), { status: 200, headers });
+  }
+  let start;
+  let end;
+  if (range[1] === '') {
+    // "bytes=-500": the last 500 bytes
+    start = Math.max(0, size - Number(range[2]));
+    end = size - 1;
+  } else {
+    start = Number(range[1]);
+    end = range[2] === '' ? size - 1 : Math.min(Number(range[2]), size - 1);
+  }
+  if (start >= size || start > end) {
+    return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } });
+  }
+  headers['Content-Range'] = `bytes ${start}-${end}/${size}`;
+  headers['Content-Length'] = String(end - start + 1);
+  return new Response(Readable.toWeb(fs.createReadStream(target, { start, end })), { status: 206, headers });
 }
 
 // Where the window was last time. Every app remembers this; one that opens at
@@ -79,9 +121,12 @@ function createWindow() {
     ...(remembered ? { x: remembered.x, y: remembered.y, width: remembered.width, height: remembered.height } : {}),
     minWidth: 380,
     minHeight: 560,
+    icon: process.platform === 'win32'
+      ? path.join(__dirname, 'build', 'icon.ico')
+      : path.join(FRONTEND_DIR, 'icon-512.png'),
     // Същият почти черен фон като на тъмната тема — иначе прозорецът мига в бяло,
     // докато страницата се зарежда.
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#0d1117',
     title: 'Climby',
     autoHideMenuBar: true,
     webPreferences: {
@@ -220,6 +265,11 @@ if (!gotLock) {
   app.quit();
 } else {
   let mainWindow = null;
+  let pendingSignIn = null;
+
+  function deepLinkFrom(argv) {
+    return (argv || []).find(arg => typeof arg === 'string' && arg.startsWith('climby://')) || null;
+  }
 
   // Windows подава climby:// връзка на програмата, която е заявила схемата.
   // Инсталаторът записва заявката; това тук покрива пускането при разработка,
@@ -279,7 +329,7 @@ if (!gotLock) {
   // Asked by Settings in the page (see preload.js). The update check reuses
   // the same path as the hidden Help menu, dialogs and all.
   ipcMain.handle('climby:version', () => app.getVersion());
-  ipcMain.handle('climby:check-updates', () => { checkForUpdatesManually(); });
+  ipcMain.handle('climby:check-updates', () => checkForUpdatesManually());
 
   app.whenReady().then(() => {
     // Content-Security-Policy нарочно не се слага тук с onHeadersReceived: същата
@@ -290,6 +340,7 @@ if (!gotLock) {
     protocol.handle('app', request => {
       const target = _resolveInsideFrontend(new URL(request.url).pathname);
       if (!target) return new Response('Forbidden', { status: 403 });
+      if (MEDIA_TYPES[path.extname(target).toLowerCase()]) return _serveMedia(target, request);
       return net.fetch(pathToFileURL(target).toString());
     });
 
