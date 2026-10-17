@@ -135,7 +135,7 @@ const Chat = (() => {
     mine.textContent = text;
     const theirs = bubble('ai');
     theirs.classList.add('chat-thinking');
-    theirs.innerHTML = sparkSvg('spark-spin') + ' ' + t('scanner.thinking');
+    theirs.appendChild(AIActivity.create('thinking', t('scanner.thinking'), true));
     scrollToEnd();
     busy = true;
     const asked = epoch;
@@ -143,14 +143,14 @@ const Chat = (() => {
       const token = window.Auth ? Auth.getToken() : null;
       const res = await Net.fetch(BACKEND + '/ask', {
         timeout: Net.AI_TIMEOUT_MS,
+        loadingKey: 'loading.ai',
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        // context: the tutor is told what is on the Route and what was asked
-        // recently, so "what should I start with?" means something. Signed-in
-        // only; the server ignores it for guests.
         body: JSON.stringify({ images: [], question: text, lang: I18n.get(), history,
                                mode: window.Prefs ? Prefs.get('tutor') : 'hints',
-                               context: !!token, surface: 'chat' }),
+                               context: false,
+                               memory: token && window.Memory ? Memory.request() : null,
+                               surface: 'chat' }),
       });
       const data = await res.json().catch(() => ({}));
       if (asked !== epoch) return;
@@ -165,7 +165,8 @@ const Chat = (() => {
       if (window.Copy) Copy.attach(theirs);
       // Homework the tutor heard in the message, offered as a card with one
       // button. Nothing reaches the Route until it is pressed.
-      if (window.Suggest) Suggest.render(data.suggestions, theirs);
+      if (window.Suggest) Suggest.render([...(data.suggestions || []), ...(data.plan || [])], theirs);
+      if (window.Smart) Smart.render(data, theirs);
       window.dispatchEvent(new CustomEvent('climby:activity'));
       history.push({ role: 'user', text }, { role: 'assistant', text: data.answer });
       persist();
@@ -218,16 +219,24 @@ const Chat = (() => {
     $('chatClose').addEventListener('click', () => setOpen(false));
     $('chatNew').addEventListener('click', reset);
     $('chatSend').addEventListener('click', send);
+    $('chatMemoryManage').addEventListener('click', () => {
+      const settings = document.getElementById('settingsMenuBtn');
+      if (settings) settings.click();
+      setTimeout(() => document.querySelector('[data-settings-jump="setMemory"]')?.click(), 0);
+    });
     // What the tutor can see is stated, not hidden. Both the line and the
     // starter that relies on it appear only when there is an account to see.
     const syncContext = () => {
       const on = !!(window.Auth && Auth.isLoggedIn());
       const sees = document.getElementById('chatSees');
       const route = document.getElementById('chatStarterRoute');
-      if (sees) sees.classList.toggle('hidden', !on);
-      if (route) route.classList.toggle('hidden', !on);
+      const selected = on && window.Memory ? Memory.request() : null;
+      if (sees) sees.classList.toggle('hidden', !(selected && Memory.isEnabled()));
+      if (route) route.classList.toggle('hidden', !(selected && selected.checklist));
     };
     syncContext();
+    if (window.Memory) Memory.render();
+    window.addEventListener('climby:memory-changed', syncContext);
     window.addEventListener('climby:auth-changed', (e) => {
       // A deliberate "Log out" click means the student is handing the computer
       // over — in a school that is the whole point of the button — so the

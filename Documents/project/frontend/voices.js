@@ -84,9 +84,11 @@ const Voices = (() => {
 
   function detail(v) {
     const bits = [];
-    if (/natural|neural/i.test(v.name)) bits.push(window.t ? t('voice.natural') : 'Natural');
-    if (/\bdesktop\b/i.test(v.name)) bits.push(window.t ? t('voice.older') : 'Older');
-    bits.push(v.lang);
+    if (/natural|neural/i.test(v.name)) bits.push(window.t ? t('voice.natural') : 'Natural-sounding');
+    else if (/\bdesktop\b/i.test(v.name)) bits.push(window.t ? t('voice.older') : 'Standard voice');
+    else bits.push(window.t ? t('voice.device') : 'Device voice');
+    if (!v.localService) bits.push(window.t ? t('voice.online') : 'Online');
+    bits.push(v.lang.replace('-', ' · '));
     return bits.join(' · ');
   }
 
@@ -113,14 +115,10 @@ const Voices = (() => {
   }
 
   const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>';
-  const STOP = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.6"/></svg>';
-
   function card(voice, code, picked) {
     const el = document.createElement('div');
-    el.className = 'voice-card' + (picked ? ' is-picked' : '');
-    el.setAttribute('role', 'radio');
-    el.setAttribute('aria-checked', picked ? 'true' : 'false');
-    el.tabIndex = 0;
+    el.className = 'voice-card';
+    el.dataset.voiceName = voice.name;
 
     const play = document.createElement('button');
     play.type = 'button';
@@ -138,18 +136,43 @@ const Voices = (() => {
     const text = document.createElement('span');
     text.className = 'voice-text';
     text.append(name, meta);
+    const select = document.createElement('button');
+    select.type = 'button';
+    select.className = 'voice-select' + (picked ? ' is-picked' : '');
+    select.setAttribute('role', 'radio');
+    select.setAttribute('aria-checked', picked ? 'true' : 'false');
+    select.tabIndex = picked ? 0 : -1;
+    select.appendChild(text);
 
     const tick = document.createElement('span');
     tick.className = 'voice-tick';
     tick.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
 
-    el.append(play, text, tick);
-    const pick = () => { choose(code, voice.name); render(); playSample(voice, el); };
-    el.addEventListener('click', pick);
-    el.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+    select.appendChild(tick);
+    el.append(play, select);
+    select.addEventListener('click', () => {
+      choose(code, voice.name);
+      render();
+      document.querySelector('#voicePicker .voice-select[aria-checked="true"]')?.focus();
+    });
+    select.addEventListener('keydown', e => {
+      if (!['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft'].includes(e.key)) return;
+      e.preventDefault();
+      const options = [...document.querySelectorAll('#voicePicker .voice-select')];
+      const current = options.indexOf(select);
+      const offset = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1;
+      const next = options[(current + offset + options.length) % options.length];
+      const nextVoice = listVoiceName(next);
+      choose(code, nextVoice);
+      render();
+      document.querySelector(`#voicePicker .voice-select[aria-checked="true"]`)?.focus();
     });
     return el;
+  }
+
+  function listVoiceName(button) {
+    const card = button && button.closest('.voice-card');
+    return card ? card.dataset.voiceName : '';
   }
 
   function render() {
@@ -176,6 +199,7 @@ const Voices = (() => {
     }
 
     host.setAttribute('role', 'radiogroup');
+    host.setAttribute('aria-label', window.t ? t('settings.voice') : 'Voice');
     const picked = chosen(code);
     for (const v of list) host.appendChild(card(v, code, picked && v.name === picked.name));
   }
@@ -188,6 +212,8 @@ const Voices = (() => {
     window.addEventListener('climby:lang-changed', render);
     // a voice talking to itself inside a panel nobody is looking at
     window.addEventListener('climby:settings-closed', stopSample);
+    // the system may have gained or lost voices since the page loaded
+    window.addEventListener('climby:settings-opened', render);
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopSample(); });
   }
 

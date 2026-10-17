@@ -137,7 +137,9 @@ const Phone = (() => {
   // Кодът е в пътя, езикът — в заявката: не е тайна и няма какво да издаде.
   function _localised(url) {
     const lang = window.I18n ? I18n.get() : 'en';
-    return url + (url.includes('?') ? '&' : '?') + 'lang=' + encodeURIComponent(lang);
+    const theme = document.documentElement.getAttribute('data-theme');
+    const params = new URLSearchParams({ lang, ...(theme === 'light' ? { theme: 'light' } : { theme: 'dark' }) });
+    return url + (url.includes('?') ? '&' : '?') + params.toString();
   }
 
   function drawQr(url) {
@@ -158,9 +160,7 @@ const Phone = (() => {
       text: url,
       width: 208,
       height: 208,
-      // Монохромно, като всичко останало тук. Цветът в това приложение значи
-      // "това е AI" и никъде другаде.
-      colorDark: '#16161a',
+      colorDark: '#4c1d95',
       colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.M,
     });

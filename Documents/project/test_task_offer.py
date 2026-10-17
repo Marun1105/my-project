@@ -17,6 +17,7 @@ os.environ["TRUSTED_PROXY_HOPS"] = "0"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from conftest import phone_for_test_account  # noqa: E402
 import rate_limit  # noqa: E402
 import server  # noqa: E402
 from db import SessionLocal  # noqa: E402
@@ -29,10 +30,14 @@ FENCE = "```"
 
 def _login(email):
     rate_limit._hits.clear()
-    client.post("/auth/register", json={"display_name": "A", "email": email, "password": "testpass123"})
+    client.post("/auth/register", json={
+        "display_name": "A", "email": email, "phone": phone_for_test_account(email),
+        "password": "testpass123",
+    })
     db = SessionLocal()
     user = db.query(User).filter(User.email == email).first()
     user.is_email_verified = True
+    user.is_phone_verified = True
     db.commit()
     uid = user.id
     db.close()
@@ -162,7 +167,7 @@ def test_a_signed_in_chat_is_invited_to_offer(monkeypatch):
     _uid, h = _login("offer1@example.com")
     seen = _answers(monkeypatch, "Fine.")
     assert _ask(h).status_code == 200
-    assert "Adding to the Route" in seen["system"]
+    assert "Adding to Homework" in seen["system"]
     assert date.today().isoformat() in seen["system"], "it needs today to read 'tomorrow'"
     assert (date.today() + timedelta(days=1)).isoformat() in seen["system"]
 
@@ -170,21 +175,21 @@ def test_a_signed_in_chat_is_invited_to_offer(monkeypatch):
 def test_a_guest_is_not(monkeypatch):
     seen = _answers(monkeypatch, "Fine.")
     assert _ask().status_code == 200
-    assert "Adding to the Route" not in seen["system"], "a guest has no Route"
+    assert "Adding to Homework" not in seen["system"], "a guest has no Homework list"
 
 
 def test_the_photo_screen_is_not(monkeypatch):
     _uid, h = _login("offer2@example.com")
     seen = _answers(monkeypatch, "Fine.")
     assert _ask(h, surface="tutor").status_code == 200
-    assert "Adding to the Route" not in seen["system"]
+    assert "Adding to Homework" not in seen["system"]
 
 
 def test_the_offer_comes_in_the_students_language(monkeypatch):
     _uid, h = _login("offer3@example.com")
     seen = _answers(monkeypatch, "Добре.")
     assert _ask(h, lang="bg").status_code == 200
-    assert "Добавяне в Маршрута" in seen["system"]
+    assert "Добавяне в Домашни задачи" in seen["system"]
 
 
 # ----------------------------------------------------------- end to end

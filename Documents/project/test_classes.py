@@ -15,6 +15,7 @@ os.environ["TRUSTED_PROXY_HOPS"] = "0"
 from fastapi.testclient import TestClient  # noqa: E402
 
 import rate_limit  # noqa: E402
+from conftest import phone_for_test_account  # noqa: E402
 import server  # noqa: E402
 
 client = TestClient(server.app)
@@ -29,7 +30,8 @@ def _clear_rate_limits():
 
 def _account(email, role="student", password="testpass123"):
     res = client.post("/auth/register", json={
-        "display_name": email.split("@")[0], "email": email, "password": password, "role": role,
+        "display_name": email.split("@")[0], "email": email,
+        "phone": phone_for_test_account(email), "password": password, "role": role,
     })
     assert res.status_code == 200, res.text
 
@@ -39,6 +41,7 @@ def _account(email, role="student", password="testpass123"):
     db = SessionLocal()
     user = db.query(User).filter(User.email == email).first()
     user.is_email_verified = True
+    user.is_phone_verified = True
     db.commit()
     db.close()
 
@@ -50,7 +53,8 @@ def _account(email, role="student", password="testpass123"):
 def test_role_defaults_to_student_when_not_sent():
     # стар клиент, който още не знае за ролите, трябва да продължи да работи
     res = client.post("/auth/register", json={
-        "display_name": "Old", "email": "oldclient@example.com", "password": "testpass123",
+        "display_name": "Old", "email": "oldclient@example.com",
+        "phone": phone_for_test_account("oldclient@example.com"), "password": "testpass123",
     })
     assert res.status_code == 200, res.text
 
@@ -73,6 +77,7 @@ def test_role_is_returned_on_login():
 def test_invalid_role_is_rejected():
     res = client.post("/auth/register", json={
         "display_name": "Sneaky", "email": "sneaky@example.com",
+        "phone": phone_for_test_account("sneaky@example.com"),
         "password": "testpass123", "role": "admin",
     })
     assert res.status_code == 422

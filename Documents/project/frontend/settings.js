@@ -19,8 +19,11 @@ const AccountUI = (() => {
 
   function openSettings() {
     closeMenu();
+    document.documentElement.classList.add('settings-open');
     $('settingsOverlay').classList.remove('hidden');
     renderDevices();
+    markNav('setAppearance');
+    window.dispatchEvent(new CustomEvent('climby:settings-opened'));
   }
 
   // Свързаните телефони. Списъкът се презарежда при всяко отваряне, а не се пази:
@@ -91,6 +94,16 @@ const AccountUI = (() => {
 
   function closeSettings() {
     $('settingsOverlay').classList.add('hidden');
+    document.documentElement.classList.remove('settings-open');
+    window.dispatchEvent(new CustomEvent('climby:settings-closed'));
+  }
+
+  function updateSettingsAccess() {
+    const role = window.Auth && Auth.isLoggedIn() ? Auth.getRole() : null;
+    document.querySelectorAll('[data-settings-role]').forEach(button => {
+      const allowed = button.dataset.settingsRole.split(' ');
+      button.classList.toggle('hidden', !!role && !allowed.includes(role));
+    });
   }
 
   function updateAccount() {
@@ -112,10 +125,42 @@ const AccountUI = (() => {
     $('logoutBtn').classList.toggle('hidden', !user);
   }
 
+  function markNav(id) {
+    document.querySelectorAll('[data-settings-jump]').forEach(link => {
+      if (link.dataset.settingsJump === id) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+  }
+
+  // The highlighted section follows the scroll instead of staying on the one
+  // that was clicked last (or on the first, if nothing ever was).
+  function syncNavToScroll() {
+    const overlay = document.querySelector('#settingsOverlay .settings-card');
+    let queued = false;
+    const update = () => {
+      queued = false;
+      let current = null;
+      document.querySelectorAll('#settingsOverlay .settings-group:not(.hidden)').forEach(group => {
+        if (group.getBoundingClientRect().top <= 140) current = group.id;
+      });
+      const last = overlay.scrollHeight - overlay.scrollTop - overlay.clientHeight < 8;
+      if (last) {
+        const groups = document.querySelectorAll('#settingsOverlay .settings-group:not(.hidden)');
+        current = groups[groups.length - 1].id;
+      }
+      markNav(current || 'setAppearance');
+    };
+    overlay.addEventListener('scroll', () => {
+      if (!queued) { queued = true; requestAnimationFrame(update); }
+    }, { passive: true });
+  }
+
   function init() {
     updateAccount();
     window.addEventListener('climby:auth-changed', updateAccount);
     window.addEventListener('climby:lang-changed', updateAccount);
+    window.addEventListener('climby:auth-changed', updateSettingsAccess);
+    updateSettingsAccess();
     window.addEventListener('climby:auth-changed', renderDevices);
     // Смяната на езика става В ТОЗИ прозорец. Без този ред единственият текст,
     // който остава на стария език, е точно този под превключвателя.
@@ -131,10 +176,22 @@ const AccountUI = (() => {
       btn.addEventListener('click', () => {
         const target = document.getElementById(btn.dataset.settingsJump);
         if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.querySelectorAll('[data-settings-jump]').forEach(link => {
+          if (link === btn) link.setAttribute('aria-current', 'location');
+          else link.removeAttribute('aria-current');
+        });
+      });
+    });
+
+    document.querySelectorAll('[data-settings-view]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        closeSettings();
+        if (window.Nav) Nav.activate(btn.dataset.settingsView);
       });
     });
 
     $('settingsClose').addEventListener('click', closeSettings);
+    syncNavToScroll();
     $('settingsOverlay').addEventListener('click', e => {
       if (e.target === $('settingsOverlay')) closeSettings();
     });
@@ -158,10 +215,41 @@ const AccountUI = (() => {
   const bridge = window.CLIMBY_DESKTOP;
   const row = document.getElementById('settingsAboutRow');
   if (!row || !bridge || typeof bridge.version !== 'function') return;
+  const button = document.getElementById('settingsUpdateBtn');
+  const status = document.getElementById('settingsUpdateStatus');
+  let statusKey = '';
+  let statusVersion = null;
+  function renderUpdateStatus() {
+    status.textContent = statusKey ? t(statusKey, statusVersion ? { version: statusVersion } : {}) : '';
+  }
+  function receiveUpdateStatus(result) {
+    const keys = {
+      checking: 'settings.updateChecking',
+      current: 'settings.updateCurrent',
+      downloading: 'settings.updateDownloading',
+      ready: 'settings.updateReady',
+      error: 'settings.updateError',
+      development: 'settings.updateDevelopment',
+      store: 'settings.updateStore',
+      portable: 'settings.updatePortable',
+      busy: 'settings.updateBusy',
+    };
+    if (!result || !keys[result.status]) return;
+    statusKey = keys[result.status];
+    statusVersion = result.version || null;
+    button.disabled = result.status === 'checking';
+    renderUpdateStatus();
+  }
   row.classList.remove('hidden');
   bridge.version().then(v => { document.getElementById('settingsVersion').textContent = v; }).catch(() => {});
-  document.getElementById('settingsUpdateBtn').addEventListener('click', () => {
-    bridge.checkForUpdates().catch(() => {});
+  if (typeof bridge.onUpdateStatus === 'function') bridge.onUpdateStatus(receiveUpdateStatus);
+  window.addEventListener('climby:lang-changed', renderUpdateStatus);
+  button.addEventListener('click', () => {
+    button.disabled = true;
+    receiveUpdateStatus({ status: 'checking' });
+    bridge.checkForUpdates().then(result => {
+      if (result && result !== 'checking') receiveUpdateStatus({ status: result });
+    }).catch(() => receiveUpdateStatus({ status: 'error' }));
   });
 })();
 

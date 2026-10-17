@@ -1,26 +1,24 @@
-/* Climby — the public page.
-   Two tones on purpose: the hero is the app at night (deep violet, where the
-   product lives), the body is the promise in daylight (the app's own light
-   theme). One bold element — the sentence. Everything else reads like a letter. */
+/* Climby public pages: charcoal surfaces, violet actions, lavender detail. */
 
 :root {
-  --night: #140f1f;
-  --night-2: #1d1530;
-  --day: #f6f2ff;
-  --paper: #ffffff;
-  --ink: #16161a;
-  --soft: #5c5c66;
-  --line: #e4dcf5;
+  --night: #0b0911;
+  --day: #100d17;
+  --paper: #191522;
+  --ink: #f7f3fc;
+  --soft: #c1b7d1;
+  --line: rgba(222, 207, 250, 0.16);
   --violet: #7c3aed;
-  --violet-bright: #c084fc;
-  --violet-ink: #4c1d95;
+  --violet-bright: #c4a7ff;
+  --violet-ink: #d4bdff;
+  --violet-hover: #6d28d9;
+  --focus: #e0ceff;
   --display: "Manrope", "Inter", system-ui, sans-serif;
   --text: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --measure: 66ch;
 }
 
 * { box-sizing: border-box; }
-html { color-scheme: light; scroll-behavior: smooth; }
+html { color-scheme: dark; scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
 body {
@@ -32,7 +30,8 @@ body {
 }
 
 a { color: var(--violet-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
-a:focus-visible, button:focus-visible { outline: 3px solid var(--violet-bright); outline-offset: 3px; }
+a:hover { color: #eadfff; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 
 .wrap { width: min(100% - 2.5rem, 72rem); margin-inline: auto; }
 .prose { max-width: var(--measure); }
@@ -41,7 +40,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--violet-bright);
 
 .hero {
   background: var(--night);
-  color: #f3eefc;
+  color: var(--ink);
   padding: 2rem 0 4.5rem;
   position: relative;
   overflow: hidden;
@@ -61,10 +60,16 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--violet-bright);
   display: flex; align-items: center; gap: .8rem;
   font: 600 1.25rem/1 var(--display);
   letter-spacing: -.01em;
-  color: #fff;
+  color: var(--ink);
   text-decoration: none;
 }
-.brand img { width: 40px; height: 40px; border-radius: 50%; }
+.brand img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 10px;
+  filter: drop-shadow(0 4px 14px rgba(145, 25, 245, 0.5));
+}
 
 .hero h1 {
   font: 500 clamp(2.4rem, 7vw, 5.4rem)/1.02 var(--display);
@@ -75,7 +80,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--violet-bright);
 }
 .hero p.lede {
   font-size: clamp(1.1rem, 1.5vw, 1.3rem);
-  color: #cfc4e6;
+  color: #d8cce9;
   max-width: 46ch;
   margin: 0 0 2.4rem;
 }
@@ -84,17 +89,17 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--violet-bright);
 
 .button {
   display: inline-flex; align-items: center; gap: .6rem;
-  background: #fff; color: var(--ink);
+  background: var(--violet); color: #fff;
   font: 600 1.05rem/1 var(--text);
   padding: 1rem 1.5rem;
   border-radius: 999px;
   text-decoration: none;
   border: 0;
 }
-.button:hover { background: #efe9fb; }
+.button:hover { background: var(--violet-hover); }
 .button svg { width: 18px; height: 18px; }
-.actions .quiet { color: #cfc4e6; font-size: .95rem; }
-.actions .quiet a { color: #fff; }
+.actions .quiet { color: #d8cce9; font-size: .95rem; }
+.actions .quiet a { color: var(--ink); }
 
 /* ---------- sections ---------- */
 
@@ -167,6 +172,7 @@ p:last-child { margin-bottom: 0; }
   max-width: 44rem;
 }
 .dialog {
+  /* Keep the illustrated SmartScreen warning true to the real Windows dialog. */
   background: #0a5cbf; color: #fff;
   border-radius: 10px;
   padding: 1.2rem 1.3rem 1.3rem;
@@ -188,7 +194,7 @@ p:last-child { margin-bottom: 0; }
 
 footer { padding: 3rem 0 4rem; border-top: 1px solid var(--line); color: var(--soft); font-size: .95rem; }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: center; }
-footer a { color: var(--ink); }
+footer a { color: var(--violet-ink); }
 
 /* ---------- privacy page ---------- */
 

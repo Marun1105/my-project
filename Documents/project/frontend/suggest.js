@@ -55,12 +55,12 @@ const Suggest = (() => {
         done.innerHTML =
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" ' +
           'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
-        done.append(document.createTextNode(' ' + (window.t ? t('suggest.added') : 'On your Route')));
+        done.append(document.createTextNode(' ' + (window.t ? t('suggest.added') : 'In Homework')));
         action.appendChild(done);
       }
     }
     if (window.Toast) {
-      Toast.show(window.t ? t('suggest.addedToast') : 'Added to your Route', {
+      Toast.show(window.t ? t('suggest.addedToast') : 'Added to Homework', {
         action: {
           label: window.t ? t('checklist.undo') : 'Undo',
           onClick: () => undo(task, card),
@@ -115,7 +115,7 @@ const Suggest = (() => {
     const add = document.createElement('button');
     add.type = 'button';
     add.className = 'suggest-add';
-    add.textContent = window.t ? t('suggest.add') : 'Add to my Route';
+    add.textContent = window.t ? t('suggest.add') : 'Add to Homework';
     add.addEventListener('click', () => accept(task, card));
     action.appendChild(add);
 

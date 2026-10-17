@@ -31,11 +31,23 @@ const Nav = (() => {
   function openSidebar() {
     document.getElementById('sidebar').classList.add('open');
     document.getElementById('sidebarOverlay').classList.remove('hidden');
+    const toggle = document.getElementById('menuToggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    const first = document.querySelector('#sidebar .nav-link.active, #sidebar .nav-link');
+    if (first) first.focus({ preventScroll: true });
   }
 
   function closeSidebar() {
-    document.getElementById('sidebar').classList.remove('open');
+    const sidebar = document.getElementById('sidebar');
+    const wasOpen = sidebar.classList.contains('open');
+    sidebar.classList.remove('open');
     document.getElementById('sidebarOverlay').classList.add('hidden');
+    const toggle = document.getElementById('menuToggle');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', 'false');
+      // focus would otherwise be left on a control that has just been hidden
+      if (wasOpen && sidebar.contains(document.activeElement)) toggle.focus({ preventScroll: true });
+    }
   }
 
   // Родителят няма нужда от "Клас", учителят — от "Родител". Скриваме каквото

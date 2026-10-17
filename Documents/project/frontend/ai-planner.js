@@ -41,6 +41,7 @@ const Planner = (() => {
         // И тук отговорът се пише от AI — по-кратък от този на учителя, но пак
         // по-бавен от обикновена заявка към базата. Ползваме същия дълъг срок.
         timeout: Net.AI_TIMEOUT_MS,
+        loadingKey: 'loading.ai',
         method: 'POST',
         // Signed in, the request is counted against the account's own limit and
         // budget; without the token every student behind one school router

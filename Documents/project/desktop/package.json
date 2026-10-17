@@ -1,7 +1,7 @@
 {
   "name": "climby",
   "productName": "Climby",
-  "version": "1.0.15",
+  "version": "1.0.24",
   "description": "Climby — climb your way to success",
   "author": "Martin Hristov",
   "license": "UNLICENSED",
@@ -14,6 +14,7 @@
     "release": "electron-builder --win --publish always",
     "dist:store": "electron-builder --win appx",
     "dist:linux": "electron-builder --linux",
+    "facecheck": "node facecheck.js",
     "smoke": "node smoke.js",
     "pagecheck": "node pagecheck.js",
     "shots": "node shots.js"
@@ -86,7 +87,7 @@
       "publisherDisplayName": "Martin Hristov",
       "applicationId": "Climby",
       "displayName": "Climby",
-      "backgroundColor": "#101010",
+      "backgroundColor": "#0d1117",
       "languages": [
         "en-US",
         "bg-BG"

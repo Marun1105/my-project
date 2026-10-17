@@ -100,17 +100,25 @@ const Auth = (() => {
   }
 
   async function verifyEmail(email, code) {
-    const data = await _post('/auth/verify-email', { email, code });
-    _setSession(data.token, data.user, true); // signing up implies wanting to stay logged in
+    return _post('/auth/verify-email', { email, code });
+  }
+
+  async function verifyRegistrationPhone(email, code) {
+    const data = await _post('/auth/verify-registration-phone', { email, code });
+    _setSession(data.token, data.user, true);
     return data;
+  }
+
+  async function resendRegistrationPhone(email) {
+    return _post('/auth/resend-registration-phone', { email });
   }
 
   async function resendCode(email) {
     return _post('/auth/resend-code', { email });
   }
 
-  async function login(email, password, remember) {
-    const data = await _post('/auth/login', { email, password });
+  async function login(identifier, password, remember) {
+    const data = await _post('/auth/login', { identifier, password });
     _setSession(data.token, data.user, remember);
     return data;
   }
@@ -126,13 +134,14 @@ const Auth = (() => {
   // ---------- UI ----------
 
   let pendingVerifyEmail = null;
+  let pendingPhoneEmail = null;
   let pendingResetEmail = null;
 
   function showForm(name) {
     // 'role' belongs here even though nothing calls showForm('role'): without it
     // the role screen is only ever closed by answering it, so dismissing the gate
     // and coming back leaves three role buttons stacked under the login form.
-    ['login', 'register', 'verify', 'forgot', 'reset', 'role'].forEach(f => {
+    ['login', 'register', 'verify', 'verifyPhone', 'forgot', 'reset', 'role'].forEach(f => {
       const el = $(`${f}Form`);
       if (el) el.classList.toggle('hidden', f !== name);
     });
@@ -222,8 +231,9 @@ const Auth = (() => {
     const name = $('registerName').value.trim();
     const email = $('registerEmail').value.trim();
     const password = $('registerPassword').value;
+    const phone = $('registerPhone').value.trim();
     const role = (document.querySelector('input[name="registerRole"]:checked') || {}).value || 'student';
-    if (!name || !email || !password) {
+    if (!name || !email || !phone || !password) {
       setError(t('auth.errFillAll'));
       return;
     }
@@ -234,7 +244,7 @@ const Auth = (() => {
       try { heardFrom = localStorage.getItem('climby-quiz-heard'); } catch { /* без него също върви */ }
       await register(name, email, password, role,
                      $('registerUsername').value.trim(),
-                     $('registerPhone').value.trim(),
+                     phone,
                      heardFrom);
       pendingVerifyEmail = email;
       showForm('verify');
@@ -245,14 +255,14 @@ const Auth = (() => {
 
   async function handleLogin() {
     clearError();
-    const email = $('loginEmail').value.trim();
+    const identifier = $('loginEmail').value.trim();
     const password = $('loginPassword').value;
-    if (!email || !password) {
+    if (!identifier || !password) {
       setError(t('auth.errFillLogin'));
       return;
     }
     try {
-      await login(email, password, $('loginRemember').checked);
+      await login(identifier, password, $('loginRemember').checked);
     } catch (err) {
       setError(err.message);
     }
@@ -266,8 +276,42 @@ const Auth = (() => {
       return;
     }
     try {
-      await verifyEmail(pendingVerifyEmail, code);
+      const result = await verifyEmail(pendingVerifyEmail, code);
+      if (result.status === 'phone_verification_required') {
+        pendingPhoneEmail = pendingVerifyEmail;
+        showForm('verifyPhone');
+        setNotice(t(result.sms_sent ? 'auth.phoneCodeSent' : 'auth.phoneCodeUnavailable'));
+      } else {
+        _setSession(result.token, result.user, true);
+        pendingVerifyEmail = null;
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleVerifyPhone() {
+    clearError();
+    const code = $('verifyPhoneCode').value.trim();
+    if (!code || !pendingPhoneEmail) {
+      setError(t('auth.errEnterCode'));
+      return;
+    }
+    try {
+      await verifyRegistrationPhone(pendingPhoneEmail, code);
       pendingVerifyEmail = null;
+      pendingPhoneEmail = null;
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleResendPhoneCode() {
+    if (!pendingPhoneEmail) return;
+    clearError();
+    try {
+      const result = await resendRegistrationPhone(pendingPhoneEmail);
+      setNotice(t(result.sms_sent ? 'auth.phoneCodeSent' : 'auth.phoneCodeUnavailable'));
     } catch (err) {
       setError(err.message);
     }
@@ -340,13 +384,14 @@ const Auth = (() => {
     // a silent session-expiry logout (401) must not interrupt whatever's on screen.
     if (e.detail.loggedIn || e.detail.showGate) updateEntryGateVisibility();
     if (e.detail.loggedIn) return;
-    ['loginForm', 'registerForm', 'verifyForm', 'forgotForm', 'resetForm'].forEach(id => {
-      $(id).querySelectorAll('input[type="text"], input[type="email"], input[type="password"]').forEach(i => { i.value = ''; });
+    ['loginForm', 'registerForm', 'verifyForm', 'verifyPhoneForm', 'forgotForm', 'resetForm'].forEach(id => {
+      $(id).querySelectorAll('input:not([type="radio"]):not([type="checkbox"])').forEach(i => { i.value = ''; });
     });
     $('loginRemember').checked = false;
     $('registerPwStrength').classList.add('hidden');
     $('resetPwStrength').classList.add('hidden');
     pendingVerifyEmail = null;
+    pendingPhoneEmail = null;
     pendingResetEmail = null;
     showForm('login');
   }
@@ -371,11 +416,13 @@ const Auth = (() => {
     $('showForgot').addEventListener('click', e => { e.preventDefault(); showForm('forgot'); });
     $('showLoginFromForgot').addEventListener('click', e => { e.preventDefault(); showForm('login'); });
     $('resendCodeLink').addEventListener('click', e => { e.preventDefault(); handleResend(); });
+    $('resendPhoneCodeLink').addEventListener('click', e => { e.preventDefault(); handleResendPhoneCode(); });
     $('resendResetLink').addEventListener('click', e => { e.preventDefault(); handleResendReset(); });
 
     $('loginBtn').addEventListener('click', () => _withBusy($('loginBtn'), handleLogin));
     $('registerBtn').addEventListener('click', () => _withBusy($('registerBtn'), handleRegister));
     $('verifyBtn').addEventListener('click', () => _withBusy($('verifyBtn'), handleVerify));
+    $('verifyPhoneBtn').addEventListener('click', () => _withBusy($('verifyPhoneBtn'), handleVerifyPhone));
     $('forgotBtn').addEventListener('click', () => _withBusy($('forgotBtn'), handleForgot));
     $('resetBtn').addEventListener('click', () => _withBusy($('resetBtn'), handleReset));
     $('logoutBtn').addEventListener('click', handleLogout);
@@ -390,6 +437,7 @@ const Auth = (() => {
     _submitOnEnter('loginForm', 'loginBtn');
     _submitOnEnter('registerForm', 'registerBtn');
     _submitOnEnter('verifyForm', 'verifyBtn');
+    _submitOnEnter('verifyPhoneForm', 'verifyPhoneBtn');
     _submitOnEnter('forgotForm', 'forgotBtn');
     _submitOnEnter('resetForm', 'resetBtn');
 

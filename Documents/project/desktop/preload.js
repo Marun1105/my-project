@@ -15,4 +15,9 @@ contextBridge.exposeInMainWorld('CLIMBY_DESKTOP', {
   // invisible to anyone who doesn't press Alt. Settings shows them instead.
   version: () => ipcRenderer.invoke('climby:version'),
   checkForUpdates: () => ipcRenderer.invoke('climby:check-updates'),
+  onUpdateStatus: handler => {
+    const listener = (_event, status) => handler(status);
+    ipcRenderer.on('climby:update-status', listener);
+    return () => ipcRenderer.removeListener('climby:update-status', listener);
+  },
 });

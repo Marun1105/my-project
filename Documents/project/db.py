@@ -2,6 +2,7 @@
 import os
 
 from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 DATABASE_URL = os.environ.get("DATABASE_URL") or "sqlite:///./climby.db"
@@ -9,6 +10,24 @@ DATABASE_URL = os.environ.get("DATABASE_URL") or "sqlite:///./climby.db"
 # а SQLAlchemy иска "postgresql://"
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+
+def _require_postgres_tls(url: str) -> str:
+    """Require TLS for remote database connections; local SQLite is unchanged."""
+    parsed = make_url(url)
+    if not parsed.drivername.startswith("postgresql"):
+        return url
+    if (parsed.host or "").lower() in {"", "localhost", "127.0.0.1", "::1"}:
+        return url
+    sslmode = parsed.query.get("sslmode", "").lower()
+    if sslmode in {"require", "verify-ca", "verify-full"}:
+        return url
+    return parsed.set(query={**parsed.query, "sslmode": "require"}).render_as_string(
+        hide_password=False
+    )
+
+
+DATABASE_URL = _require_postgres_tls(DATABASE_URL)
 
 
 def _engine_kwargs(url: str) -> dict:

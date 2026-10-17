@@ -25,7 +25,7 @@ const PORT = Number(process.env.PAGECHECK_PORT || 8779);
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml',
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.webm': 'video/webm', '.svg': 'image/svg+xml',
   '.woff2': 'font/woff2', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json',
 };
 
@@ -73,6 +73,15 @@ function findChromium() {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   const problems = [];
 
+  await page.addInitScript(() => {
+    window.__updateStatusHandlers = [];
+    window.CLIMBY_DESKTOP = {
+      isDesktop: true,
+      version: () => Promise.resolve('1.0.21'),
+      checkForUpdates: () => Promise.resolve('checking'),
+      onUpdateStatus: handler => window.__updateStatusHandlers.push(handler),
+    };
+  });
   page.on('pageerror', e => problems.push('page error: ' + e.message));
   page.on('console', m => {
     if (m.type() !== 'error') return;
@@ -111,11 +120,297 @@ function findChromium() {
     copy: typeof window.Copy?.attach === 'function',
     eyes: document.querySelectorAll('.password-eye').length,
     growable: getComputedStyle(document.getElementById('chatInput')).resize === 'none',
+    faceVerification: typeof window.FaceVerification?.createMonitor === 'function',
+    focusVerification: !!document.querySelector('.focus-verify-notice') &&
+      !document.querySelector('#focusVerifyToggle') &&
+      !!document.querySelector('#focusVerifyPaused[role="alert"]'),
+    focusStartCheck: !!document.querySelector('#focusIdentityCheck[role="status"][aria-live="polite"]') &&
+      !!document.querySelector('#focusIdentityStep') &&
+      document.querySelectorAll('#focusIdentityCheck [data-check-step]').length === 3 &&
+      document.querySelector('#focusIdentityCheck [role="progressbar"]')?.getAttribute('aria-valuemax') === '3',
+    focusLoadingPrivacy: !!document.querySelector('#focusLoading [data-i18n="focus.startPrivacy"]') &&
+      !!document.querySelector('#focusLoading .focus-start-progress.is-indeterminate'),
+    usernameLogin: document.getElementById('loginEmail')?.type === 'text' &&
+      document.getElementById('loginEmail')?.autocomplete === 'username',
+    requiredRegistrationPhone: document.getElementById('registerPhone')?.required === true,
+    registrationSmsStep: !!document.getElementById('verifyPhoneForm') &&
+      !!document.getElementById('verifyPhoneCode') &&
+      !!document.getElementById('resendPhoneCodeLink'),
+    honestSecurityNote: /not end-to-end/i.test(
+      document.querySelector('.auth-security-note')?.textContent || ''
+    ),
   }));
   if (!wired.toast) problems.push('Toast.show is missing');
   if (!wired.copy) problems.push('Copy.attach is missing');
   if (!wired.eyes) problems.push('no password field got a show/hide button');
   if (!wired.growable) problems.push('the chat box is still a fixed-size textarea');
+  if (!wired.faceVerification) problems.push('the local face-verification module did not load');
+  if (!wired.focusVerification) problems.push('the required Focus face-check notice or pause controls are missing');
+  if (!wired.focusStartCheck) problems.push('the session-start face check is missing accessible progress UI');
+  if (!wired.focusLoadingPrivacy) problems.push('the camera/model loading state is missing privacy and progress cues');
+  if (!wired.usernameLogin) problems.push('sign-in does not accept an email or username identifier');
+  if (!wired.requiredRegistrationPhone) problems.push('registration phone is not marked required');
+  if (!wired.registrationSmsStep) problems.push('the registration SMS verify/resend step is missing');
+  if (!wired.honestSecurityNote) problems.push('the security note omits its encryption limits');
+
+  const activityPlayback = await page.evaluate(async () => {
+    const activity = AIActivity.create('thinking', 'Thinking…');
+    document.body.appendChild(activity);
+    const video = activity.querySelector('video');
+    const poster = activity.querySelector('img');
+    video.play().catch(() => {});
+    const playback = await Promise.race([
+      new Promise(resolve => video.addEventListener('playing', () => resolve('playing'), { once: true })),
+      new Promise(resolve => video.addEventListener('error', () => resolve('error'), { once: true })),
+      new Promise(resolve => setTimeout(() => resolve('timeout'), 5000)),
+    ]);
+    const result = {
+      playback,
+      muted: video.muted,
+      loops: video.loop,
+      posterLoaded: poster.complete && poster.naturalWidth > 0,
+      source: video.currentSrc,
+      readyState: video.readyState,
+      networkState: video.networkState,
+      mediaError: video.error?.code || null,
+      canPlayWebm: video.canPlayType('video/webm; codecs="vp8"'),
+    };
+    activity.remove();
+    return result;
+  });
+  if (activityPlayback.playback !== 'playing') {
+    problems.push('the ClimbAI waiting animation did not play in the browser: ' + JSON.stringify(activityPlayback));
+  }
+  if (!activityPlayback.muted || !activityPlayback.loops) {
+    problems.push('the ClimbAI waiting animation is not muted and looping');
+  }
+  if (!activityPlayback.posterLoaded) problems.push('the ClimbAI waiting animation poster did not load');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const reducedMotionFallback = await page.evaluate(() => {
+    const activity = AIActivity.create('reading', 'Reading the page…');
+    const result = !activity.querySelector('video') &&
+      activity.querySelector('img')?.getAttribute('src') === 'media/climbai-reading-poster.jpg';
+    activity.remove();
+    return result;
+  });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  if (!reducedMotionFallback) problems.push('reduced motion did not use the static ClimbAI poster');
+
+  const memoryControls = await page.evaluate(() => {
+    const ids = ['memoryGrade', 'memoryChecklist', 'memoryFocus', 'memoryQuestions', 'memoryPersonal'];
+    const personal = document.getElementById('memoryPersonal');
+    const note = document.getElementById('memoryPersonalNote');
+    const clear = document.getElementById('memoryClear');
+    localStorage.removeItem('climby-memory-v1:guest');
+    Memory.render();
+    const defaultsOff = ids.every(id => !document.getElementById(id).checked) && note.disabled;
+    const guestLocked = ids.every(id => document.getElementById(id).disabled) &&
+      !document.getElementById('memoryLoginHint').classList.contains('hidden');
+    const originalGetUser = Auth.getUser;
+    const originalIsLoggedIn = Auth.isLoggedIn;
+    Auth.getUser = () => ({ id: 'memory-check-user' });
+    Auth.isLoggedIn = () => true;
+    localStorage.removeItem('climby-memory-v1:memory-check-user');
+    Memory.render();
+    document.getElementById('memoryChecklist').checked = true;
+    document.getElementById('memoryChecklist').dispatchEvent(new Event('change', { bubbles: true }));
+    const selectedOnly = Memory.request().checklist &&
+      !Memory.request().learning_level && !Memory.request().focus_sessions &&
+      !Memory.request().previous_questions;
+    document.getElementById('memoryGrade').checked = true;
+    document.getElementById('memoryGrade').dispatchEvent(new Event('change', { bubbles: true }));
+    const gradeRoundTrip = Memory.request().learning_level &&
+      JSON.parse(localStorage.getItem('climby-memory-v1:memory-check-user')).learning_level === true;
+    personal.checked = true;
+    personal.dispatchEvent(new Event('change', { bubbles: true }));
+    const noteEnabled = !note.disabled;
+    note.value = 'Use visual examples.';
+    note.dispatchEvent(new Event('input', { bubbles: true }));
+    const noteSentWhenSelected = Memory.request().personal_note === 'Use visual examples.';
+    personal.checked = false;
+    personal.dispatchEvent(new Event('change', { bubbles: true }));
+    const noteOmittedWhenDisabled = Memory.request().personal_note === '';
+    clear.click();
+    const cleared = ids.every(id => !document.getElementById(id).checked) &&
+      note.value === '' && note.disabled && !Memory.isEnabled();
+    const originalSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key.startsWith('climby-memory-v1:')) throw new Error('storage unavailable');
+      return originalSetItem.call(this, key, value);
+    };
+    document.getElementById('memoryChecklist').checked = true;
+    document.getElementById('memoryChecklist').dispatchEvent(new Event('change', { bubbles: true }));
+    const storageFailureVisible = !document.getElementById('memoryStorageError').classList.contains('hidden');
+    Storage.prototype.setItem = originalSetItem;
+    clear.click();
+    Auth.getUser = originalGetUser;
+    Auth.isLoggedIn = originalIsLoggedIn;
+    Memory.render();
+    return { defaultsOff, guestLocked, selectedOnly, gradeRoundTrip, noteEnabled, noteSentWhenSelected, noteOmittedWhenDisabled, cleared, storageFailureVisible };
+  });
+  for (const [check, passed] of Object.entries(memoryControls)) {
+    if (!passed) problems.push('ClimbAI memory control failed: ' + check);
+  }
+  await page.evaluate(() => document.getElementById('chatMemoryManage').click());
+  await page.waitForTimeout(150);
+  if (await page.locator('#settingsOverlay.hidden').count()) {
+    problems.push('the chat memory manage button did not open Settings');
+  }
+  await page.evaluate(() => document.getElementById('settingsClose').click());
+
+  const loading = await page.evaluate(async () => {
+    const progress = Loading.begin('loading.ai');
+    await new Promise(resolve => setTimeout(resolve, 420));
+    const remainsInContext = document.getElementById('netWakeStatus').classList.contains('hidden');
+    progress.update('net.waking');
+    await new Promise(resolve => setTimeout(resolve, 420));
+    const wakeNoticeVisible = !document.getElementById('netWakeStatus').classList.contains('hidden');
+    const message = document.getElementById('netWakeMessage').textContent;
+    progress.end();
+    await new Promise(resolve => setTimeout(resolve, 750));
+    return { remainsInContext, wakeNoticeVisible, message, hiddenAfter: document.getElementById('netWakeStatus').classList.contains('hidden') };
+  });
+  if (!loading.remainsInContext) problems.push('an ordinary AI wait showed the backend-waking notice');
+  if (!loading.wakeNoticeVisible) problems.push('the compact backend-waking notice did not appear');
+  if (!loading.message || loading.message === 'net.waking') problems.push('the waking notice did not show translated text');
+  if (!loading.hiddenAfter) problems.push('the backend-waking notice stayed open after the request finished');
+
+  const wakeNoticeSettlesDuringOtherRequests = await page.evaluate(async () => {
+    const wake = Loading.begin();
+    wake.update('net.waking');
+    await new Promise(resolve => setTimeout(resolve, 400));
+    wake.end();
+    const unrelated = Loading.begin('loading.generic');
+    await new Promise(resolve => setTimeout(resolve, 750));
+    const hidden = document.getElementById('netWakeStatus').classList.contains('hidden');
+    unrelated.end();
+    return hidden;
+  });
+  if (!wakeNoticeSettlesDuringOtherRequests) {
+    problems.push('the backend-waking notice stayed open after another request started');
+  }
+
+  await page.evaluate(() => document.getElementById('settingsUpdateBtn').click());
+  await page.waitForTimeout(100);
+  if (!(await page.locator('#settingsUpdateBtn').isDisabled())) {
+    problems.push('the update button did not enter its checking state');
+  }
+  await page.evaluate(() => window.__updateStatusHandlers.forEach(handler => handler({ status: 'current' })));
+  if (await page.locator('#settingsUpdateBtn').isDisabled()) {
+    problems.push('the update button stayed disabled after the check completed');
+  }
+  if (!(await page.locator('#settingsUpdateStatus').innerText()).includes('up to date')) {
+    problems.push('the update check result was not shown in Settings');
+  }
+
+  const requiredFaceCheck = await page.evaluate(() => {
+    const copy = document.querySelector('.focus-verify-notice')?.innerText || '';
+    return !document.getElementById('focusVerifyToggle') &&
+      copy.toLowerCase().includes('required');
+  });
+  if (!requiredFaceCheck) problems.push('Focus no longer communicates that its face check is required');
+
+  const focusDesktopLayout = await page.evaluate(() => {
+    Nav.activate('focus');
+    const layout = document.querySelector('.focus-layout');
+    const intro = document.querySelector('.focus-intro');
+    const history = document.querySelector('.session-history');
+    return {
+      columns: getComputedStyle(layout).gridTemplateColumns,
+      introWidth: intro.getBoundingClientRect().width,
+      layoutWidth: layout.getBoundingClientRect().width,
+      historyHidden: history.classList.contains('hidden'),
+    };
+  });
+  if (focusDesktopLayout.historyHidden &&
+      (focusDesktopLayout.columns !== 'none' || focusDesktopLayout.introWidth < focusDesktopLayout.layoutWidth * 0.8)) {
+    problems.push('the guest Focus intro is narrow or reserves an empty history column');
+  }
+  const focusHistoryLayout = await page.evaluate(() => {
+    const layout = document.querySelector('.focus-layout');
+    const history = document.querySelector('.session-history');
+    history.classList.remove('hidden');
+    const display = getComputedStyle(layout).display;
+    history.classList.add('hidden');
+    return display;
+  });
+  if (focusHistoryLayout !== 'grid') {
+    problems.push('the Focus timer and session history do not share a desktop layout when history is available');
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileLayout = await page.evaluate(() => {
+    document.getElementById('entryGate')?.classList.add('hidden');
+    document.getElementById('onboarding')?.classList.add('hidden');
+    document.querySelectorAll('.tour-popover,.tour-backdrop').forEach(el => el.classList.add('hidden'));
+    Nav.activate('focus');
+    const intro = document.querySelector('.focus-intro');
+    const ring = document.querySelector('.focus-ring');
+    const mark = document.querySelector('.mobile-brand-mark');
+    const focusRunning = document.getElementById('focusRunning');
+    const identityCheck = document.getElementById('focusIdentityCheck');
+    focusRunning.classList.remove('hidden');
+    identityCheck.classList.remove('hidden');
+    const identityRect = identityCheck.getBoundingClientRect();
+    const identityCheckLayout = {
+      left: identityRect.left,
+      right: identityRect.right,
+      width: identityRect.width,
+      pageWidth: document.documentElement.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth,
+    };
+    focusRunning.classList.add('hidden');
+    identityCheck.classList.add('hidden');
+    return {
+      focusColumns: getComputedStyle(intro).gridTemplateColumns.trim().split(/\s+/).length,
+      focusRingColumn: getComputedStyle(ring).gridColumnStart,
+      brandMarkVisible: mark.getBoundingClientRect().width > 0 && mark.complete && mark.naturalWidth > 0,
+      identityCheckLayout,
+    };
+  });
+  if (mobileLayout.focusColumns !== 1 || mobileLayout.focusRingColumn !== '1') {
+    problems.push('the Focus intro does not collapse to a single mobile column');
+  }
+  if (!mobileLayout.brandMarkVisible) problems.push('the mobile app bar does not show its brand mark');
+  if (mobileLayout.identityCheckLayout.left < 0 ||
+      mobileLayout.identityCheckLayout.right > mobileLayout.identityCheckLayout.viewportWidth + 1 ||
+      mobileLayout.identityCheckLayout.pageWidth > mobileLayout.identityCheckLayout.viewportWidth + 1) {
+    problems.push('the Focus face-check card overflows the mobile viewport');
+  }
+  const mobileViewWidths = await page.evaluate(() => {
+    const views = [...document.querySelectorAll('.view')];
+    return views.map(view => {
+      Nav.activate(view.id.replace(/^view-/, ''));
+      return {
+        view: view.id,
+        pageWidth: document.documentElement.scrollWidth,
+        viewportWidth: document.documentElement.clientWidth,
+        viewWidth: view.getBoundingClientRect().width,
+      };
+    });
+  });
+  for (const layout of mobileViewWidths) {
+    if (layout.pageWidth > layout.viewportWidth + 1 || layout.viewWidth > layout.viewportWidth + 1) {
+      problems.push(`the ${layout.view} view overflows the mobile viewport`);
+    }
+  }
+  await page.evaluate(() => document.getElementById('accountBtn').click());
+  await page.evaluate(() => document.getElementById('settingsMenuBtn').click());
+  const settingsMobileLayout = await page.evaluate(() => ({
+    locked: document.documentElement.classList.contains('settings-open'),
+    pageWidth: document.documentElement.scrollWidth,
+    viewportWidth: document.documentElement.clientWidth,
+    panelWidth: document.querySelector('.settings-card').getBoundingClientRect().width,
+  }));
+  await page.evaluate(() => document.getElementById('settingsClose').click());
+  const settingsUnlocksPage = await page.evaluate(() => !document.documentElement.classList.contains('settings-open'));
+  if (!settingsMobileLayout.locked || !settingsUnlocksPage) problems.push('Settings does not lock and restore background scrolling');
+  if (settingsMobileLayout.pageWidth > settingsMobileLayout.viewportWidth + 1 ||
+      settingsMobileLayout.panelWidth > settingsMobileLayout.viewportWidth + 1) {
+    problems.push('Settings overflows the mobile viewport');
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   // a toast appears, carries its action, and goes away again
   await page.evaluate(() => Toast.show('check', { action: { label: 'Undo', onClick: () => {} }, timeout: 600 }));

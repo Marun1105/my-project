@@ -6,9 +6,16 @@ const Focus = (() => {
   const BACKEND = window.CLIMBY_BACKEND;
   const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
   const ENABLED_KEY = 'climby-focus-enabled';
+  const IDENTITY_DISTANCE = 0.55;
+  const ENROLL_SAMPLES = 3;
+  const IDENTITY_CHECK_MS = 1000;
 
   let stream = null;
   let modelReady = false;
+  let recognitionReady = false;
+  let referenceDescriptor = null;
+  let identityMonitor = null;
+  let lastIdentityCheck = 0;
   // Искаме от камерата едно и също на двете места, където се пуска — в началото
   // на сесията и при връщане в раздела. Две копия биха се разминали.
   const CAMERA = {
@@ -20,10 +27,14 @@ const Focus = (() => {
   };
 
   let sessionStart = null;
+  let verificationPausedAt = null;
+  let verificationPauseMs = 0;
+  let verificationFeedbackKey = 'focus.verifyPausedHint';
   let focusedMs = 0;   // време, а не кадри
   let awayMs = 0;
   let starting = false;   // тръгва ли се точно в момента сесия — виж startSession
   let startId = 0;        // номер на опита за тръгване, за да се разпознае изоставеният
+  let identityCheckPending = false;
 
   function isEnabled() { return localStorage.getItem(ENABLED_KEY) === '1'; }
 
@@ -53,6 +64,14 @@ const Focus = (() => {
     } else {
       ['Idle', 'Loading', 'Running'].forEach(s => $(`focus${s}`).classList.add('hidden'));
       $('focusSummary').classList.add('hidden');
+    }
+    const badgeLabel = $('focusBadge')?.querySelector('.focus-badge-text > span');
+    if (badgeLabel) badgeLabel.textContent = verificationPausedAt === null ? t('focus.badge') : t('focus.badgePaused');
+    if (verificationPausedAt !== null) {
+      $('focusStatus').textContent = t('focus.verifyPausedStatus');
+      $('focusVerifyPaused').querySelector('strong').textContent = t('focus.verifyPausedTitle');
+      $('focusVerifyMessage').textContent = t(verificationFeedbackKey);
+      $('focusVerifyResumeBtn').textContent = t('focus.verifyResume');
     }
   }
 
@@ -141,7 +160,6 @@ const Focus = (() => {
   function clearError() { $('focusError').classList.add('hidden'); }
 
   async function ensureModel() {
-    if (modelReady) return;
     if (typeof faceapi === 'undefined') {
       throw new Error(t('focus.errModelLoading'));
     }
@@ -150,16 +168,212 @@ const Focus = (() => {
     // real face in it threw "load model before inference" — the session ran
     // and counted nothing, with no error on screen. The fake camera in tests
     // never showed a face, so it never asked for landmarks.
-    await Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-      faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
-    ]);
-    modelReady = true;
+    const loads = [];
+    if (!modelReady) {
+      loads.push(Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
+      ]).then(() => { modelReady = true; }));
+    }
+    if (!recognitionReady) {
+      loads.push(faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+        .then(() => { recognitionReady = true; }));
+    }
+    return Promise.all(loads);
   }
 
   function dropMedia(media) { media.getTracks().forEach(track => track.stop()); }
 
+  function clearIdentity() {
+    if (referenceDescriptor) referenceDescriptor.fill(0);
+    referenceDescriptor = null;
+    verificationPausedAt = null;
+    verificationPauseMs = 0;
+    verificationFeedbackKey = 'focus.verifyPausedHint';
+    identityMonitor = null;
+    lastIdentityCheck = 0;
+    identityCheckPending = false;
+    const identityCheck = $('focusIdentityCheck');
+    if (identityCheck) identityCheck.classList.add('hidden');
+    const paused = $('focusVerifyPaused');
+    if (paused) paused.classList.add('hidden');
+    const message = $('focusVerifyMessage');
+    if (message) message.textContent = t('focus.verifyPausedHint');
+    const resume = $('focusVerifyResumeBtn');
+    if (resume) {
+      resume.disabled = false;
+      resume.textContent = t('focus.verifyResume');
+    }
+  }
+
+  function faceDescriptor(video) {
+    return faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({
+      inputSize: 224,
+      scoreThreshold: 0.55,
+    })).withFaceLandmarks(true).withFaceDescriptor();
+  }
+
+  async function waitForVideo(video, timeoutMs = 5000) {
+    if (video.videoWidth) return;
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        video.removeEventListener('loadeddata', ready);
+        reject(new Error(t('focus.verifyEnrollNoFace')));
+      }, timeoutMs);
+      function ready() {
+        clearTimeout(timeout);
+        resolve();
+      }
+      video.addEventListener('loadeddata', ready, { once: true });
+    });
+  }
+
+  function setIdentityCheckProgress(completedSamples, verifying = false) {
+    const panel = $('focusIdentityCheck');
+    if (!panel) return;
+    panel.classList.remove('hidden');
+    const step = $('focusIdentityStep');
+    const progress = panel.querySelector('.focus-sample-progress');
+    const value = Math.min(ENROLL_SAMPLES, completedSamples);
+    if (step) {
+      step.textContent = verifying
+        ? t('focus.verifyConsistency')
+        : t('focus.verifyProgress', {
+            current: Math.min(value + 1, ENROLL_SAMPLES),
+            total: ENROLL_SAMPLES,
+          });
+    }
+    if (progress) {
+      progress.setAttribute('aria-valuemax', String(ENROLL_SAMPLES));
+      progress.setAttribute('aria-valuenow', String(value));
+      progress.setAttribute('aria-valuetext', verifying
+        ? t('focus.verifyConsistency')
+        : t('focus.verifyProgress', {
+            current: Math.min(value + 1, ENROLL_SAMPLES),
+            total: ENROLL_SAMPLES,
+          }));
+      progress.querySelectorAll('[data-check-step]').forEach((dot, index) => {
+        const sample = Number(dot.dataset.checkStep);
+        dot.classList.toggle('is-complete', sample < value);
+        dot.classList.toggle('is-active', !verifying && sample === value);
+      });
+    }
+  }
+
+  async function enrollIdentity(video, attempt) {
+    $('focusStatus').textContent = t('focus.verifyEnroll');
+    setIdentityCheckProgress(0);
+    await waitForVideo(video);
+    const descriptors = [];
+    try {
+      for (let i = 0; i < ENROLL_SAMPLES; i++) {
+        if (attempt !== startId || !isEnabled()) throw new Error(t('focus.verifyCancelled'));
+        // The first frames after the camera opens are often dark or blurry, so a
+        // single miss must not abort the whole check — keep looking for a few seconds.
+        let result = null;
+        for (let tries = 0; tries < 12; tries++) {
+          if (attempt !== startId || !isEnabled()) throw new Error(t('focus.verifyCancelled'));
+          result = await faceDescriptor(video);
+          if (result && result.descriptor && result.detection.score >= 0.55) break;
+          if (result && result.descriptor) result.descriptor.fill(0);
+          result = null;
+          await new Promise(resolve => setTimeout(resolve, 400));
+        }
+        if (!result) throw new Error(t('focus.verifyEnrollNoFace'));
+        descriptors.push(result.descriptor);
+        setIdentityCheckProgress(i + 1);
+        if (i < ENROLL_SAMPLES - 1) await new Promise(resolve => setTimeout(resolve, 350));
+      }
+      setIdentityCheckProgress(ENROLL_SAMPLES, true);
+      for (let i = 1; i < descriptors.length; i++) {
+        if (FaceVerification.distance(descriptors[0], descriptors[i]) > IDENTITY_DISTANCE) {
+          throw new Error(t('focus.verifyEnrollUnstable'));
+        }
+      }
+      const average = FaceVerification.average(descriptors);
+      if (!average) throw new Error(t('focus.verifyEnrollUnstable'));
+      clearIdentity();
+      referenceDescriptor = average;
+      identityMonitor = FaceVerification.createMonitor(referenceDescriptor, IDENTITY_DISTANCE);
+    } finally {
+      descriptors.forEach(descriptor => descriptor.fill(0));
+    }
+  }
+
+  function pauseForIdentityMismatch(messageKey = 'focus.verifyPausedHint') {
+    if (verificationPausedAt !== null) return;
+    verificationPausedAt = Date.now();
+    const title = $('focusVerifyPaused').querySelector('strong');
+    if (title) title.textContent = t('focus.verifyPausedTitle');
+    verificationFeedbackKey = messageKey;
+    $('focusVerifyMessage').textContent = t(messageKey);
+    $('focusStatus').textContent = t('focus.verifyPausedStatus');
+    $('focusVerifyResumeBtn').disabled = false;
+    $('focusVerifyResumeBtn').textContent = t('focus.verifyResume');
+    $('focusVerifyPaused').classList.remove('hidden');
+    const badgeLabel = $('focusBadge').querySelector('.focus-badge-text > span');
+    if (badgeLabel) badgeLabel.textContent = t('focus.badgePaused');
+    paintBadge();
+  }
+
+  function checkIdentity(descriptor) {
+    if (!identityMonitor || verificationPausedAt !== null) {
+      if (descriptor) descriptor.fill(0);
+      return;
+    }
+    const result = identityMonitor.observe(descriptor);
+    if (descriptor) descriptor.fill(0);
+    if (result.shouldPause) pauseForIdentityMismatch();
+  }
+
+  async function verifyAndResume() {
+    const button = $('focusVerifyResumeBtn');
+    if (verificationPausedAt === null || !referenceDescriptor || !stream) return;
+    button.disabled = true;
+    verificationFeedbackKey = 'focus.verifyChecking';
+    $('focusVerifyMessage').textContent = t('focus.verifyChecking');
+    try {
+      const result = await faceDescriptor($('focusVideo'));
+      if (verificationPausedAt === null || !referenceDescriptor || !stream) {
+        if (result?.descriptor) result.descriptor.fill(0);
+        return;
+      }
+      const matches = result && result.detection.score >= 0.65 && result.descriptor &&
+        FaceVerification.matches(referenceDescriptor, result.descriptor, IDENTITY_DISTANCE);
+      if (result?.descriptor) result.descriptor.fill(0);
+      if (!matches) {
+        verificationFeedbackKey = 'focus.verifyStillPaused';
+        $('focusVerifyMessage').textContent = t('focus.verifyStillPaused');
+        button.disabled = false;
+        return;
+      }
+      verificationPauseMs += Date.now() - verificationPausedAt;
+      verificationPausedAt = null;
+      verificationFeedbackKey = 'focus.verifyPausedHint';
+      $('focusVerifyPaused').classList.add('hidden');
+      $('focusStatus').textContent = t('focus.runningStatus');
+      identityMonitor = FaceVerification.createMonitor(referenceDescriptor, IDENTITY_DISTANCE);
+      const badgeLabel = $('focusBadge').querySelector('.focus-badge-text > span');
+      if (badgeLabel) badgeLabel.textContent = t('focus.badge');
+      lastTickAt = performance.now();
+      paintBadge();
+    } catch {
+      verificationFeedbackKey = 'focus.verifyStillPaused';
+      $('focusVerifyMessage').textContent = t('focus.verifyStillPaused');
+      button.disabled = false;
+    }
+  }
+
   async function startSession() {
+    const progress = window.Loading ? window.Loading.begin('loading.focus') : null;
+    try {
+      await startSessionFlow();
+    } finally {
+      if (progress) progress.end();
+    }
+  }
+
+  async function startSessionFlow() {
     // Между натискането на бутона и отговора на камерата минава близо секунда, а
     // stream се пълни чак накрая. Дотогава втори натиск отваряше втора камера и
     // презаписваше първата — тя оставаше да свети до затварянето на раздела.
@@ -168,6 +382,8 @@ const Focus = (() => {
     if (starting || stream) return;
     starting = true;
     const attempt = ++startId;
+    updateToggleUI();
+    clearIdentity();
     clearError();
     showStage('Loading');
 
@@ -179,6 +395,12 @@ const Focus = (() => {
       media = await navigator.mediaDevices.getUserMedia(CAMERA);
     } catch {
       starting = false;
+      if (attempt !== startId || !isEnabled()) {
+        updateToggleUI();
+        if (isEnabled()) showStage('Idle');
+        return;
+      }
+      updateToggleUI();
       setError(t('focus.errNoCamera'));
       showStage('Idle');
       return;
@@ -194,9 +416,26 @@ const Focus = (() => {
 
     try {
       await ensureModel();
+      const video = $('focusVideo');
+      video.srcObject = media;
+      $('focusStatus').textContent = t('focus.verifyEnroll');
+      showStage('Running');
+      document.body.classList.add('focus-live');
+      window.dispatchEvent(new CustomEvent('climby:focus-live'));
+      await enrollIdentity(video, attempt);
     } catch (err) {
+      if (attempt !== startId || !isEnabled()) {
+        abandonStart(media);
+        return;
+      }
+      const video = $('focusVideo');
+      if (video) video.srcObject = null;
       dropMedia(media);
       starting = false;
+      updateToggleUI();
+      clearIdentity();
+      document.body.classList.remove('focus-live');
+      window.dispatchEvent(new CustomEvent('climby:focus-live'));
       setError(err.message || t('focus.errModel'));
       showStage('Idle');
       return;
@@ -213,11 +452,16 @@ const Focus = (() => {
     starting = false;
     $('focusVideo').srcObject = stream;
     sessionStart = Date.now();
-    document.body.classList.add('focus-live');
-    window.dispatchEvent(new CustomEvent('climby:focus-live'));
+    verificationPauseMs = 0;
+    if (!document.body.classList.contains('focus-live')) {
+      document.body.classList.add('focus-live');
+      window.dispatchEvent(new CustomEvent('climby:focus-live'));
+    }
     focusedMs = 0;
     awayMs = 0;
     showStage('Running');
+    updateToggleUI();
+    $('focusStatus').textContent = t('focus.runningStatus');
     $('focusBadge').classList.remove('hidden');
     startBadgeClock();
     startTracking();
@@ -229,8 +473,18 @@ const Focus = (() => {
   // began, with no button to press.
   function abandonStart(media) {
     dropMedia(media);
+    const video = $('focusVideo');
+    if (video && video.srcObject === media) video.srcObject = null;
     starting = false;
-    if (!sessionStart && isEnabled()) showStage('Idle');
+    if (!sessionStart) {
+      clearIdentity();
+      updateToggleUI();
+      if (document.body.classList.contains('focus-live')) {
+        document.body.classList.remove('focus-live');
+        window.dispatchEvent(new CustomEvent('climby:focus-live'));
+      }
+      if (isEnabled()) showStage('Idle');
+    }
   }
 
   // ---------- разпознаване и рисуване ----------
@@ -382,7 +636,9 @@ const Focus = (() => {
     // Броим време, а не кадри: иначе бавен телефон би "учил" по-малко от бърз.
     if (lastTickAt) {
       const dt = Math.min(now - lastTickAt, 1000);
-      if (isFocused) focusedMs += dt; else awayMs += dt;
+      if (sessionStart && verificationPausedAt === null) {
+        if (isFocused) focusedMs += dt; else awayMs += dt;
+      }
     }
     lastTickAt = now;
   }
@@ -410,9 +666,8 @@ const Focus = (() => {
   const BREATH_MS = 5600;         // дишането на рамката — бавно, за да не дърпа окото
   const PRESENCE_RATE = 0.10;     // появяване и избледняване на лицевия пласт
   const MOOD_RATE = 0.055;        // преливане между "гледа" и "не гледа"
-  const AI_PURPLE = "#a855f7";    // единственият цвят тук — началото на вълната на ClimbAI
-  const AI_GLOW = "rgba(168, 85, 247, 0.5)";
-  const SCRIM = "#0d0d10";        // затъмняването е фонът на приложението, не чисто черно
+  const AI_PURPLE = "#a371f7";    // виолетовият акцент на ClimbAI
+  const AI_GLOW = "rgba(163, 113, 247, 0.5)";
 
   let presence = 0;               // 0..1 колко "го има" лицето в кадъра
   let mood = 0;                   // 0..1 плавен преход между отсъстващ и фокусиран
@@ -661,6 +916,22 @@ const Focus = (() => {
         })
         .catch(() => { /* един пропуснат кадър не е повод да спираме сесията */ });
     }
+    if (referenceDescriptor &&
+        now - lastIdentityCheck >= IDENTITY_CHECK_MS && !identityCheckPending) {
+      lastIdentityCheck = now;
+      identityCheckPending = true;
+      const token = sessionToken;
+      faceDescriptor(video)
+        .then(result => {
+          if (token !== sessionToken || !stream) return;
+          const descriptor = result && result.detection.score >= 0.65 ? result.descriptor : null;
+          checkIdentity(descriptor);
+        })
+        .catch(() => {
+          if (token === sessionToken && stream) checkIdentity(null);
+        })
+        .finally(() => { identityCheckPending = false; });
+    }
     updateState(now);
 
     // Нарисуваните точки догонват находката, вместо да скачат на нея — оттам
@@ -703,6 +974,8 @@ const Focus = (() => {
     lastDetect = 0;
     lastTickAt = 0;
     lastFrameAt = 0;
+    lastIdentityCheck = 0;
+    identityCheckPending = false;
     lastSeen = performance.now();
     landmarks = null; drawPoints = null; faceBox = null; drawBox = null;
     eyesClosedSince = 0;
@@ -721,10 +994,17 @@ const Focus = (() => {
   let badgeTimer = null;
 
   function badgeText() {
-    const total = Math.max(0, Math.round((Date.now() - sessionStart) / 1000));
+    const total = Math.max(0, Math.round(activeSessionMs() / 1000));
     const mm = String(Math.floor(total / 60)).padStart(2, '0');
     const ss = String(total % 60).padStart(2, '0');
     return mm + ':' + ss;
+  }
+
+  function activeSessionMs() {
+    if (!sessionStart) return 0;
+    const pauseMs = verificationPauseMs +
+      (verificationPausedAt === null ? 0 : Date.now() - verificationPausedAt);
+    return Math.max(0, Date.now() - sessionStart - pauseMs);
   }
 
   function paintBadge() {
@@ -765,6 +1045,9 @@ const Focus = (() => {
   // честно колко от времето ПРЕД камерата е било гледане в задачата.
   function suspendCamera() {
     startId++;             // всеки опит за пускане, който още тече, става ненужен
+    if (sessionStart) {
+      pauseForIdentityMismatch('focus.verifyCameraNeeded');
+    }
     if (!stream) return;   // камерата още се отваря — горният ред я отказва
     stopTracking();
     dropMedia(stream);
@@ -774,6 +1057,15 @@ const Focus = (() => {
   }
 
   async function resumeCamera() {
+    const progress = window.Loading ? window.Loading.begin('loading.focus') : null;
+    try {
+      await resumeCameraFlow();
+    } finally {
+      if (progress) progress.end();
+    }
+  }
+
+  async function resumeCameraFlow() {
     if (stream || starting || !sessionStart || !isEnabled()) return;
     starting = true;
     const attempt = ++startId;
@@ -783,7 +1075,12 @@ const Focus = (() => {
       media = await navigator.mediaDevices.getUserMedia(CAMERA);
     } catch {
       starting = false;
+      if (attempt !== startId || !sessionStart) {
+        if (sessionStart) showStage('Running');
+        return;
+      }
       showStage('Running');   // сесията продължава; просто без камера
+      pauseForIdentityMismatch('focus.verifyCameraNeeded');
       return;
     }
     if (attempt !== startId || !sessionStart) { dropMedia(media); starting = false; return; }
@@ -791,22 +1088,36 @@ const Focus = (() => {
     starting = false;
     $('focusVideo').srcObject = stream;
     showStage('Running');
+    if (verificationPausedAt === null) {
+      pauseForIdentityMismatch('focus.verifyCameraNeeded');
+    }
     startTracking();
   }
 
   function stopSession(silent) {
+    const totalMs = activeSessionMs();
     startId++;   // ако точно сега се отваря камера, тя вече е ненужна
     stopTracking();
     if (stream) { dropMedia(stream); stream = null; }
+    const video = $('focusVideo');
+    if (video) video.srcObject = null;
     stopBadgeClock();
     $('focusBadge').classList.add('hidden');
 
     if (!sessionStart) {
+      clearIdentity();
+      updateToggleUI();
+      if (document.body.classList.contains('focus-live')) {
+        document.body.classList.remove('focus-live');
+        window.dispatchEvent(new CustomEvent('climby:focus-live'));
+      }
       if (!silent) showStage('Idle');
       return;
     }
-    const totalMs = Date.now() - sessionStart;
     sessionStart = null;
+    clearIdentity();
+    verificationPauseMs = 0;
+    updateToggleUI();
     document.body.classList.remove('focus-live');
     window.dispatchEvent(new CustomEvent('climby:focus-live'));
     if (silent) {
@@ -851,6 +1162,7 @@ const Focus = (() => {
     $('focusEnableToggle').addEventListener('change', e => setEnabled(e.target.checked));
     $('focusStartBtn').addEventListener('click', startSession);
     $('focusStopBtn').addEventListener('click', () => stopSession(false));
+    $('focusVerifyResumeBtn').addEventListener('click', verifyAndResume);
     $('focusAgainBtn').addEventListener('click', () => showStage('Idle'));
     window.addEventListener('climby:lang-changed', updateToggleUI);
 

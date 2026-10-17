@@ -44,6 +44,13 @@ function info(message, detail) {
   say({ type: 'info', buttons: ['OK'], title: 'Climby', message, detail });
 }
 
+function updateStatus(status, version) {
+  const win = liveWindow();
+  if (win && !win.webContents.isDestroyed()) {
+    win.webContents.send('climby:update-status', { status, version: version || null });
+  }
+}
+
 // Пазим сами дали точно сега тече проверка. По върнатата стойност не става:
 // electron-updater връща СЪЩИЯ промис на второто извикване и не вдига събитие
 // втори път, тоест отвън двата случая изглеждат еднакво.
@@ -75,6 +82,7 @@ function initAutoUpdate(getWindowFn) {
     console.warn('[updater] error:', err && err.message ? err.message : err);
     if (manualCheck) {
       manualCheck = false;
+      updateStatus('error');
       info(
         'We could not check for updates.',
         'Check your internet connection and try again later. Climby works fine either way.'
@@ -85,6 +93,7 @@ function initAutoUpdate(getWindowFn) {
   autoUpdater.on('update-not-available', () => {
     if (manualCheck) {
       manualCheck = false;
+      updateStatus('current');
       info('Climby is up to date.', `Installed version: ${app.getVersion()}`);
     }
   });
@@ -92,6 +101,7 @@ function initAutoUpdate(getWindowFn) {
   autoUpdater.on('update-available', info_ => {
     if (manualCheck) {
       manualCheck = false;
+      updateStatus('downloading', info_.version);
       info(
         `A new version is available: ${info_.version}.`,
         'It is downloading in the background. You will be told when it is ready — carry on working until then.'
@@ -100,6 +110,7 @@ function initAutoUpdate(getWindowFn) {
   });
 
   autoUpdater.on('update-downloaded', async info_ => {
+    updateStatus('ready', info_.version);
     // Ако ученикът е избрал "По-късно", не го питаме пак при всяка АВТОМАТИЧНА
     // проверка. Но ако сам е отворил "Провери за обновяване", той чака отговор:
     // дотук му казвахме "ще ти кажа, когато е готова" и после мълчахме, защото
@@ -144,20 +155,23 @@ function initAutoUpdate(getWindowFn) {
 // проверка тази винаги отговаря нещо, дори когато няма нищо ново.
 function checkForUpdatesManually() {
   if (!app.isPackaged) {
+    updateStatus('development');
     info('Update checks only work in the installed app.', `Version: ${app.getVersion()}`);
-    return;
+    return 'development';
   }
   if (IS_STORE) {
+    updateStatus('store');
     info('This copy updates through the Microsoft Store.',
          `Version: ${app.getVersion()}. Open the Store app to check for updates.`);
-    return;
+    return 'store';
   }
   if (IS_PORTABLE) {
+    updateStatus('portable');
     info(
       'The portable build does not update itself.',
       'Download the latest Climby Setup from the releases page to get updates automatically.'
     );
-    return;
+    return 'portable';
   }
   // Проверката при пускане закъснява 8 секунди и трае, колкото трае мрежата. Ако
   // ученикът натисне менюто точно тогава, второто извикване се закача за първото
@@ -165,11 +179,14 @@ function checkForUpdatesManually() {
   // оставаше вдигнат и часове по-късно изскачаше прозорец, който никой не е искал
   // в този момент.
   if (checkInFlight) {
+    updateStatus('busy');
     info('Checking right now.', 'You will hear as soon as there is news.');
-    return;
+    return 'busy';
   }
   manualCheck = true;
+  updateStatus('checking');
   check();
+  return 'checking';
 }
 
 module.exports = { initAutoUpdate, checkForUpdatesManually };

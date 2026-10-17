@@ -56,7 +56,13 @@ def codes(monkeypatch):
 
 def _register(email, password="testpass123", **extra):
     rate_limit._hits.clear()
-    body = {"display_name": "Тест", "email": email, "password": password}
+    phone_suffix = str(sum((index + 1) * ord(char) for index, char in enumerate(email)) % 10_000_000_000).zfill(10)
+    body = {
+        "display_name": "Тест",
+        "email": email,
+        "phone": "+1" + phone_suffix,
+        "password": password,
+    }
     body.update(extra)
     return client.post("/auth/register", json=body)
 
@@ -74,6 +80,7 @@ def _mark_verified(email):
     try:
         u = db.query(User).filter(func.lower(User.email) == email.strip().lower()).first()
         u.is_email_verified = True
+        u.is_phone_verified = True
         db.commit()
     finally:
         db.close()
@@ -122,6 +129,106 @@ def test_login_ignores_capitalisation():
         assert _login(spelling).status_code == 200, spelling
 
 
+def test_username_can_be_used_to_sign_in_case_insensitively():
+    assert _register("username@example.com", username="Climby.User").status_code == 200
+    _mark_verified("username@example.com")
+    for spelling in ("Climby.User", "climby.user", "CLIMBY.USER"):
+        res = client.post("/auth/login", json={
+            "identifier": spelling, "password": "testpass123",
+        })
+        assert res.status_code == 200, (spelling, res.text)
+
+
+def test_new_registration_requires_sms_verification_before_sign_in(codes):
+    assert _register("sms-required@example.com", username="sms.user").status_code == 200
+    email_code = codes[-1]
+    email_result = client.post("/auth/verify-email", json={
+        "email": "sms-required@example.com", "code": email_code,
+    })
+    assert email_result.status_code == 200
+    assert email_result.json()["status"] == "phone_verification_required"
+    phone_code = codes[-1]
+
+    refused = client.post("/auth/login", json={
+        "identifier": "sms.user", "password": "testpass123",
+    })
+    assert refused.status_code == 403
+
+    verified = client.post("/auth/verify-registration-phone", json={
+        "email": "sms-required@example.com", "code": phone_code,
+    })
+    assert verified.status_code == 200, verified.text
+    accepted = client.post("/auth/login", json={
+        "identifier": "sms.user", "password": "testpass123",
+    })
+    assert accepted.status_code == 200, accepted.text
+
+
+def test_sms_delivery_failure_is_reported_and_can_be_retried(monkeypatch, codes):
+    assert _register("sms-retry@example.com").status_code == 200
+    email_code = codes[-1]
+
+    def fail_delivery(phone, code):
+        raise RuntimeError("SMS provider unavailable")
+
+    monkeypatch.setattr(sms_service, "send_verification_sms", fail_delivery)
+    result = client.post("/auth/verify-email", json={
+        "email": "sms-retry@example.com", "code": email_code,
+    })
+    assert result.status_code == 200
+    assert result.json()["sms_sent"] is False
+
+    monkeypatch.setattr(sms_service, "send_verification_sms", lambda phone, code: codes.append(code))
+    retry = client.post("/auth/resend-registration-phone", json={"email": "sms-retry@example.com"})
+    assert retry.status_code == 200
+    assert retry.json()["sms_sent"] is True
+    assert len(codes) == 2
+
+
+def test_invalid_and_expired_registration_sms_codes_do_not_verify_phone(codes):
+    assert _register("sms-invalid@example.com").status_code == 200
+    email_code = codes[-1]
+    assert client.post("/auth/verify-email", json={
+        "email": "sms-invalid@example.com", "code": email_code,
+    }).status_code == 200
+    assert client.post("/auth/verify-registration-phone", json={
+        "email": "sms-invalid@example.com", "code": "000000",
+    }).status_code == 400
+
+    db = SessionLocal()
+    try:
+        row = (
+            db.query(VerificationCode)
+            .filter(
+                VerificationCode.user_id == _find("sms-invalid@example.com").id,
+                VerificationCode.purpose == CodePurpose.verify_phone,
+                VerificationCode.used.is_(False),
+            )
+            .one()
+        )
+        row.expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+        db.commit()
+    finally:
+        db.close()
+
+    expired = client.post("/auth/verify-registration-phone", json={
+        "email": "sms-invalid@example.com", "code": codes[-1],
+    })
+    assert expired.status_code == 400
+    user = _find("sms-invalid@example.com")
+    assert not user.is_phone_verified
+
+
+def test_sms_delivery_fails_closed_when_production_is_not_configured(monkeypatch):
+    monkeypatch.setattr(sms_service, "TWILIO_SID", None)
+    monkeypatch.setattr(sms_service, "TWILIO_TOKEN", None)
+    monkeypatch.setattr(sms_service, "TWILIO_FROM", None)
+    monkeypatch.setenv("CLIMBY_ENV", "production")
+    monkeypatch.delenv("RENDER", raising=False)
+    with pytest.raises(RuntimeError, match="not configured"):
+        sms_service.send_verification_sms("+15550000011", "123456")
+
+
 def test_a_legacy_mixed_case_row_is_still_found(codes):
     # Заварен ред от Render, записан преди нормализацията. Търсенето трябва да
     # го намира — иначе поправката щеше да заключи точно тези хора отвън.
@@ -143,6 +250,22 @@ def test_bulgarian_phone_spellings_collapse_to_one_number():
     assert auth.normalize_phone("+359 888 123 456") == "+359888123456"
     assert auth.normalize_phone("00359888123456") == "+359888123456"
     assert auth.normalize_phone("(0888) 123-456") == "+359888123456"
+
+
+def test_remote_postgres_urls_require_tls_without_losing_credentials():
+    from db import _require_postgres_tls
+
+    secure = _require_postgres_tls("postgresql://climby:secret@db.example.test/app")
+    assert "sslmode=require" in secure
+    assert "climby:secret@" in secure
+    assert "***" not in secure
+    assert "sslmode=disable" not in _require_postgres_tls(
+        "postgresql://climby:secret@db.example.test/app?sslmode=disable"
+    )
+    assert _require_postgres_tls("postgresql://climby:secret@localhost/app") == (
+        "postgresql://climby:secret@localhost/app"
+    )
+    assert _require_postgres_tls("sqlite:///./climby.db") == "sqlite:///./climby.db"
     # чужд номер остава както е дошъл — не се правим, че го разбираме
     assert auth.normalize_phone("+442071234567") == "+442071234567"
     assert auth.normalize_phone(None) is None
@@ -369,7 +492,9 @@ def test_reset_by_sms_requires_a_verified_phone(codes):
         "code": "424242", "new_password": "takenover12",
     })
     assert res.status_code == 400
-    assert _login("sms-holder@example.com").status_code == 200, "паролата не бива да е сменена"
+    assert security.verify_password("testpass123", _find("sms-holder@example.com").password_hash), (
+        "the rejected SMS reset must leave the original password intact"
+    )
 
 
 # ------------------------------------------------------ сесии (5)

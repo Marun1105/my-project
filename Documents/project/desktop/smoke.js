@@ -77,13 +77,33 @@ async function main() {
     await page.evaluate(t => localStorage.setItem('climby-theme', t), theme);
     await page.reload({ waitUntil: 'load' });
     await page.waitForTimeout(800);
-    for (const view of ['tutor', 'checklist', 'history', 'focus', 'family', 'classes']) {
+    for (const view of ['tutor', 'checklist', 'history', 'focus']) {
       const link = page.locator(`.nav-link[data-view="${view}"]`).first();
       if (!(await link.count())) { note('nav', `no link for ${view}`); continue; }
       await link.click({ force: true });
       await page.waitForTimeout(500);
       const shown = await page.locator(`#view-${view}`).isVisible();
       if (!shown) note('nav', `${view} did not show (${theme})`);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+      if (overflow) note('layout', `horizontal overflow on ${view} (${theme})`);
+    }
+
+    for (const view of ['family', 'classes']) {
+      await page.locator('#accountBtn').click({ force: true });
+      await page.locator('#settingsMenuBtn').click({ force: true });
+      const category = page.locator('.settings-nav-link[data-settings-jump="setConnections"]');
+      if (!(await category.count())) note('settings', 'Family & classes is missing from the Settings menu');
+      else await category.evaluate(el => el.click());
+      const shortcut = page.locator(`#setConnections [data-settings-view="${view}"]`);
+      if (!(await shortcut.isVisible())) {
+        note('settings', `no visible ${view} link for a guest (${theme})`);
+        await page.locator('#settingsClose').click({ force: true });
+        continue;
+      }
+      await shortcut.evaluate(el => el.click());
+      await page.waitForTimeout(500);
+      const shown = await page.locator(`#view-${view}`).isVisible();
+      if (!shown) note('nav', `${view} did not open from Settings (${theme})`);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
       if (overflow) note('layout', `horizontal overflow on ${view} (${theme})`);
     }

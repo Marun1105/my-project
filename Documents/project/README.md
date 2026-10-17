@@ -109,7 +109,9 @@ Windows may show a blue **"Windows protected your PC"** screen — the app has n
 paid code-signing certificate; it is not a virus. Click **More info → Run anyway**.
 
 From then on Climby updates itself: it checks on launch, downloads quietly, and
-asks when to restart. You can sign in with an email and password, or with Google.
+asks when to restart. You can sign in with an email address or username. New
+password-based accounts need a phone number and must verify both email and SMS;
+Google sign-in remains available.
 
 ---
 
@@ -129,6 +131,11 @@ This is an app for young people, so the lines are drawn deliberately and in one 
   minutes, how many days in a row. Never what a problem said or what was asked.
 - **No trackers, no advertising.** The only things stored in the browser are the
   sign-in and the settings on this device.
+
+New password-based accounts also verify their phone by SMS. Passwords are
+stored as one-way hashes, and remote PostgreSQL connections use TLS. Account
+content is not end-to-end encrypted; at-rest protection depends on the database
+provider and is not added by the app itself.
 
 The fourth one is not a technical limitation; it is a decision. A student who
 knows every question is being read stops asking honestly — and asking is the

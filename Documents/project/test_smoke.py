@@ -32,7 +32,11 @@ def _clear_rate_limits():
 
 
 def _register_and_login(email="smoke@example.com", password="testpass123"):
-    client.post("/auth/register", json={"display_name": "Smoke", "email": email, "password": password})
+    client.post("/auth/register", json={
+        "display_name": "Smoke", "email": email,
+        "phone": "+1555" + str(sum(map(ord, email)) % 10_000_000).zfill(7),
+        "password": password,
+    })
     # кодът се хешира в базата, затова го маркираме като потвърден директно
     from db import SessionLocal
     from models import User
@@ -40,6 +44,7 @@ def _register_and_login(email="smoke@example.com", password="testpass123"):
     db = SessionLocal()
     user = db.query(User).filter(User.email == email).first()
     user.is_email_verified = True
+    user.is_phone_verified = True
     db.commit()
     db.close()
 
@@ -64,7 +69,8 @@ def test_plan_with_no_tasks_skips_the_model():
 
 def test_login_requires_verified_email():
     client.post("/auth/register", json={
-        "display_name": "Unverified", "email": "unverified@example.com", "password": "testpass123",
+        "display_name": "Unverified", "email": "unverified@example.com",
+        "phone": "+15550000001", "password": "testpass123",
     })
     res = client.post("/auth/login", json={"email": "unverified@example.com", "password": "testpass123"})
     assert res.status_code == 403
@@ -194,7 +200,8 @@ def test_oversized_inputs_are_rejected_cleanly(monkeypatch):
     monkeypatch.setattr(server.client.beta.messages, "create", lambda **kw: called.append(1))
 
     res = client.post("/auth/register", json={
-        "display_name": "X", "email": "big@example.com", "password": "a" * 5000,
+        "display_name": "X", "email": "big@example.com",
+        "phone": "+15550000002", "password": "a" * 5000,
     })
     assert res.status_code == 422, res.text
 
@@ -228,28 +235,34 @@ def test_register_accepts_optional_username_and_phone():
     # заето име
     dup = client.post("/auth/register", json={
         "display_name": "Друг", "username": "marto.11",
-        "email": "other@example.com", "password": "testpass123",
+        "email": "other@example.com", "phone": "+359888000222", "password": "testpass123",
     })
     assert dup.status_code == 400
 
     # невалидно име и невалиден телефон не стигат до базата
     for bad in ({"username": "a b!"}, {"phone": "не-е-телефон"}):
         res = client.post("/auth/register", json={
-            "display_name": "Х", "email": "bad@example.com", "password": "testpass123", **bad,
+            "display_name": "Х", "email": "bad@example.com",
+            "phone": "+359888000333", "password": "testpass123", **bad,
         })
         assert res.status_code == 422, (bad, res.text)
 
 
-def test_register_still_works_without_them():
+def test_registration_requires_phone_but_not_username():
     res = client.post("/auth/register", json={
         "display_name": "Без", "email": "plain@example.com", "password": "testpass123",
+    })
+    assert res.status_code == 422, res.text
+    res = client.post("/auth/register", json={
+        "display_name": "Без", "email": "plain@example.com",
+        "phone": "+15550000004", "password": "testpass123",
     })
     assert res.status_code == 200, res.text
     from db import SessionLocal
     from models import User
     db = SessionLocal()
     u = db.query(User).filter(User.email == "plain@example.com").first()
-    assert u.username is None and u.phone is None
+    assert u.username is None and u.phone == "+15550000004"
     db.close()
 
 
@@ -339,11 +352,13 @@ def test_split_rejects_empty_text():
 def test_register_is_rate_limited():
     for i in range(5):
         res = client.post("/auth/register", json={
-            "display_name": f"RL{i}", "email": f"rl{i}@example.com", "password": "testpass123",
+            "display_name": f"RL{i}", "email": f"rl{i}@example.com",
+            "phone": "+1555" + str(i).zfill(7), "password": "testpass123",
         })
         assert res.status_code == 200, res.text
     blocked = client.post("/auth/register", json={
-        "display_name": "RL6", "email": "rl6@example.com", "password": "testpass123",
+        "display_name": "RL6", "email": "rl6@example.com",
+        "phone": "+15550000006", "password": "testpass123",
     })
     assert blocked.status_code == 429
 
@@ -429,7 +444,8 @@ def test_family_endpoints_require_auth():
 
 def test_password_minimum_length():
     res = client.post("/auth/register", json={
-        "display_name": "Short", "email": "short@example.com", "password": "abc",
+        "display_name": "Short", "email": "short@example.com",
+        "phone": "+15550000007", "password": "abc",
     })
     assert res.status_code == 422
 
@@ -476,7 +492,7 @@ def test_a_failing_mailer_does_not_fail_registration(monkeypatch):
     monkeypatch.setattr(email_service.resend.Emails, "send", refuse)
     res = client.post("/auth/register", json={
         "display_name": "Mail Test", "email": "mailfail@example.com",
-        "password": "testpass123",
+        "phone": "+15550000008", "password": "testpass123",
     })
     assert res.status_code == 200
 

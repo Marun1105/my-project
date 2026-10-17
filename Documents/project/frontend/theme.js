@@ -1,5 +1,5 @@
 // theme.js — тема на приложението: авто (следва системата) / светла / тъмна.
-// Пази избора в localStorage и за нов ученик по подразбиране е "авто". Стойността
+// Пази избора в localStorage и за нов ученик по подразбиране е тъмна тема. Стойността
 // се прилага веднага при зареждане на скрипта (преди DOMContentLoaded), за да
 // няма проблясък на грешна тема, и следи на живо системната тема, докато сме
 // в режим "авто".
@@ -18,7 +18,7 @@ const Theme = (() => {
 
   function getMode() {
     const saved = localStorage.getItem(KEY);
-    return MODES.includes(saved) ? saved : 'auto';
+    return MODES.includes(saved) ? saved : 'dark';
   }
 
   function effectiveTheme(mode) {
@@ -27,6 +27,8 @@ const Theme = (() => {
 
   function applyDom(theme) {
     root.setAttribute('data-theme', theme);
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.content = theme === 'light' ? '#ffffff' : '#0d1117';
   }
 
   // Синхронизира визуалното състояние на всеки 3-позиционен превключвател в

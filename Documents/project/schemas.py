@@ -3,7 +3,7 @@ import re
 from datetime import date, datetime
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, EmailStr, ConfigDict, Field, field_validator
 
 
 # Горната граница не е каприз: passlib отказва вход над 4096 байта с изключение,
@@ -28,10 +28,10 @@ def _check_username(v):
 
 def _check_phone(v):
     if v is None:
-        return None
+        raise ValueError("A phone number is required.")
     v = "".join(ch for ch in v if not ch.isspace() and ch not in "()-")
     if not v:
-        return None
+        raise ValueError("A phone number is required.")
     if not PHONE_RE.match(v):
         raise ValueError("Телефонният номер не изглежда валиден.")
     return v
@@ -71,7 +71,7 @@ class RegisterRequest(BaseModel):
     display_name: str = Field(max_length=80)
     username: Optional[str] = Field(default=None, max_length=20)
     email: EmailStr
-    phone: Optional[str] = Field(default=None, max_length=32)
+    phone: str = Field(max_length=32)
     password: str
 
     heard_from: Optional[str] = Field(default=None, max_length=20)
@@ -96,10 +96,19 @@ class ResendCodeRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    identifier: str = Field(
+        validation_alias=AliasChoices("identifier", "email"),
+        min_length=1,
+        max_length=254,
+    )
     # Не е политика за парола, а предпазител: passlib хвърля над 4096 байта и
     # входът връща 500 вместо "грешна парола".
     password: str = Field(max_length=1024)
+
+
+class RegistrationPhoneVerifyRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(max_length=12)
 
 
 class ForgotPasswordRequest(BaseModel):
