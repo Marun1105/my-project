@@ -111,6 +111,11 @@ const Tutor = (() => {
     el.classList.remove('hidden', 'error', 'reading');
     el.classList.add('thinking');
     el.replaceChildren(AIActivity.create('thinking', t('scanner.thinking')));
+    const aside = document.createElement('span');
+    aside.className = 'thinking-quip';
+    aside.setAttribute('aria-hidden', 'true');
+    aside.textContent = I18n.loadingAside();
+    el.appendChild(aside);
   }
 
   // Half a minute of "Thinking…" looks frozen. The server does not report

@@ -136,6 +136,11 @@ const Chat = (() => {
     const theirs = bubble('ai');
     theirs.classList.add('chat-thinking');
     theirs.appendChild(AIActivity.create('thinking', t('scanner.thinking'), true));
+    const aside = document.createElement('span');
+    aside.className = 'thinking-quip';
+    aside.setAttribute('aria-hidden', 'true');
+    aside.textContent = I18n.loadingAside();
+    theirs.appendChild(aside);
     scrollToEnd();
     busy = true;
     const asked = epoch;
