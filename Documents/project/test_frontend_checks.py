@@ -934,11 +934,17 @@ def test_github_style_theme_defaults_dark_and_keeps_light_mode():
     css = _read("style.css")
     theme = _read("theme.js")
     html = _read("index.html")
-    assert "return MODES.includes(saved) ? saved : 'dark';" in theme
+    # A new student starts on Midnight, the 1.0.24 dark look; the 16 other
+    # palettes (themes.css) are choices on top of it, never the default.
+    assert "return BY_ID[saved] ? saved : 'midnight';" in theme
+    assert "{ id: 'midnight', base: 'dark' }" in theme
     assert "--bg: #0d1117;" in css and "--accent: #8957e5;" in css
-    assert ':root[data-theme="light"]' in css and "--accent: #8250df;" in css
+    assert '[data-theme="light"] {' in css and "--accent: #8250df;" in css
     assert 'data-theme-mode="light"' in html and 'data-theme-mode="dark"' in html
-    assert "themeColor.content = theme === 'light' ? '#ffffff' : '#0d1117';" in theme
+    # the window chrome follows the page colour of whatever theme is on
+    assert "meta[name=\"theme-color\"]" in theme and "getPropertyValue('--bg')" in theme
+    # the 1.0.24 flat look is the default; glow and the background logo are opt-in
+    assert "bg: 'plain'," in theme and "watermark: 'off'," in theme
 
 
 def test_brand_assets_are_used_on_app_and_public_surfaces():

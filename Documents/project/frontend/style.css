@@ -5,7 +5,10 @@
    Both have Cyrillic. Inter stays second in --font-heading as a plain fallback for
    българските заглавия — смяната се вижда само на латиница. */
 
-:root {
+/* [data-theme] without :root, so a theme card or the preview in Settings can
+   carry its own theme without imposing it on the app (see themes.css). */
+:root,
+[data-theme="dark"] {
   /* GitHub-style dark: neutral greys carry the interface, and the logo's own
      deep violet is spent only as an accent — buttons, the active menu item,
      ClimbAI. Values follow GitHub's Primer dark palette so the greys sit
@@ -40,6 +43,8 @@
   --blue-soft: rgba(137, 87, 229, 0.12);
   --purple: #ab7df8;
   --pink: #ab7df8;
+  /* the palette's signature hue, for the optional glow looks (themes.css) */
+  --tint: #8957e5;
   /* Menu rows, as GitHub draws them: a grey wash on hover, a lighter one when
      selected, and a violet bar at the edge of the selected row. */
   --nav-hover: rgba(101, 108, 118, 0.2);
@@ -117,7 +122,7 @@
 
 /* GitHub-style light: white page, #f6f8fa for the menu and sunken fields,
    one grey for every line, and the same violet family as the logo. */
-:root[data-theme="light"] {
+[data-theme="light"] {
   --bg: #ffffff;
   --bg-elevated: #ffffff;
   --bg-sunken: #f6f8fa;
@@ -144,6 +149,7 @@
   --blue-soft: rgba(130, 80, 223, 0.08);
   --purple: #8250df;
   --pink: #8250df;
+  --tint: #8250df;
   --nav-hover: rgba(129, 139, 152, 0.15);
   --nav-active: rgba(129, 139, 152, 0.18);
   --shadow: rgba(31, 35, 40, 0.15);
@@ -173,6 +179,11 @@
 
 :root[data-theme="light"] .sidebar {
   background: var(--bg-sunken);
+}
+
+:root[data-theme="light"] .sidebar {
+  background: var(--bg-elevated);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--tint) 35%, transparent);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -241,8 +252,9 @@ body {
      Две много меки петна светлина дават дълбочина на празното пространство, без
      да отвличат вниманието. fixed — не "плуват" при скрол. */
   background:
-    radial-gradient(60vw 50vh at 18% 0%, var(--ambient-a), transparent 70%),
-    radial-gradient(55vw 45vh at 100% 100%, var(--ambient-b), transparent 70%);
+    radial-gradient(70vw 55vh at 12% -8%, var(--ambient-a), transparent 72%),
+    radial-gradient(60vw 50vh at 100% 100%, var(--ambient-b), transparent 68%),
+    var(--bg);
   background-attachment: fixed;
 }
 
@@ -253,6 +265,7 @@ body {
   flex: 0 0 256px;
   background: var(--bg-sunken);
   border-right: 1px solid var(--border);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--tint) 55%, transparent);
   display: flex;
   flex-direction: column;
   padding: 16px;
@@ -283,12 +296,8 @@ body {
   align-items: center;
   justify-content: center;
 }
-/* The <img> stays in the markup for the tests that check every asset is
-   referenced, but the drawing is the pseudo-element: an image would paint its
-   own white pixels over any colour we gave it. */
-.sidebar-logo img { display: none; }
-.sidebar-logo::before {
-  content: "";
+.sidebar-logo img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -691,9 +700,9 @@ html.settings-open { overflow: hidden; }
   align-items: center;
   position: relative;
 }
-/* The big faded mountain behind the content is gone: cut off by the window
-   edge it looked like a mistake, not a background. The logo lives in the
-   menu, whole. */
+/* The big faded mountain behind the content is off by default: cut off by the
+   window edge it looked like a mistake rather than a background. It stays a
+   choice in Settings → Appearance (see the end of this file). */
 .main-area > * { position: relative; z-index: 1; }
 
 /* ---------- mobile top bar (hidden on desktop) ---------- */
@@ -1144,11 +1153,7 @@ html.settings-open { overflow: hidden; }
   display: grid;
   place-items: center;
 }
-/* The mountain is a silhouette. As a mask it takes the theme's ink, so it reads
-   white on the dark theme and near-black on the light one — an <img> of white
-   pixels could only ever do the first. */
-.splash-logo::before {
-  content: "";
+.splash-logo img {
   width: 148px;
   height: 148px;
   object-fit: contain;
@@ -3723,7 +3728,8 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
 .btn-secondary:hover { border-color: var(--accent); color: var(--text); }
 
 /* ============================================================================
-   Settings, full screen
+   Settings, full screen (on a phone — on anything wider it is a window, see
+   "Settings as a window" at the end of this file)
    ----------------------------------------------------------------------------
    It was a floating card with its own scrollbar, and the rows inside it were a
    column of segmented controls all of different widths, right-aligned, so the
@@ -4940,4 +4946,113 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
   #settingsOverlay #accountRows > .settings-row { padding: 14px 0; }
   #settingsOverlay #accountRows > .account-danger { padding: 14px; }
   #settingsOverlay .memory-note-input { margin-left: 0; width: 100%; }
+}
+
+/* ============================================================================
+   Theme options (theme.js, themes.css), merged into the 1.0.24 look
+   ----------------------------------------------------------------------------
+   The 1.0.24 flat look is the default. These come back only when the student
+   picks them in Settings → Appearance.
+   ========================================================================= */
+
+/* The logo in the background ("Logo in the background": on). Under the content,
+   never catching the mouse. */
+:root[data-watermark="on"] .main-area::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(62vw, 640px);
+  height: min(62vw, 640px);
+  background: url('logo-icon.png') center/contain no-repeat;
+  opacity: 0.045;
+  pointer-events: none;
+  z-index: 0;
+}
+:root[data-watermark="on"][data-theme="light"] .main-area::before { opacity: 0.035; }
+
+/* A glowing background ("Background": glow or aurora) brings the glows back. */
+:root:is([data-bg="glow"], [data-bg="aurora"]) .nav-link.active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 24px -10px var(--ai-glow); }
+:root:is([data-bg="glow"], [data-bg="aurora"]) .nav-link.nav-ai.active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 10px 30px -8px var(--ai-glow); }
+:root:is([data-bg="glow"], [data-bg="aurora"]) .btn-ai { box-shadow: 0 8px 28px -4px var(--ai-glow), 0 0 0 1px rgba(255, 255, 255, 0.08) inset; }
+:root:is([data-bg="glow"], [data-bg="aurora"]) .btn-ai:hover { box-shadow: 0 12px 36px -4px var(--ai-glow), 0 0 0 1px rgba(255, 255, 255, 0.14) inset; }
+:root:is([data-bg="glow"], [data-bg="aurora"]) .ai-fab { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 0 1px var(--glass-border), 0 0 34px -6px var(--ai-glow); }
+:root:is([data-bg="glow"], [data-bg="aurora"]) .ai-fab::after {
+  content: ""; position: absolute; inset: -6px; border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--purple) 35%, transparent);
+  animation: climby-halo 3.2s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes climby-halo { 0% { transform: scale(.92); opacity: .8; } 100% { transform: scale(1.25); opacity: 0; } }
+:root:is([data-bg="glow"], [data-bg="aurora"]) .entry-choice.entry-choice-ai, :root:is([data-bg="glow"], [data-bg="aurora"]) .paper-card.is-active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 14px 40px -12px var(--ai-glow); }
+:root:is([data-bg="glow"], [data-bg="aurora"]) .answer::before { height: 3px; box-shadow: 0 0 18px var(--ai-glow); }
+@media (prefers-reduced-motion: reduce) { .ai-fab::after { animation: none; } }
+
+/* ============================================================================
+   Settings as a window
+   ----------------------------------------------------------------------------
+   Full screen hid the app, and the app is what a theme is being chosen for.
+   On anything wider than a phone Settings is a window again: the app stays
+   visible around it, the section list sits on its left, and only the right
+   side scrolls. The grid and the dropdowns from the full-screen version stay.
+   ========================================================================= */
+@media (min-width: 760px) {
+  .settings-overlay#settingsOverlay {
+    padding: 24px;
+    background: color-mix(in srgb, var(--scrim) 70%, transparent);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+  #settingsOverlay .settings-card {
+    width: min(1120px, 100%);
+    height: min(780px, calc(100dvh - 48px));
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    background: var(--bg);
+    box-shadow: inset 0 1px 0 var(--edge-light), 0 40px 90px -30px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  }
+  #settingsOverlay .settings-card > h2 {
+    position: static;
+    flex: none;
+    padding: 18px 24px 16px;
+    background: var(--bg-elevated);
+  }
+  #settingsOverlay .settings-close { position: absolute; top: 14px; right: 16px; margin: 0; }
+  #settingsOverlay .settings-body {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 0;
+  }
+  .settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    position: static;
+    padding: 16px 12px;
+    border-right: 1px solid var(--border);
+    background: var(--bg-elevated);
+    overflow-y: auto;
+    align-self: stretch;
+  }
+  .settings-nav-link.active { color: var(--text); background: var(--accent-soft); }
+  #settingsOverlay .settings-main {
+    max-width: none;
+    margin: 0;
+    padding: 4px 28px 40px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-top: 12px;
+  }
+  #settingsOverlay .settings-group { scroll-margin-top: 12px; }
 }

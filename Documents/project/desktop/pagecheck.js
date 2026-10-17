@@ -132,7 +132,9 @@ function findChromium() {
       !!document.querySelector('#focusLoading .focus-start-progress.is-indeterminate'),
     usernameLogin: document.getElementById('loginEmail')?.type === 'text' &&
       document.getElementById('loginEmail')?.autocomplete === 'username',
-    requiredRegistrationPhone: document.getElementById('registerPhone')?.required === true,
+    // optional since 1.0.26: SMS is not configured, and a phone was never
+    // something a 12-year-old should have to give
+    optionalRegistrationPhone: document.getElementById('registerPhone')?.required === false,
     registrationSmsStep: !!document.getElementById('verifyPhoneForm') &&
       !!document.getElementById('verifyPhoneCode') &&
       !!document.getElementById('resendPhoneCodeLink'),
@@ -149,7 +151,7 @@ function findChromium() {
   if (!wired.focusStartCheck) problems.push('the session-start face check is missing accessible progress UI');
   if (!wired.focusLoadingPrivacy) problems.push('the camera/model loading state is missing privacy and progress cues');
   if (!wired.usernameLogin) problems.push('sign-in does not accept an email or username identifier');
-  if (!wired.requiredRegistrationPhone) problems.push('registration phone is not marked required');
+  if (!wired.optionalRegistrationPhone) problems.push('registration phone is marked required again');
   if (!wired.registrationSmsStep) problems.push('the registration SMS verify/resend step is missing');
   if (!wired.honestSecurityNote) problems.push('the security note omits its encryption limits');
 

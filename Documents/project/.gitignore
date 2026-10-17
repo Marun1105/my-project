@@ -1,10 +1,13 @@
 __pycache__/
 *.pyc
+.pytest_cache/
 .env
 climby.db
+*_test.db
 node_modules/
 electron/dist/
 electron/out/
+desktop/dist/
 
 # downloaded exam papers — a mirror, rebuilt on demand
 papers_cache/

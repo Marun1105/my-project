@@ -49,6 +49,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="subjects.css">
 <link rel="stylesheet" href="classes.css">
+<link rel="stylesheet" href="themes.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
 </head>
 <body>
@@ -283,9 +284,43 @@
       <button type="button" class="settings-nav-link settings-nav-account" data-settings-jump="accountRows" data-i18n="settings.secAccount">Account</button>
     </nav>
     <div class="settings-main">
-    <section class="settings-group" id="setAppearance">
+    <section class="settings-group appearance-group" id="setAppearance">
     <h3 class="settings-section" data-i18n="settings.secAppearance">Appearance</h3>
     <p class="settings-note settings-description" data-i18n="settings.appearanceHint">Choose the language and look that feel right for you.</p>
+    <!-- the live copy of the main screen; on a wide window it stays beside the
+         options while they scroll -->
+    <div class="theme-stage">
+      <div id="themePreview" class="theme-preview" aria-hidden="true">
+        <div class="tp-sky"></div>
+        <div class="tp-side">
+          <div class="tp-brand"><span class="tp-logo"></span><b>Climby</b></div>
+          <div class="tp-nav tp-nav-ai"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg><span data-i18n="nav.tutor">ClimbAI</span></div>
+          <div class="tp-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/></svg><span data-i18n="nav.focus">Възход</span></div>
+          <div class="tp-nav tp-nav-on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span data-i18n="nav.checklist">Маршрут</span></div>
+          <div class="tp-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg><span data-i18n="nav.family">Свръзка</span></div>
+          <div class="tp-user"><span class="tp-avatar">C</span><span class="tp-line"></span></div>
+        </div>
+        <div class="tp-main">
+          <div class="tp-mark"></div>
+          <div class="tp-title" data-i18n="nav.tutor">ClimbAI</div>
+          <div class="tp-sub" data-i18n="page.tutorSubtitle">Снимай задачата и я разглеждаме заедно.</div>
+          <div class="tp-cards">
+            <div class="tp-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><b data-i18n="entry.cameraTitle">Камерата тук</b><span class="tp-line"></span></div>
+            <div class="tp-card tp-card-ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18h2"/></svg><b data-i18n="entry.phoneTitle">Телефонът ти</b><span class="tp-line"></span></div>
+            <div class="tp-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 2.5h8l4 4v15H6z"/><path d="M9 12h6M9 16h6"/></svg><b data-i18n="entry.paperTitle">Минала матура</b><span class="tp-line"></span></div>
+          </div>
+          <div class="tp-chat">
+            <div class="tp-bubble tp-me">2x + 5 = 13</div>
+            <div class="tp-bubble tp-ai"><span class="tp-line"></span><span class="tp-line"></span></div>
+            <div class="tp-input"><span data-i18n="theme.previewAsk">Попитай ClimbAI…</span><span class="tp-btn-ai">ClimbAI</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="theme-stage-caption" aria-live="polite">
+        <span id="themePreviewName" class="theme-stage-name"></span>
+        <span id="themePreviewState" class="theme-stage-state" data-i18n="theme.current">Текуща</span>
+      </div>
+    </div>
     <div class="settings-row settings-row-stack">
       <span data-i18n="settings.language">Език</span>
       <div class="theme-switch" role="group" data-i18n-aria-label="settings.language" aria-label="Език">
@@ -293,13 +328,91 @@
         <button type="button" class="theme-switch-option" data-lang="en" aria-pressed="false">English</button>
       </div>
     </div>
-    <div class="settings-row settings-row-stack">
+    <!-- The theme studio: a live copy of the main screen on top, the themes
+         under it. Pointing at a theme (or an option) shows it on the copy;
+         clicking applies it. appearance.js builds the cards. -->
+    <div class="settings-row settings-row-stack theme-studio">
       <span data-i18n="settings.theme">Тема</span>
-      <div class="theme-switch" role="group" data-i18n-aria-label="settings.theme" aria-label="Тема">
-        <button type="button" class="theme-switch-option" data-theme-mode="auto" aria-pressed="false" data-i18n="theme.auto">Авто</button>
-        <button type="button" class="theme-switch-option" data-theme-mode="light" aria-pressed="false" data-i18n="theme.light">Светла</button>
-        <button type="button" class="theme-switch-option" data-theme-mode="dark" aria-pressed="false" data-i18n="theme.dark">Тъмна</button>
+      <div class="theme-switch theme-filter" role="group" data-i18n-aria="theme.filterAria" aria-label="Покажи теми">
+        <button type="button" class="theme-switch-option active" data-theme-filter="all" aria-pressed="true" data-i18n="theme.filterAll">Всички</button>
+        <button type="button" class="theme-switch-option" data-theme-filter="dark" aria-pressed="false" data-i18n="theme.dark">Тъмна</button>
+        <button type="button" class="theme-switch-option" data-theme-filter="light" aria-pressed="false" data-i18n="theme.light">Светла</button>
       </div>
+      <div id="themeGallery" class="theme-gallery" role="group" data-i18n-aria="settings.theme" aria-label="Тема"></div>
+      <div id="themeAutoRow" class="theme-auto hidden">
+        <label><span data-i18n="theme.autoLight">През деня (светла система)</span>
+          <select id="themeAutoLight" class="settings-select" data-auto-palette="light"></select></label>
+        <label><span data-i18n="theme.autoDark">Вечер (тъмна система)</span>
+          <select id="themeAutoDark" class="settings-select" data-auto-palette="dark"></select></label>
+      </div>
+    </div>
+    <div class="settings-row settings-row-stack">
+      <span data-i18n="look.accent">Акцентен цвят</span>
+      <div id="accentSwatches" class="accent-swatches" role="group" data-i18n-aria="look.accent" aria-label="Акцентен цвят"></div>
+      <p class="settings-note" data-i18n="look.accentNote">Цветът на бутоните, отметките и избраното. Темата си има свой — тук може да го смениш.</p>
+    </div>
+    <div class="settings-row settings-row-stack">
+      <span data-i18n="look.ai">Цветът на ClimbAI</span>
+      <div class="theme-switch look-switch" role="group" data-i18n-aria="look.ai" aria-label="Цветът на ClimbAI">
+        <button type="button" class="theme-switch-option" data-look="ai" data-value="climby" data-i18n="look.aiClimby">Виолетовото на Climby</button>
+        <button type="button" class="theme-switch-option" data-look="ai" data-value="theme" data-i18n="look.aiTheme">По темата</button>
+      </div>
+    </div>
+    <div class="settings-row settings-row-stack">
+      <span data-i18n="look.bg">Фон</span>
+      <div class="theme-switch look-switch" role="group" data-i18n-aria="look.bg" aria-label="Фон">
+        <button type="button" class="theme-switch-option" data-look="bg" data-value="plain" data-i18n="look.bgPlain">Чист</button>
+        <button type="button" class="theme-switch-option" data-look="bg" data-value="glow" data-i18n="look.bgGlow">Сияние</button>
+        <button type="button" class="theme-switch-option" data-look="bg" data-value="aurora" data-i18n="look.bgAurora">Аврора</button>
+        <button type="button" class="theme-switch-option" data-look="bg" data-value="dots" data-i18n="look.bgDots">Точки</button>
+      </div>
+    </div>
+    <div class="settings-row settings-row-stack">
+      <span data-i18n="look.glass">Повърхности</span>
+      <div class="theme-switch look-switch" role="group" data-i18n-aria="look.glass" aria-label="Повърхности">
+        <button type="button" class="theme-switch-option" data-look="glass" data-value="frosted" data-i18n="look.glassFrosted">Матово стъкло</button>
+        <button type="button" class="theme-switch-option" data-look="glass" data-value="solid" data-i18n="look.glassSolid">Плътни</button>
+      </div>
+    </div>
+    <div class="settings-row settings-row-stack">
+      <span data-i18n="look.corners">Ъгли</span>
+      <div class="theme-switch look-switch" role="group" data-i18n-aria="look.corners" aria-label="Ъгли">
+        <button type="button" class="theme-switch-option" data-look="corners" data-value="sharp"><span class="corner-ico c-sharp" aria-hidden="true"></span><span data-i18n="look.cornersSharp">Остри</span></button>
+        <button type="button" class="theme-switch-option" data-look="corners" data-value="soft"><span class="corner-ico c-soft" aria-hidden="true"></span><span data-i18n="look.cornersSoft">Меки</span></button>
+        <button type="button" class="theme-switch-option" data-look="corners" data-value="round"><span class="corner-ico c-round" aria-hidden="true"></span><span data-i18n="look.cornersRound">Заоблени</span></button>
+      </div>
+    </div>
+    <div class="settings-row">
+      <span class="settings-label" data-i18n="look.font">Шрифт</span>
+      <div class="settings-control">
+        <select class="settings-select" data-look="font" data-i18n-aria="look.font" aria-label="Шрифт">
+          <option value="inter" data-i18n="look.fontInter">Climby (Inter)</option>
+          <option value="manrope" data-i18n="look.fontManrope">Заоблен (Manrope)</option>
+          <option value="system" data-i18n="look.fontSystem">Като на системата</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-row">
+      <span class="settings-label" data-i18n="look.watermark">Логото на фона</span>
+      <div class="settings-control">
+        <select class="settings-select" data-look="watermark" data-i18n-aria="look.watermark" aria-label="Логото на фона">
+          <option value="on" data-i18n="look.show">Показвай</option>
+          <option value="off" data-i18n="look.hide">Скрий</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-row">
+      <span class="settings-label" data-i18n="look.motion">Анимации</span>
+      <div class="settings-control">
+        <select class="settings-select" data-look="motion" data-i18n-aria="look.motion" aria-label="Анимации">
+          <option value="on" data-i18n="look.motionOn">Включени</option>
+          <option value="off" data-i18n="look.motionOff">Изключени</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-row">
+      <span><span data-i18n="look.reset">Стандартен вид</span><br><small class="settings-note" data-i18n="look.resetNote">Връща цвета, фона, ъглите и шрифта. Темата остава.</small></span>
+      <button id="lookResetBtn" class="btn-secondary tour-replay" type="button" data-i18n="look.resetBtn">Върни</button>
     </div>
     <div class="settings-row">
       <span class="settings-label" data-i18n="settings.text">Text size</span>
@@ -520,6 +633,15 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span data-i18n="account.settings">Настройки</span>
         </button>
+        <div class="account-menu-theme">
+          <span class="account-menu-theme-label" data-i18n="settings.theme">Тема</span>
+          <div class="theme-switch" role="group" data-i18n-aria-label="settings.theme" aria-label="Тема">
+          <button type="button" class="theme-switch-option" data-theme-mode="auto" aria-pressed="false" data-i18n="theme.auto">Авто</button>
+          <button type="button" class="theme-switch-option" data-theme-mode="light" aria-pressed="false" data-i18n="theme.light">Светла</button>
+          <button type="button" class="theme-switch-option" data-theme-mode="dark" aria-pressed="false" data-i18n="theme.dark">Тъмна</button>
+      </div>
+          <button id="themeMoreBtn" class="account-menu-more" type="button" data-i18n="theme.more">Още теми и цветове →</button>
+        </div>
         <button id="menuLoginBtn" class="account-menu-item hidden" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg>
           <span data-i18n="account.login">Влез</span>
@@ -1319,6 +1441,7 @@
 <script src="offline.js"></script>
 <script src="theme.js"></script>
 <script src="settings.js"></script>
+<script src="appearance.js"></script>
 <script src="account.js"></script>
 <script src="profile.js"></script>
 <script src="nav.js"></script>

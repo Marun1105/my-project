@@ -607,9 +607,12 @@ with ClimbAI questions to Climby and its AI provider. The current chat is sent f
 The profile city is never included automatically. Choices and notes are stored only on this
 device.
 
-Settings opens full screen from the menu under the account name at the bottom left. Its rows,
-in order:
-- Appearance: "Language", "Theme",
+Settings opens as a window (full screen on a phone) from the menu under the account name at the
+bottom left. Its rows, in order:
+- Appearance: "Language", "Theme" (17 themes plus Auto, with a live preview of the main
+  screen: point at one to see it, click to apply), "Accent colour", "ClimbAI colour",
+  "Background", "Surfaces", "Corners", "Font", "Logo in the background", "Animations",
+  "Default look",
   "Text size", "Reading" (wider letters and taller lines, easier
   with dyslexia).
 - ClimbAI: "How ClimbAI explains" (hints first, or full solutions),
@@ -619,7 +622,6 @@ in order:
   adds one. Bulgarian has no voice on a stock Windows, so the read-aloud button does not
   appear at all there. "ClimbAI memory" has separate opt-in switches; nothing is remembered
   about personality or location unless the student writes a note, and nothing is inferred.
-- The app: "Tour of the app", "Version" with
 - The "Family & classes" Settings section has links to "Family progress" and "Classes".
   Family progress links a parent by code; the parent sees how much was done and when, never
   what the tasks say or these conversations. The "Classes" link opens "Classroom crew",
@@ -668,9 +670,11 @@ something that does not exist trusts you less about the mathematics too.""",
 за да има продължението контекст. Градът от профила никога не се включва автоматично.
 Изборите и бележката се пазят само на устройството.
 
-Настройките се отварят на цял екран от менюто под името на акаунта долу вляво. Редовете им, по
-ред:
-- Изглед: „Език", „Тема",
+Настройките се отварят като прозорец (на телефон — на цял екран) от менюто под името на акаунта
+долу вляво. Редовете им, по ред:
+- Изглед: „Език", „Тема" (17 теми и Авто, с жив преглед на главния екран: посочваш тема,
+  за да я видиш, кликваш, за да я сложиш), „Акцентен цвят", „Цветът на ClimbAI", „Фон",
+  „Повърхности", „Ъгли", „Шрифт", „Логото на фона", „Анимации", „Стандартен вид",
   „Размер на текста", „Четене" (по-широки букви и редове, по-лесно при
   дислексия).
 - ClimbAI: „Как обяснява ClimbAI" (подсказки или цяло решение),
