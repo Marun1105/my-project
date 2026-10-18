@@ -6,7 +6,7 @@ const Focus = (() => {
   const BACKEND = window.CLIMBY_BACKEND;
   const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
   const ENABLED_KEY = 'climby-focus-enabled';
-  const IDENTITY_DISTANCE = 0.55;
+  const IDENTITY_DISTANCE = FaceVerification.DEFAULT_THRESHOLD;
   const ENROLL_SAMPLES = 3;
   const IDENTITY_CHECK_MS = 1000;
 
@@ -15,6 +15,9 @@ const Focus = (() => {
   let recognitionReady = false;
   let referenceDescriptor = null;
   let identityMonitor = null;
+  // While paused: watches for the face that started the session, to resume
+  // by itself (see FaceVerification.createResumeWatch).
+  let resumeWatch = null;
   let lastIdentityCheck = 0;
   // Искаме от камерата едно и също на двете места, където се пуска — в началото
   // на сесията и при връщане в раздела. Две копия биха се разминали.
@@ -191,6 +194,7 @@ const Focus = (() => {
     verificationPauseMs = 0;
     verificationFeedbackKey = 'focus.verifyPausedHint';
     identityMonitor = null;
+    resumeWatch = null;
     lastIdentityCheck = 0;
     identityCheckPending = false;
     const identityCheck = $('focusIdentityCheck');
@@ -303,6 +307,9 @@ const Focus = (() => {
   function pauseForIdentityMismatch(messageKey = 'focus.verifyPausedHint') {
     if (verificationPausedAt !== null) return;
     verificationPausedAt = Date.now();
+    resumeWatch = referenceDescriptor
+      ? FaceVerification.createResumeWatch(referenceDescriptor, IDENTITY_DISTANCE)
+      : null;
     const title = $('focusVerifyPaused').querySelector('strong');
     if (title) title.textContent = t('focus.verifyPausedTitle');
     verificationFeedbackKey = messageKey;
@@ -317,13 +324,38 @@ const Focus = (() => {
   }
 
   function checkIdentity(descriptor) {
-    if (!identityMonitor || verificationPausedAt !== null) {
+    if (verificationPausedAt !== null) {
+      // Paused: the same once-a-second look decides when to carry on, so the
+      // student who sat back down does not have to find a button and hold
+      // still for one perfect frame.
+      const back = resumeWatch ? resumeWatch.observe(descriptor) : false;
+      if (descriptor) descriptor.fill(0);
+      if (back) resumeAfterMatch();
+      return;
+    }
+    if (!identityMonitor) {
       if (descriptor) descriptor.fill(0);
       return;
     }
     const result = identityMonitor.observe(descriptor);
     if (descriptor) descriptor.fill(0);
     if (result.shouldPause) pauseForIdentityMismatch();
+  }
+
+  function resumeAfterMatch() {
+    if (verificationPausedAt === null) return;
+    verificationPauseMs += Date.now() - verificationPausedAt;
+    verificationPausedAt = null;
+    resumeWatch = null;
+    verificationFeedbackKey = 'focus.verifyPausedHint';
+    $('focusVerifyPaused').classList.add('hidden');
+    $('focusVerifyResumeBtn').disabled = false;
+    $('focusStatus').textContent = t('focus.runningStatus');
+    identityMonitor = FaceVerification.createMonitor(referenceDescriptor, IDENTITY_DISTANCE);
+    const badgeLabel = $('focusBadge').querySelector('.focus-badge-text > span');
+    if (badgeLabel) badgeLabel.textContent = t('focus.badge');
+    lastTickAt = performance.now();
+    paintBadge();
   }
 
   async function verifyAndResume() {
@@ -347,16 +379,7 @@ const Focus = (() => {
         button.disabled = false;
         return;
       }
-      verificationPauseMs += Date.now() - verificationPausedAt;
-      verificationPausedAt = null;
-      verificationFeedbackKey = 'focus.verifyPausedHint';
-      $('focusVerifyPaused').classList.add('hidden');
-      $('focusStatus').textContent = t('focus.runningStatus');
-      identityMonitor = FaceVerification.createMonitor(referenceDescriptor, IDENTITY_DISTANCE);
-      const badgeLabel = $('focusBadge').querySelector('.focus-badge-text > span');
-      if (badgeLabel) badgeLabel.textContent = t('focus.badge');
-      lastTickAt = performance.now();
-      paintBadge();
+      resumeAfterMatch();
     } catch {
       verificationFeedbackKey = 'focus.verifyStillPaused';
       $('focusVerifyMessage').textContent = t('focus.verifyStillPaused');
@@ -1045,9 +1068,10 @@ const Focus = (() => {
   // честно колко от времето ПРЕД камерата е било гледане в задачата.
   function suspendCamera() {
     startId++;             // всеки опит за пускане, който още тече, става ненужен
-    if (sessionStart) {
-      pauseForIdentityMismatch('focus.verifyCameraNeeded');
-    }
+    // The timer keeps going: a student on Homework HQ or asking ClimbAI is
+    // working, and the owner asked for sessions to run in the other menus.
+    // 1.0.24 paused here, which stopped the clock every time the student
+    // looked at their homework. The face check simply carries on on return.
     if (!stream) return;   // камерата още се отваря — горният ред я отказва
     stopTracking();
     dropMedia(stream);
@@ -1080,7 +1104,6 @@ const Focus = (() => {
         return;
       }
       showStage('Running');   // сесията продължава; просто без камера
-      pauseForIdentityMismatch('focus.verifyCameraNeeded');
       return;
     }
     if (attempt !== startId || !sessionStart) { dropMedia(media); starting = false; return; }
@@ -1088,9 +1111,6 @@ const Focus = (() => {
     starting = false;
     $('focusVideo').srcObject = stream;
     showStage('Running');
-    if (verificationPausedAt === null) {
-      pauseForIdentityMismatch('focus.verifyCameraNeeded');
-    }
     startTracking();
   }
 

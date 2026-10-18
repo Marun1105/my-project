@@ -1219,7 +1219,10 @@ def test_the_camera_is_released_when_the_screen_is_not_showing():
     body = js[js.index("function suspendCamera()"):js.index("async function resumeCamera()")]
     assert "dropMedia(stream)" in body and "stopTracking()" in body
     assert "sessionStart = null" not in body, "the clock must keep running"
-    assert "sessionStart" in body, "identity verification must pause when its camera is suspended"
+    # Leaving the screen does not pause the session: the owner asked for it to
+    # keep running in the other menus, and the pause read as the timer
+    # "just stopping". The face check carries on when the student comes back.
+    assert "pauseForIdentityMismatch" not in body, "leaving the Focus screen must not pause the session"
 
 
 def test_leaving_while_the_camera_is_still_opening_cancels_it():
@@ -1522,3 +1525,16 @@ def test_the_climbai_star_keeps_its_own_colours():
     import re
     for rule in re.findall(r"([^{}]*climbai-mark--color[^{}]*)\{([^}]*)\}", rest):
         assert "mask:" not in rule[1] or "mask: none" in rule[1], rule[0].strip()
+
+
+
+def test_no_face_never_pauses_a_session():
+    """Looking down at the notebook used to count as "a different person" and
+    pause after three seconds. Only a clear, different face counts now, and
+    the session resumes by itself."""
+    fv = _read("face-verification.js")
+    js = _read("focus.js")
+    assert "if (!candidate) return" in fv
+    assert "DEFAULT_THRESHOLD = 0.6" in fv
+    assert "IDENTITY_DISTANCE = FaceVerification.DEFAULT_THRESHOLD" in js
+    assert "createResumeWatch(referenceDescriptor" in js and "resumeAfterMatch()" in js
