@@ -1505,3 +1505,20 @@ def test_the_screen_does_not_promise_more_privacy_than_the_server_keeps():
     # and each language says a solution is kept too, in its own words
     assert "worked solution" in bodies[1], "the English text omits solution_text"
     assert u"\u0440\u0435\u0448\u0435\u043d\u0438\u0435" in bodies[0], "the Bulgarian text omits solution_text"
+
+
+
+def test_the_climbai_star_keeps_its_own_colours():
+    """The star in the menu, the corner button and the chat header is the
+    picture itself — purple, lilac and highlight. 1.0.24 masked it into a flat
+    one-colour silhouette and the owner wanted it back."""
+    css = _read("style.css")
+    html = _read("index.html")
+    assert html.count("climbai-mark--color") >= 3
+    block = css.split(".climbai-mark.climbai-mark--color,", 1)[1].split("}", 1)[0]
+    assert "mask: none" in block and "url('climbai-mark.png" in block
+    # nothing later re-masks the coloured star with a flat fill
+    rest = css.split(".climbai-mark.climbai-mark--color,", 1)[1].split("}", 1)[1]
+    import re
+    for rule in re.findall(r"([^{}]*climbai-mark--color[^{}]*)\{([^}]*)\}", rest):
+        assert "mask:" not in rule[1] or "mask: none" in rule[1], rule[0].strip()

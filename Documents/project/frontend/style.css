@@ -2902,14 +2902,9 @@ body.tour-open .sidebar { transition: none; }
   background: url('climbai-mark.png?v=17') center / contain no-repeat;
   filter: none;
 }
-.nav-ai-mark.climbai-mark.climbai-mark--color,
-.ai-fab .climbai-mark.climbai-mark--color,
-.climbai-mark.climbai-mark--color.chat-mark {
-  -webkit-mask: url('climbai-mark.png?v=17') center / contain no-repeat;
-  mask: url('climbai-mark.png?v=17') center / contain no-repeat;
-  background: var(--accent-fg);
-}
-.nav-ai-mark.climbai-mark.climbai-mark--color { width: 18px; height: 18px; }
+/* 1.0.24 flattened these three into a one-colour silhouette; the star is
+   ClimbAI's face and stays in its own colours, at the size it reads at. */
+.nav-ai-mark.climbai-mark.climbai-mark--color { width: 22px; height: 22px; }
 
 /* ---------- ClimbAI in the corner ---------- */
 .ai-fab {
@@ -2929,7 +2924,7 @@ body.tour-open .sidebar { transition: none; }
   padding: 0;
   transition: transform .18s ease, box-shadow .35s ease;
 }
-.ai-fab .climbai-mark { width: 26px; height: 26px; }
+.ai-fab .climbai-mark { width: 30px; height: 30px; }
 .ai-fab:hover {
   border-color: var(--accent-fg);
   background: var(--bg-sunken);
