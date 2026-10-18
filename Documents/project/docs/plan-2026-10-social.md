@@ -307,6 +307,21 @@ Each step is a release on its own.
 
 ---
 
+## Answers, 2026-10-18
+
+- **Age:** month and year of birth at sign-up; existing accounts are asked once.
+  **Under 12** the social parts switch on only after a parent approves.
+  ⚠ Open legal point: Bulgaria's consent age for online services is **14**
+  (GDPR Art. 8). For 12–13-year-olds, consent-based processing of a public
+  profile/chat still needs a parent's consent unless another legal basis
+  applies. Decide before step 1 ships — the simplest safe rule is 14.
+- **Suspicious chat:** under 16 and 3+ years apart, plus the AI filter always.
+- **Avatars:** real photos allowed for everyone (shown to friends only, per
+  the privacy settings in section 2).
+- **Database:** not yet — no new tables until the owner says go.
+- Still open: Bump screenshots (1), verification (4), the currency's name (6),
+  message retention (7).
+
 ## The questions still open
 
 1. **Bump**: two or three screenshots, and which part of the look you mean.

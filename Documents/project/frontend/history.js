@@ -140,10 +140,13 @@ const History = (() => {
       pill.textContent = t.subject;
       meta.appendChild(pill);
     }
-    const added = document.createElement('span');
-    added.className = 'deadline';
-    added.textContent = window.t('history.addedOn', { date: formatDate(t.created_at) });
-    meta.appendChild(added);
+    // a record without a date says nothing rather than "Invalid Date"
+    if (t.created_at && !isNaN(new Date(t.created_at))) {
+      const added = document.createElement('span');
+      added.className = 'deadline';
+      added.textContent = window.t('history.addedOn', { date: formatDate(t.created_at) });
+      meta.appendChild(added);
+    }
 
     const status = completionStatus(t);
     if (status) {

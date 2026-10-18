@@ -17,7 +17,7 @@ const TASKS = [
   { id: 't2', text: 'Да повторя за контролното по биология', subject: 'Биология', deadline: day(1), done: false },
   { id: 't3', text: 'Да прочета трета глава', subject: 'История', deadline: day(2), done: false },
   { id: 't4', text: 'Упражнение 5 — неправилни глаголи', subject: 'Английски', deadline: day(3), done: false },
-  { id: 't6', text: 'Да науча стихотворението', subject: 'Литература', deadline: day(-5), done: true },
+  { id: 't6', text: 'Да науча стихотворението', subject: 'Литература', deadline: day(-5), done: true, created_at: day(-8) + 'T10:00:00Z', completed_at: day(-6) + 'T18:00:00Z' },
 ];
 
 const EVENTS = [

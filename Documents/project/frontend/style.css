@@ -5203,7 +5203,8 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
    browser cannot clip a background to text. */
 .nav-ai > span:not(.nav-badge):not(.nav-ai-mark),
 #view-tutor .page-header h1,
-.chat-title strong {
+.chat-title strong,
+.ai-name {
   color: #c084fc;
   background: var(--ai-text-gradient);
   background-size: 200% 100%;
@@ -5214,9 +5215,10 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
 }
 :root[data-theme="light"] .nav-ai > span:not(.nav-badge):not(.nav-ai-mark),
 :root[data-theme="light"] #view-tutor .page-header h1,
-:root[data-theme="light"] .chat-title strong { color: #7c3aed; }
+:root[data-theme="light"] .chat-title strong,
+:root[data-theme="light"] .ai-name { color: #7c3aed; }
 @media (prefers-reduced-motion: reduce) {
-  .nav-ai > span:not(.nav-badge):not(.nav-ai-mark), #view-tutor .page-header h1, .chat-title strong { animation: none; }
+  .nav-ai > span:not(.nav-badge):not(.nav-ai-mark), #view-tutor .page-header h1, .chat-title strong, .ai-name { animation: none; }
 }
 
 

@@ -278,7 +278,7 @@
     <nav class="settings-nav" aria-label="Settings sections" data-i18n-aria-label="settings.navAria">
       <button type="button" class="settings-nav-link settings-nav-account" data-settings-jump="accountRows" data-i18n="settings.secAccount">Account</button>
       <button type="button" class="settings-nav-link" data-settings-jump="setAppearance" data-i18n="settings.secAppearance">Appearance</button>
-      <button type="button" class="settings-nav-link" data-settings-jump="setTutor" data-i18n="settings.secTutor">ClimbAI</button>
+      <button type="button" class="settings-nav-link" data-settings-jump="setTutor"><span class="ai-name" data-i18n="settings.secTutor">ClimbAI</span></button>
       <button type="button" class="settings-nav-link" data-settings-jump="setFamily" data-settings-role="parent student" data-i18n="nav.family">Family</button>
       <button type="button" class="settings-nav-link" data-settings-jump="setClass" data-settings-role="teacher student" data-i18n="nav.classes">Class</button>
       <button type="button" class="settings-nav-link" data-settings-jump="setApp" data-i18n="settings.secApp">The app</button>
@@ -482,7 +482,7 @@
     </div>
     </section>
     <section class="settings-group" id="setTutor">
-    <h3 class="settings-section" data-i18n="settings.secTutor">ClimbAI</h3>
+    <h3 class="settings-section"><span class="ai-name" data-i18n="settings.secTutor">ClimbAI</span></h3>
     <div class="settings-row" data-icon="bulb">
       <span class="settings-label" data-i18n="settings.tutorMode">How ClimbAI explains</span>
       <div class="settings-control">
@@ -898,7 +898,7 @@
     </button>
     <button type="button" class="home-start-item" id="homeStartChat">
       <span class="spark climbai-mark" aria-hidden="true"></span>
-      <span><strong data-i18n="home.startChat">Ask ClimbAI anything</strong><span data-i18n="home.startChatHint">A word, a rule, a problem — typed, no photo.</span></span>
+      <span><strong class="ai-name" data-i18n="home.startChat">Ask ClimbAI anything</strong><span data-i18n="home.startChatHint">A word, a rule, a problem — typed, no photo.</span></span>
     </button>
     <button type="button" class="home-start-item" data-goto-view="focus">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 3h11M6.5 21h11"/><path d="M8 3v2.6c0 2 1.6 3.4 4 5.4 2.4-2 4-3.4 4-5.4V3"/><path d="M8 21v-2.6c0-2 1.6-3.4 4-5.4 2.4 2 4 3.4 4 5.4V21"/><path d="M10 19.2h4" stroke-width="2.2"/><path d="M12 11v2.4" stroke-dasharray="0.6 1.6"/></svg>
@@ -1062,7 +1062,7 @@
      changes the whole answer; this is where it can be caught. Filled by tutor.js. -->
 <details id="readPanel" class="read-panel hidden">
   <summary>
-    <span class="read-panel-title" data-i18n="scanner.readTitle">What ClimbAI read</span>
+    <span class="read-panel-title ai-name" data-i18n="scanner.readTitle">What ClimbAI read</span>
     <span class="read-panel-hint" data-i18n="scanner.readHint">Check it matches your page</span>
   </summary>
   <div class="read-body"></div>
