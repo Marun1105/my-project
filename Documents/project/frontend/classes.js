@@ -308,7 +308,8 @@ const Classes = (() => {
     // стоеше празен под формата, все едно учителят няма класове — а той просто
     // чака. Ако вече има карти, те остават: презареждането не е зареждане.
     if (!list.children.length) {
-      _setEmptyText(empty, t('classes.loading'));
+      if (window.AIActivity) AIActivity.fillLoading(empty, t('classes.loading'));
+      else _setEmptyText(empty, t('classes.loading'));
       empty.classList.remove('hidden');
     }
 
@@ -359,7 +360,8 @@ const Classes = (() => {
     const empty = $('studentClassesEmpty');
 
     if (!list.children.length) {
-      _setEmptyText(empty, t('classes.loading'));
+      if (window.AIActivity) AIActivity.fillLoading(empty, t('classes.loading'));
+      else _setEmptyText(empty, t('classes.loading'));
       empty.classList.remove('hidden');
     }
 

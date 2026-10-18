@@ -10,6 +10,7 @@ const Planner = (() => {
 
   function renderAdvice(text) {
     const el = $('planAdvice');
+    const took = window.AIActivity ? AIActivity.seconds(el) : 0;
     el.classList.remove('error', 'thinking');
     // Без DOMPurify не пускаме HTML изобщо — AI отговорът не е доверен вход.
     if (window.marked && window.DOMPurify) {
@@ -20,6 +21,7 @@ const Planner = (() => {
       plain.textContent = text;
       el.appendChild(plain);
     }
+    if (window.AIActivity) AIActivity.sign(el, took);
   }
 
   function showError(text) {
@@ -33,7 +35,7 @@ const Planner = (() => {
     const el = $('planAdvice');
     el.classList.remove('hidden', 'error');
     el.classList.add('thinking');
-    el.innerHTML = sparkSvg('spark-spin') + ' ' + t('checklist.planThinking');
+    el.replaceChildren(AIActivity.create('thinking', t('checklist.planThinking'), false, { phases: 'plan' }));
 
     try {
       const tasks = await Checklist.getPendingTasks();

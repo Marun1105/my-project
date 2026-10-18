@@ -330,7 +330,8 @@ const History = (() => {
     dropForeignRows();
 
     if (!list.children.length) {
-      setEmptyText(empty, t('history.loading'));
+      if (window.AIActivity) AIActivity.fillLoading(empty, t('history.loading'));
+      else setEmptyText(empty, t('history.loading'));
       empty.classList.remove('hidden');
     }
 

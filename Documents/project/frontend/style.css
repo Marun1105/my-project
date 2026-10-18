@@ -1157,8 +1157,11 @@ html.settings-open { overflow: hidden; }
   width: 148px;
   height: 148px;
   object-fit: contain;
-  filter: none;
 }
+/* once the ring is playing, the mountain under it steps back */
+.ai-activity-artwork[data-ai-keep] > img { position: relative; transition: opacity .3s ease; }
+.ai-activity-artwork[data-ai-keep].is-playing > img { opacity: 0; }
+.splash-logo.ai-activity-artwork { width: 208px; height: 208px; border-radius: var(--radius-lg); }
 .splash .loading-text {
   margin-top: 18px;
   font-size: 14px;
@@ -1510,6 +1513,89 @@ button:disabled { opacity: 0.4; cursor: default; }
   border-radius: var(--radius);
 }
 .ai-activity--compact .ai-activity-label { font-size: 13px; }
+
+/* ---------- what ClimbAI is doing (ai-activity.js) ----------
+   The phrase and, under it, the seconds — the way ChatGPT, Claude and Gemini
+   say "Thinking…". The phrase shimmers: a lighter band runs across the words,
+   left to right, so the line is visibly alive even between phrase changes. */
+.ai-activity-text { display: grid; gap: 2px; min-width: 0; }
+.ai-activity-label {
+  font-weight: 600;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.ai-activity-label.is-leaving { opacity: 0; transform: translateY(-3px); }
+.ai-activity-time {
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+  min-height: 1em;
+}
+.ai-activity--compact .ai-activity-text { display: flex; align-items: baseline; gap: 8px; }
+.ai-shimmer {
+  color: var(--text-dim);
+  background: linear-gradient(90deg,
+    var(--text-dim) 0%, var(--text-dim) 38%,
+    var(--text) 50%,
+    var(--text-dim) 62%, var(--text-dim) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ai-shimmer 2.4s linear infinite;
+}
+@keyframes ai-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: 0% 0; }
+}
+
+/* inside a button ("Split into steps"): a small loop and the phrase */
+.ai-activity--tiny { gap: 7px; min-height: 0; font-size: inherit; }
+.ai-activity--tiny .ai-activity-artwork { width: 18px; height: 18px; border-radius: 4px; border: 0; }
+.ai-activity--tiny .ai-activity-label { font-size: 13px; }
+button.is-working { cursor: progress; }
+button.is-working .ai-activity { color: inherit; }
+
+/* an ordinary wait in an empty list or a status line */
+.ai-inline { display: inline-flex; align-items: center; gap: 10px; font-weight: 500; }
+.ai-inline .ai-activity-artwork { width: 28px; height: 28px; border-radius: 6px; border: 0; }
+.empty-state:has(.ai-inline) .empty-icon { display: none; }
+
+/* "Thought for 9 s" over a finished answer */
+.ai-thought {
+  display: inline-block;
+  margin-left: 10px;
+  vertical-align: middle;
+  font-size: 12px;
+  font-weight: 400;
+  font-style: normal;
+  color: var(--text-faint);
+}
+.ai-badge + .ai-thought { margin-bottom: 12px; }
+.ai-thought--block { display: block; margin: 0 0 6px; }
+
+/* the "server is waking up" notice and the Focus camera getting ready */
+.net-wake-loop.ai-activity-artwork { width: 30px; height: 30px; border-radius: 7px; border: 0; }
+.focus-loop.ai-activity-artwork { width: 60px; height: 60px; border-radius: var(--radius-lg); }
+@media (max-width: 560px) {
+  .focus-loop.ai-activity-artwork { width: 48px; height: 48px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-shimmer {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: currentColor;
+  }
+  .ai-activity-label { transition: none; }
+}
+/* the app's own "Animations: off": plain words, no moving band */
+html[data-motion="off"] .ai-shimmer,
+html[data-motion="calm"] .ai-shimmer {
+  animation: none;
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
 @keyframes spark-spin {
   from { transform: rotate(0deg) scale(1); }
   50% { transform: rotate(180deg) scale(1.15); }
@@ -2849,7 +2935,10 @@ body.tour-open .sidebar { transition: none; }
 /* ---------- the conversation ---------- */
 /* The student's replies are small and to the right, the tutor's answers are
    full cards: the same asymmetry every chat has, so nobody has to learn it. */
-.thread { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+/* width: 100% — the column sits in a centred flex parent, and without it the
+   thread shrank to its contents: a short "thinking" card came out narrow and
+   centred, then jumped to full width when the answer replaced it. */
+.thread { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; width: 100%; }
 .thread:empty { display: none; }
 .thread .answer { margin: 0; }
 .turn-user {
@@ -3349,7 +3438,7 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 .chat-ai .katex { font-size: 1em; }
 .chat-ai .speak-btn { top: 6px; right: 6px; width: 30px; height: 30px; }
 .chat-ai .speak-btn svg { width: 16px; height: 16px; }
-.chat-thinking { color: var(--text-dim); font-style: italic; }
+.chat-thinking { color: var(--text-dim); }
 .chat-thinking .ai-activity { min-height: 42px; }
 .chat-thinking .thinking-quip { margin-left: 52px; }
 .chat-error { color: var(--warn); border-color: var(--warn); }

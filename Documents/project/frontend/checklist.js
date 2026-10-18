@@ -76,7 +76,10 @@ const Checklist = (() => {
   async function splitTask(task, btn) {
     const original = btn.textContent;
     btn.disabled = true;
-    btn.textContent = t('checklist.splitting');
+    btn.classList.add('is-working');
+    btn.replaceChildren(window.AIActivity
+      ? AIActivity.create('thinking', t('checklist.splitting'), 'tiny', { phases: 'split', timer: false })
+      : t('checklist.splitting'));
     let steps;
     try {
       const token = Auth.getToken();
@@ -93,6 +96,7 @@ const Checklist = (() => {
       steps = data.steps;
     } catch (err) {
       btn.disabled = false;
+      btn.classList.remove('is-working');
       btn.textContent = original;
       showListError(err instanceof Error ? err : new Error(t('checklist.splitErr')));
       return;
@@ -399,7 +403,8 @@ const Checklist = (() => {
     }
 
     if (!list.children.length) {
-      setEmptyText(empty, t('checklist.loading'));
+      if (window.AIActivity) AIActivity.fillLoading(empty, t('checklist.loading'));
+      else setEmptyText(empty, t('checklist.loading'));
       empty.classList.remove('hidden');
     }
 

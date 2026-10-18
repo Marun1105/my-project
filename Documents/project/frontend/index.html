@@ -55,7 +55,7 @@
 <body>
 
 <div id="netWakeStatus" class="net-wake-status hidden" role="status" aria-live="polite" aria-atomic="true">
-  <span class="net-wake-indicator" aria-hidden="true"></span>
+  <span class="net-wake-loop" data-ai-loop="reading" aria-hidden="true"></span>
   <span id="netWakeMessage" data-i18n="net.waking">The server is waking up — hang on…</span>
 </div>
 
@@ -692,10 +692,10 @@
 <p id="mirror" class="mirror hidden" aria-live="polite"></p>
 
 <div id="splash" class="splash">
-  <!-- A mask, not an <img>: the artwork is a silhouette, and a silhouette has to
-       take the theme's ink colour or it vanishes on the light theme. -->
-  <span class="splash-logo" role="img" aria-label="Climby"><img src="logo.png" alt="" width="148" height="148"></span>
-  <p class="loading-text" data-i18n="scanner.loadingCamera">Зарежда камерата…</p>
+  <!-- The mountain first, then ClimbAI's ring fades in over it once the loop is
+       playing (data-ai-keep: the logo is the still frame, not the ring's). -->
+  <span class="splash-logo" role="img" aria-label="Climby" data-ai-loop="reading" data-ai-keep><img src="logo.png" alt="" width="148" height="148"></span>
+  <p class="loading-text ai-shimmer" data-i18n="scanner.loadingCamera">Зарежда камерата…</p>
 </div>
 
 <!-- Първото, което се вижда в ClimbAI. Досега камерата тръгваше сама още при
@@ -1162,13 +1162,7 @@
 
   <div id="focusLoading" class="focus-stage hidden">
     <div class="focus-start-card focus-start-loading" role="status" aria-live="polite">
-      <span class="focus-scan-icon is-loading" aria-hidden="true">
-        <svg viewBox="0 0 48 48" fill="none">
-          <rect x="8" y="13" width="32" height="24" rx="7"/>
-          <circle cx="24" cy="25" r="6"/>
-          <path d="M17 13l2-4h10l2 4"/>
-        </svg>
-      </span>
+      <span class="focus-loop" data-ai-loop="reading" aria-hidden="true"></span>
       <div class="focus-start-copy">
         <span class="focus-start-eyebrow" data-i18n="focus.startEyebrow">ON-DEVICE SESSION CHECK</span>
         <strong data-i18n="focus.loadingTitle">Getting your session ready</strong>

@@ -60,7 +60,7 @@ const Papers = (() => {
     $('paperPicker').classList.remove('hidden');
     $('paperPages').innerHTML = '';
     $('paperPages').classList.add('hidden');
-    setStatus(t('papers.loading'));
+    setStatus(t('papers.loading'), true);
     loadCatalogue().then(cat => {
       setStatus('');
       // Default to the exam with the most papers — today that is НВО 7 maths.
@@ -77,10 +77,12 @@ const Papers = (() => {
     const recent = $('homeGrid'); if (recent) recent.classList.remove('offstage');
   }
 
-  function setStatus(text) {
+  function setStatus(text, loading = false) {
     const el = $('paperStatus');
     el.textContent = text;
     el.classList.toggle('hidden', !text);
+    // a wait gets the ClimbAI ring beside the words; a message stays plain
+    if (loading && text && window.AIActivity) AIActivity.fillLoading(el, text);
   }
 
   function renderTabs() {
@@ -166,7 +168,7 @@ const Papers = (() => {
     const strip = $('paperPages');
     strip.innerHTML = '';
     strip.classList.remove('hidden');
-    setStatus(t('papers.loadingPaper', { year: paper.year }));
+    setStatus(t('papers.loadingPaper', { year: paper.year }), true);
     try {
       const doc = await getDoc(paper);
       setStatus('');

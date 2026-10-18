@@ -110,7 +110,7 @@ const Tutor = (() => {
     clearSteps();
     el.classList.remove('hidden', 'error', 'reading');
     el.classList.add('thinking');
-    el.replaceChildren(AIActivity.create('thinking', t('scanner.thinking')));
+    el.replaceChildren(AIActivity.create('thinking', t('scanner.thinking'), false, { phases: 'followup' }));
     const aside = document.createElement('span');
     aside.className = 'thinking-quip';
     aside.setAttribute('aria-hidden', 'true');
@@ -133,7 +133,7 @@ const Tutor = (() => {
     el.classList.remove('hidden', 'error');
     el.classList.add('thinking', 'reading');
     el.innerHTML = '';
-    el.appendChild(AIActivity.create('reading', t('loading.reading')));
+    el.appendChild(AIActivity.create('reading', t('loading.reading'), false, { timer: true }));
     const list = document.createElement('ol');
     list.className = 'read-steps';
     const items = STEPS.map(step => {
@@ -243,7 +243,9 @@ const Tutor = (() => {
         if (data.read) showRead(data.read);
       }
       window.dispatchEvent(new CustomEvent('climby:activity'));
+      const took = AIActivity.seconds(target);
       renderAnswer(data.answer, target);
+      AIActivity.sign(target, took);
       history.push({ role: 'user', text: question }, { role: 'assistant', text: data.answer });
       $('followUp').classList.remove('hidden');
       return true;

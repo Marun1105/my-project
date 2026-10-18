@@ -138,7 +138,8 @@ const Family = (() => {
 
     // Сървърът се буди по минута; дотогава родителят не бива да чете, че няма дете.
     if (!wrap.children.length) {
-      setEmptyText(empty, t('family.loading'));
+      if (window.AIActivity) AIActivity.fillLoading(empty, t('family.loading'));
+      else setEmptyText(empty, t('family.loading'));
       empty.classList.remove('hidden');
     }
 

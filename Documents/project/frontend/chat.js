@@ -135,7 +135,7 @@ const Chat = (() => {
     mine.textContent = text;
     const theirs = bubble('ai');
     theirs.classList.add('chat-thinking');
-    theirs.appendChild(AIActivity.create('thinking', t('scanner.thinking'), true));
+    theirs.appendChild(AIActivity.create('thinking', t('scanner.thinking'), true, { phases: 'chat' }));
     const aside = document.createElement('span');
     aside.className = 'thinking-quip';
     aside.setAttribute('aria-hidden', 'true');
@@ -165,7 +165,9 @@ const Chat = (() => {
         theirs.textContent = typeof data.detail === 'string' && data.detail ? data.detail : t('scanner.errOffline');
         return;
       }
+      const took = AIActivity.seconds(theirs);
       render(data.answer, theirs);
+      AIActivity.sign(theirs, took);
       if (window.Speak) Speak.attach(theirs);
       if (window.Copy) Copy.attach(theirs);
       // Homework the tutor heard in the message, offered as a card with one
