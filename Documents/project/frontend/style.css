@@ -5053,11 +5053,16 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
   width: min(62vw, 640px);
   height: min(62vw, 640px);
   background: url('logo-icon.png') center/contain no-repeat;
-  opacity: 0.045;
+  opacity: 0.08;
   pointer-events: none;
-  z-index: 0;
+  /* Over the content, not under it. Under it, the solid cards covered parts
+     of the mountain and what showed between them looked cut to pieces at
+     every window size. Over it, faint and blended, the whole mountain shows
+     and text stays readable; dialogs and the chat sit above it. */
+  z-index: 5;
+  mix-blend-mode: screen;
 }
-:root[data-watermark="on"][data-theme="light"] .main-area::before { opacity: 0.08; }
+:root[data-watermark="on"][data-theme="light"] .main-area::before { opacity: 0.07; mix-blend-mode: multiply; }
 /* Centred in the content, not in the window: centred in the window, its left
    third slid under the 256px menu and the mountain looked cut off. Smaller
    than the content so no edge ever crops it. On light it was 3.5% — a grey
