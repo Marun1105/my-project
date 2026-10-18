@@ -501,3 +501,21 @@ def test_an_eighth_grader_is_spoken_to_as_a_teenager_on_sonnet(monkeypatch):
     blocks = seen["raw_system"]
     assert blocks[0]["cache_control"] == {"type": "ephemeral"}
     assert "grade 8" not in blocks[0]["text"] and "grade 8" in blocks[1]["text"]
+
+
+def test_see_what_climbai_knows_is_the_exact_memory_text():
+    uid, h = _login("memory-preview@example.com")
+    db = SessionLocal()
+    db.query(User).filter(User.id == uid).first().grade = 8
+    db.commit(); db.close()
+    memory = {"learning_level": True, "checklist": True, "focus_sessions": True,
+              "previous_questions": True, "personal_note_enabled": True, "personal_note": "Use diagrams."}
+    res = client.post("/ai/memory", json={"lang": "en", "memory": memory}, headers=h)
+    assert res.status_code == 200
+    text = res.json()["text"]
+    assert "grade 8" in text and "Use diagrams." in text
+    # off means nothing at all
+    off = {k: False for k in memory}; off["personal_note"] = ""
+    assert client.post("/ai/memory", json={"lang": "en", "memory": off}, headers=h).json()["text"] == ""
+    # and only for the account itself
+    assert client.post("/ai/memory", json={"lang": "en", "memory": memory}).status_code == 401

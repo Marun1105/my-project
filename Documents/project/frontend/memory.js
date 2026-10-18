@@ -11,6 +11,7 @@
 const Memory = (() => {
   const PREFIX = 'climby-memory-v1:';
   let storageError = false;
+  const t = (k, v) => (window.t ? window.t(k, v) : k);
   const defaults = () => ({ on: true, personal_enabled: false, personal_note: '' });
 
   function owner() {
@@ -88,6 +89,12 @@ const Memory = (() => {
     }
     const row = document.querySelector('.memory-note-row');
     if (row) row.classList.toggle('is-off', !(signedIn && value.on));
+    const knowRow = document.getElementById('memoryKnowRow');
+    if (knowRow) knowRow.classList.toggle('hidden', !signedIn);
+    if (!signedIn) {
+      const box = document.getElementById('memoryKnowText');
+      if (box) { box.textContent = ''; box.classList.add('hidden'); }
+    }
     const loginHint = document.getElementById('memoryLoginHint');
     if (loginHint) loginHint.classList.toggle('hidden', signedIn);
     const storageNotice = document.getElementById('memoryStorageError');
@@ -100,7 +107,62 @@ const Memory = (() => {
     }
   }
 
+  // ---- what ClimbAI knows: the server's own words, plus what this device keeps
+  async function knowText() {
+    const token = window.Auth && Auth.getToken();
+    if (!token) return '';
+    const lang = window.I18n ? I18n.get() : 'en';
+    const res = await Net.fetch(window.CLIMBY_BACKEND + '/ai/memory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ lang, memory: request() }),
+    });
+    if (!res.ok) throw new Error('memory preview ' + res.status);
+    const data = await res.json();
+    const parts = [data.text || t('memory.knowNothing')];
+    const chats = window.Chat ? Chat.list() : [];
+    if (chats.length) {
+      parts.push('', t('memory.knowChats', { n: chats.length }));
+      chats.forEach(c => parts.push('- ' + (c.title || t('chat.untitled'))));
+    }
+    return parts.join('\n');
+  }
+
+  async function showKnow() {
+    const box = document.getElementById('memoryKnowText');
+    const btn = document.getElementById('memoryShowBtn');
+    if (!box.classList.contains('hidden')) {
+      box.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.textContent = t('memory.show');
+      return;
+    }
+    box.textContent = t('memory.knowLoading');
+    box.classList.remove('hidden');
+    btn.setAttribute('aria-expanded', 'true');
+    btn.textContent = t('memory.hide');
+    try { box.textContent = await knowText(); }
+    catch { box.textContent = t('account.errGeneric'); }
+  }
+
+  async function downloadKnow() {
+    let text;
+    try { text = await knowText(); }
+    catch { if (window.Toast) Toast.show(t('account.errGeneric')); return; }
+    const head = t('memory.knowTitle') + ' — ' + new Date().toLocaleString() + '\n\n';
+    const blob = new Blob([head + text + '\n'], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'climbai-memory.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  }
+
   function bind() {
+    const show = document.getElementById('memoryShowBtn');
+    if (show) show.addEventListener('click', () => Net.guardClick(show, showKnow));
+    const dl = document.getElementById('memoryDownloadBtn');
+    if (dl) dl.addEventListener('click', () => Net.guardClick(dl, downloadKnow));
     const sw = document.getElementById('memoryOn');
     if (sw) sw.addEventListener('change', () => {
       const value = read();

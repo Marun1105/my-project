@@ -5227,6 +5227,8 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
    ========================================================================== */
 
 /* -- an icon before every setting, in the theme's own colour -------------- */
+[data-icon="bell"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2H4.5z'/><path d='M10 20.5a2 2 0 0 0 4 0'/><path d='M19.5 4.5l1.5-1.5M4.5 4.5 3 3' opacity='.6'/></svg>"); }
+[data-icon="eye"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z'/><circle cx='12' cy='12' r='3'/></svg>"); }
 [data-icon="globe"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M3 12h18M12 3c2.6 2.8 3.8 5.8 3.8 9s-1.2 6.2-3.8 9c-2.6-2.8-3.8-5.8-3.8-9S9.4 5.8 12 3z'/></svg>"); }
 [data-icon="palette"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3a9 9 0 1 0 0 18c1.3 0 2-.8 2-1.8 0-1.4-1.2-1.7-1.2-3 0-1 .8-1.7 1.9-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z'/><circle cx='7.5' cy='11' r='1.2'/><circle cx='10.5' cy='7' r='1.2'/><circle cx='15.5' cy='7.5' r='1.2'/></svg>"); }
 [data-icon="drop"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3.5s6 6.4 6 10.6A6 6 0 0 1 6 14.1C6 9.9 12 3.5 12 3.5z'/><path d='M9.2 14.5a2.9 2.9 0 0 0 2.8 2.6'/></svg>"); }
@@ -5508,3 +5510,39 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
   #settingsProfileBtn { flex-basis: 100%; }
   #profileEmail { overflow-wrap: anywhere; white-space: normal; }
 }
+
+#settingsOverlay .settings-row[data-icon="bell"] > .switch { grid-column: 2; grid-row: 1; }
+
+/* -- Focus: the camera view, small or big, markers on or off -------------- */
+.focus-preview { transition: width 0.3s ease, height 0.3s ease, border-color 0.45s ease, box-shadow 0.45s ease; }
+.focus-preview.is-big { width: min(560px, 100%); height: auto; aspect-ratio: 4 / 3; }
+.focus-preview video { width: 100%; height: 100%; object-fit: cover; }
+.focus-view-tools {
+  position: absolute; right: 6px; bottom: 6px; z-index: 2;
+  display: flex; gap: 4px; opacity: 0.0; transition: opacity 0.2s ease;
+}
+.focus-preview:hover .focus-view-tools,
+.focus-preview:focus-within .focus-view-tools { opacity: 1; }
+@media (hover: none) { .focus-view-tools { opacity: 1; } }
+.focus-view-btn {
+  width: 28px; height: 28px; padding: 0; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(0, 0, 0, 0.55); color: #fff; cursor: pointer;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.focus-view-btn svg { width: 16px; height: 16px; flex: none; }
+.focus-view-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#focusMarkersBtn[aria-pressed="false"] { opacity: 0.6; }
+#focusSizeBtn .fv-shrink { display: none; }
+#focusSizeBtn[aria-pressed="true"] .fv-grow { display: none; }
+#focusSizeBtn[aria-pressed="true"] .fv-shrink { display: block; }
+
+/* -- what ClimbAI knows --------------------------------------------------- */
+.memory-know-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.memory-know-text {
+  margin: 12px 0 0; padding: 14px 16px; max-height: 320px; overflow: auto;
+  white-space: pre-wrap; word-break: break-word;
+  font: 13px/1.55 ui-monospace, Consolas, monospace;
+  background: var(--bg-sunken, var(--bg)); border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.memory-know-text.hidden { display: none; }

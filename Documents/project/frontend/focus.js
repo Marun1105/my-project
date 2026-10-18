@@ -999,7 +999,48 @@ const Focus = (() => {
       drawBox = null;
     }
 
-    drawOverlay(canvas.getContext("2d"), canvas.width, canvas.height, now, dt);
+    if (view.markers) drawOverlay(canvas.getContext("2d"), canvas.width, canvas.height, now, dt);
+    else canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // How the camera view looks: small or big, with or without the markers.
+  // Only the drawing changes — the face check runs the same either way.
+  const VIEW_KEY = 'climby-focus-view';
+  const view = (() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(VIEW_KEY) || '{}') || {};
+      return { big: v.big === true, markers: v.markers !== false };
+    } catch { return { big: false, markers: true }; }
+  })();
+
+  function paintView() {
+    const preview = $('focusOverlay') && $('focusOverlay').parentElement;
+    if (preview) preview.classList.toggle('is-big', view.big);
+    const size = $('focusSizeBtn');
+    if (size) {
+      size.setAttribute('aria-pressed', view.big ? 'true' : 'false');
+      size.setAttribute('aria-label', t(view.big ? 'focus.smaller' : 'focus.bigger'));
+    }
+    const marks = $('focusMarkersBtn');
+    if (marks) {
+      marks.setAttribute('aria-pressed', view.markers ? 'true' : 'false');
+      marks.setAttribute('aria-label', t(view.markers ? 'focus.markersHide' : 'focus.markersShow'));
+    }
+  }
+
+  function setView(key, value) {
+    view[key] = value;
+    try { localStorage.setItem(VIEW_KEY, JSON.stringify(view)); } catch { /* this session only */ }
+    paintView();
+  }
+
+  function initView() {
+    const size = $('focusSizeBtn');
+    const marks = $('focusMarkersBtn');
+    if (size) size.addEventListener('click', () => setView('big', !view.big));
+    if (marks) marks.addEventListener('click', () => setView('markers', !view.markers));
+    window.addEventListener('climby:lang-changed', paintView);
+    paintView();
   }
 
   function startTracking() {
@@ -1218,6 +1259,7 @@ const Focus = (() => {
   }
 
   function init() {
+    initView();
     $('focusEnableToggle').addEventListener('change', e => setEnabled(e.target.checked));
     $('focusStartBtn').addEventListener('click', startSession);
     $('focusStopBtn').addEventListener('click', () => stopSession(false));

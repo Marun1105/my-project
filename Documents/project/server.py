@@ -634,11 +634,13 @@ bottom left. Its sections, in order:
   adds one. Bulgarian has no voice on a stock Windows, so the read-aloud button does not
   appear at all there. Then "ClimbAI memory" (the switch described above); nothing is
   remembered about personality or location unless the student writes a note, and nothing
-  is inferred.
+  is inferred. "What ClimbAI knows about you" shows, and downloads, word for word what
+  ClimbAI is told.
 - "Family": links a parent by code; the parent sees how much was done and when, never
   what the tasks say or these conversations.
 - "Class": joined with a code from the teacher; a teacher makes classes here.
-- The app: "Tour of the app", "Version" with
+- The app: "Tour of the app", "Homework reminders" (in the evening when something is due
+  tomorrow, at most twice, never during a focus session), "Version" with
   "Check for updates" and "Linked phones".
 
 Every screen has a "?" button beside its title that explains that screen.
@@ -698,10 +700,12 @@ something that does not exist trusts you less about the mathematics too.""",
   подразбиране няма български глас, затова там копчето за четене на глас изобщо не се показва.
   После „Памет на ClimbAI“ (превключвателят отгоре); личност или местоположение
   не се запаметяват, освен ако ученикът не ги напише, и никога не се отгатват.
+  „Какво знае ClimbAI за теб“ показва и изтегля дума по дума какво му се казва.
 - „Семейство": родителят се свързва с код и вижда колко е свършено и кога, но не и
   съдържанието на задачите или разговорите.
 - „Клас": влиза се с код от учителя; учителят прави класовете си тук.
-- Приложението: „Разходка из приложението", „Версия" с
+- Приложението: „Разходка из приложението", „Напомняния за домашните" (вечер, когато нещо е
+  за утре, най-много два пъти, никога по време на фокус), „Версия" с
   „Провери за обновяване" и „Свързани телефони".
 
 Всеки екран има бутон „?" до заглавието, който обяснява този екран.
@@ -1394,6 +1398,31 @@ def _load_brief(db: Session, brief_id: str, user: Optional[User]):
     if brief.user_id and (user is None or brief.user_id != user.id):
         return None
     return brief
+
+
+class MemoryPreview(BaseModel):
+    lang: Literal["bg", "en"] = "en"
+    memory: MemorySelection
+
+
+@app.post("/ai/memory")
+def memory_preview(body: MemoryPreview, request: Request,
+                   user: User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    """What ClimbAI is told about this student, word for word.
+
+    Settings → ClimbAI memory → "See what ClimbAI knows" shows (and downloads)
+    exactly this: the same two functions /ask uses, with the same selection,
+    so the page can never describe a memory different from the real one.
+    Reads only the caller's own account, and costs no AI call.
+    """
+    rate_limit.enforce(request, "ai-memory", max_calls=30, window_seconds=3600,
+                       message="Too many attempts. Please wait a moment and try again.", user=user)
+    lang = body.lang
+    text_ = ""
+    if body.memory.learning_level:
+        text_ += _grade_register(user, lang)
+    text_ += _memory_context(db, user, lang, body.memory)
+    return {"text": text_.strip()}
 
 
 @app.post("/ask")
