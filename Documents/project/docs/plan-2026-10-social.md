@@ -319,8 +319,22 @@ Each step is a release on its own.
 - **Avatars:** real photos allowed for everyone (shown to friends only, per
   the privacy settings in section 2).
 - **Database:** not yet — no new tables until the owner says go.
-- Still open: Bump screenshots (1), verification (4), the currency's name (6),
-  message retention (7).
+- **Messages:** kept until the student deletes them — a message, a chat, or the
+  whole chat history (and with the account). This replaces "not kept forever"
+  in section 6. Deleting removes them from the server, not just the screen.
+- **Bump look** (screenshot seen 2026-10-18, not stored here — it is another
+  company's marketing image and this repo is public): huge bold condensed
+  italic headlines on the screen itself ("5 countries", "Arrive in 18mins");
+  a soft map-like background; round avatars as bubbles, a glowing green ring
+  for "live"; small white pills for stats ("92%"); floating white rounded
+  cards with one big round action button; a holographic round main button at
+  the bottom centre; saturated violet-blue. For Climby: the mountain screen
+  and profiles in this style, as their own look, not the whole app.
+- **The currency is "Holds" (Хватки)** — the grips on a climbing wall. Earned
+  by studying, spent to build the mountain hold by hold. Icons: colourful
+  hold-shaped blobs. Example: "+3 holds — solved it on your own". Replaces the
+  "Coins" placeholder everywhere in this plan.
+- Still open: verification (4).
 
 ## The questions still open
 
@@ -331,5 +345,5 @@ Each step is a release on its own.
    (I wrote under 16 and more than 3 years.)
 4. **Verification**: does section 5 cover what you meant, or more?
 5. **Avatars**: generated only for under-16s, or photos too?
-6. **The currency's name.** "Coins" is a placeholder.
-7. **Message retention**: 90 days?
+6. ~~The currency's name.~~ Decided: Holds (Хватки).
+7. ~~Message retention.~~ Decided: until the student deletes them.
