@@ -17,7 +17,7 @@
 // ТРЯБВА да се вдигне — инак хората продължават да виждат старата, а на диска
 // стои новата. Точно това се случи при смяната на знака на ClimbAI: файлът беше
 // нов, екранът показваше стария и нищо не подсказваше защо.
-const CACHE = 'climby-shell-v43';
+const CACHE = 'climby-shell-v44';
 
 // Файлове, чието съдържание не се променя под същото име. Само за тях кешът изпреварва
 // мрежата; всичко останало от нашия произход тръгва по мрежата.
@@ -49,6 +49,10 @@ const SHELL = [
   './fonts/manrope-latin-wght-normal.woff2',
   './fonts/manrope-latin-ext-wght-normal.woff2',
   './fonts/manrope-cyrillic-wght-normal.woff2',
+  './fonts/geologica-cyrillic-wght-normal.woff2',
+  './fonts/geologica-cyrillic-ext-wght-normal.woff2',
+  './fonts/geologica-latin-wght-normal.woff2',
+  './fonts/geologica-latin-ext-wght-normal.woff2',
   './fonts/manrope-cyrillic-ext-wght-normal.woff2',
   './theme.js',
   './settings.js',

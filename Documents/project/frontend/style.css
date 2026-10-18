@@ -70,14 +70,15 @@
   --ai-gradient: linear-gradient(100deg, #6e40c9 0%, #8957e5 50%, #6e40c9 100%);
   --ai-gradient-soft: linear-gradient(100deg, rgba(137, 87, 229, 0.16), rgba(137, 87, 229, 0.1));
   --ai-glow: rgba(137, 87, 229, 0.25);
-  --ai-text-gradient: linear-gradient(100deg, #ab7df8 0%, #c297ff 50%, #ab7df8 100%);
+  /* the colours of the ClimbAI star itself: violet into orchid and lilac */
+  --ai-text-gradient: linear-gradient(100deg, #b57bff 0%, #e879f9 45%, #f0abfc 70%, #b57bff 100%);
   --on-ai: #ffffff;
 
   --ambient-a: transparent;
   --ambient-b: transparent;
 
   --font-body: 'Inter', system-ui, sans-serif;
-  --font-heading: 'Manrope', 'Inter', sans-serif;
+  --font-heading: 'Geologica', 'Inter', sans-serif;
   /* Стари имена, запазени, за да не се пипат десетки правила наведнъж.
      И двете сочат към заглавния шрифт — марката и заглавията са едно и също. */
   --font-brand: var(--font-heading);
@@ -170,7 +171,7 @@
   --ai-gradient-soft: linear-gradient(100deg, rgba(130, 80, 223, 0.1), rgba(130, 80, 223, 0.06));
   --ai-glow: rgba(130, 80, 223, 0.2);
   /* На светло текстът тръгва от тъмните лилави: 4.5:1 и нагоре. */
-  --ai-text-gradient: linear-gradient(100deg, #8250df 0%, #6639ba 50%, #8250df 100%);
+  --ai-text-gradient: linear-gradient(100deg, #7c3aed 0%, #c026d3 50%, #7c3aed 100%);
   --on-ai: #ffffff;
 
   --ambient-a: transparent;
@@ -287,10 +288,12 @@ body {
   margin: 0 -16px 12px;
   border-bottom: 1px solid var(--border);
 }
-.sidebar .brand .tagline { display: none; }
+/* The name and the slogan, as the owner asked: a bigger mark, "Climby" in the
+   heading face, and the slogan under it in ordinary letters (2026-10-18). */
+.sidebar .brand .tagline { display: block; }
 .sidebar-logo {
-  width: 32px;
-  height: 32px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -309,16 +312,16 @@ body {
 .brand { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
 .brand .name {
   font-family: var(--font-brand);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text);
 }
 .entry-gate-brand .brand .name { font-size: 20px; }
 .brand .tagline {
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--text-dim);
   /* Слоганът се пренася, вместо да се реже с многоточие. По-скоро два реда,
      отколкото половин изречение — целият е кратък и без него марката куца. */
@@ -5054,7 +5057,18 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
   pointer-events: none;
   z-index: 0;
 }
-:root[data-watermark="on"][data-theme="light"] .main-area::before { opacity: 0.035; }
+:root[data-watermark="on"][data-theme="light"] .main-area::before { opacity: 0.08; }
+/* Centred in the content, not in the window: centred in the window, its left
+   third slid under the 256px menu and the mountain looked cut off. Smaller
+   than the content so no edge ever crops it. On light it was 3.5% — a grey
+   smudge, "the Claude logo without its orange"; at 8% the violet reads. */
+@media (min-width: 861px) {
+  :root[data-watermark="on"] .main-area::before {
+    left: calc(50% + 128px);
+    width: min(44vw, 520px);
+    height: min(44vw, 520px);
+  }
+}
 
 /* A glowing background ("Background": glow or aurora) brings the glows back. */
 :root:is([data-bg="glow"], [data-bg="aurora"]) .nav-link.active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 24px -10px var(--ai-glow); }
@@ -5181,4 +5195,27 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
 .break-btn-quiet:hover { background: var(--accent-soft); }
 @media (max-width: 560px) { .break-card { right: 16px; left: 16px; width: auto; bottom: 16px; } }
 @media (prefers-reduced-motion: reduce) { .break-card { transition: none; } }
+
+/* ---------- ClimbAI in its own colours, everywhere it is named ----------
+   The owner: "the ClimbAI needs to be in his color everywhere" (2026-10-18).
+   The menu row, the ClimbAI page title and the chat header carry the star's
+   gradient; the colour underneath is real, so the words still read if the
+   browser cannot clip a background to text. */
+.nav-ai > span:not(.nav-badge):not(.nav-ai-mark),
+#view-tutor .page-header h1,
+.chat-title strong {
+  color: #c084fc;
+  background: var(--ai-text-gradient);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: climby-ai-wave 9s linear infinite;
+}
+:root[data-theme="light"] .nav-ai > span:not(.nav-badge):not(.nav-ai-mark),
+:root[data-theme="light"] #view-tutor .page-header h1,
+:root[data-theme="light"] .chat-title strong { color: #7c3aed; }
+@media (prefers-reduced-motion: reduce) {
+  .nav-ai > span:not(.nav-badge):not(.nav-ai-mark), #view-tutor .page-header h1, .chat-title strong { animation: none; }
+}
 

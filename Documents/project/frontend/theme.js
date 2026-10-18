@@ -22,6 +22,7 @@ const Theme = (() => {
   const KEY_LIGHT = 'climby-theme-light'; // the palette 'auto' uses by day
   const KEY_DARK = 'climby-theme-dark';   // …and by night
   const KEY_LOOK = 'climby-look';
+  const LOOK_VERSION = 2;
 
   // Order is the order of the gallery. Midnight and Daylight are the original
   // Climby themes, so they come first in their halves.
@@ -50,7 +51,7 @@ const Theme = (() => {
   const LOOK_DEFAULTS = {
     accent: '',          // '' = the palette's own; otherwise a #hex
     ai: 'climby',        // climby (the violet wave) | theme (the palette's own wave)
-    bg: 'plain',         // plain (the 1.0.24 flat look) | glow | aurora | dots
+    bg: 'glow',          // glow is the default again — the owner missed it (2026-10-18) | plain | aurora | dots
     glass: 'frosted',    // frosted | solid
     corners: 'soft',     // sharp | soft | round
     font: 'inter',       // inter | manrope | system
@@ -95,6 +96,10 @@ const Theme = (() => {
     let saved = {};
     try { saved = JSON.parse(load(KEY_LOOK) || '{}') || {}; } catch { saved = {}; }
     const look = { ...LOOK_DEFAULTS };
+    // Looks saved before v2 (1.0.26–1.0.28) carry the flat background that was
+    // the default then; it is dropped once so the glow comes back. Everything
+    // else the student chose is kept.
+    if (saved.v !== LOOK_VERSION) delete saved.bg;
     Object.keys(LOOK_VALUES).forEach(k => { if (LOOK_VALUES[k].includes(saved[k])) look[k] = saved[k]; });
     if (typeof saved.accent === 'string' && /^#[0-9a-f]{6}$/i.test(saved.accent)) look.accent = saved.accent.toLowerCase();
     return look;
@@ -190,11 +195,11 @@ const Theme = (() => {
     if (key === 'accent') look.accent = /^#[0-9a-f]{6}$/i.test(value || '') ? value.toLowerCase() : '';
     else if (LOOK_VALUES[key] && LOOK_VALUES[key].includes(value)) look[key] = value;
     else return;
-    save(KEY_LOOK, JSON.stringify(look));
+    save(KEY_LOOK, JSON.stringify({ ...look, v: LOOK_VERSION }));
     render(true);
   }
   function resetLook() {
-    save(KEY_LOOK, JSON.stringify(LOOK_DEFAULTS));
+    save(KEY_LOOK, JSON.stringify({ ...LOOK_DEFAULTS, v: LOOK_VERSION }));
     render(true);
   }
 

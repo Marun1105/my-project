@@ -19,6 +19,9 @@ const OUT = path.join(__dirname, 'shots');
 const PORT = Number(process.env.SHOTS_PORT || 8787);
 const MOBILE = process.argv.includes('--mobile');
 const DARK = process.argv.includes('--dark');   // the app's primary theme
+const LIGHT = process.argv.includes('--light');  // the Daylight theme
+const WATERMARK = process.argv.includes('--watermark');
+const PALETTE = (process.argv.find(a => a.startsWith('--theme=')) || '').slice(8);  // any palette, e.g. --theme=ocean
 const VIEWPORT = MOBILE ? { width: 390, height: 844 } : { width: 1440, height: 900 };
 
 const TYPES = {
@@ -113,6 +116,11 @@ function findChromium() {
   });
   await page.waitForTimeout(600);
 
+  if (WATERMARK) await page.evaluate(() => window.Theme && Theme.setLook('watermark', 'on'));
+  if (LIGHT || PALETTE) {
+    await page.evaluate(p => window.Theme && Theme.setTheme(p), PALETTE || 'daylight');
+    await page.waitForTimeout(300);
+  }
   if (DARK) {
     await page.evaluate(() => {
       document.documentElement.setAttribute('data-theme', 'dark');
@@ -124,7 +132,7 @@ function findChromium() {
   const views = await page.evaluate(() =>
     [...document.querySelectorAll('.view')].map(v => v.id.replace(/^view-/, '')));
 
-  const tag = (MOBILE ? 'mobile' : 'desktop') + (DARK ? '-dark' : '');
+  const tag = (MOBILE ? 'mobile' : 'desktop') + (WATERMARK ? '-wm' : '') + (DARK ? '-dark' : PALETTE ? '-' + PALETTE : LIGHT ? '-light' : '');
   for (const view of views) {
     await page.evaluate(v => window.Nav && Nav.activate(v), view);
     await page.waitForTimeout(400);

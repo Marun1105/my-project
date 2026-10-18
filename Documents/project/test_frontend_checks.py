@@ -944,7 +944,7 @@ def test_github_style_theme_defaults_dark_and_keeps_light_mode():
     # the window chrome follows the page colour of whatever theme is on
     assert "meta[name=\"theme-color\"]" in theme and "getPropertyValue('--bg')" in theme
     # the 1.0.24 flat look is the default; glow and the background logo are opt-in
-    assert "bg: 'plain'," in theme and "watermark: 'off'," in theme
+    assert "bg: 'glow'," in theme and "watermark: 'off'," in theme
 
 
 def test_brand_assets_are_used_on_app_and_public_surfaces():
