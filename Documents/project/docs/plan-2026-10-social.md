@@ -307,6 +307,18 @@ Each step is a release on its own.
 
 ---
 
+## Built, 2026-10-18 (steps 1–4, without groups and chat)
+
+- `crew.py`, `holds.py`, tables `social_profiles`, `friend_requests`,
+  `friendships`, `blocks`, `hold_entries` (new tables only; create_all makes them).
+- Set-up (username + month/year of birth, set once), parent approval under
+  `crew.PARENT_APPROVAL_UNDER` (= 12, the owner's rule; see the legal note
+  below), search by username, requests, accept / decline / unfriend / block,
+  cheer (1 hold, once a day per friend), live while a focus session runs,
+  photo shown to friends, holds for solved / on time / focus / streak / break.
+- Export and account deletion cover all of it. `test_crew.py`.
+- Next: groups (step 5), chat with the AI filter and the review queue (step 6).
+
 ## Answers, 2026-10-18
 
 - **Age:** month and year of birth at sign-up; existing accounts are asked once.

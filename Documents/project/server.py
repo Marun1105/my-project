@@ -28,6 +28,8 @@ from starlette.responses import HTMLResponse, JSONResponse, Response
 
 import auth
 import classes
+import crew
+import holds
 import devices
 import family
 import focus_sessions
@@ -78,6 +80,7 @@ app.include_router(activity.router)
 app.include_router(account.router)
 app.include_router(oauth.router)
 app.include_router(papers.router)
+app.include_router(crew.router)
 
 # Външната граница на всичко, което сървърът изобщо си позволява да прочете в паметта.
 # Pydantic проверява размерите ЧАК СЛЕД като FastAPI е задържал цялото тяло, а после
@@ -597,9 +600,13 @@ The screens, from the menu on the left:
   Tasks are ticked off, edited by clicking the text, and a big one can be split into steps by
   you. A deleted task can be undone for a few seconds afterwards.
 - "Done & dusted" — everything already finished, and the questions asked here before.
-- "Crew" — a PREVIEW of the coming social screen: friends on a mountain, placed by the
-  "holds" (Climby's currency, earned by studying) they earned this week. The people on it
-  are samples, not real friends yet; adding friends, cheering and chat do not work yet.
+- "Crew" — friends on a mountain, placed by the "holds" they earned this week. Holds are
+  Climby's currency: +3 for solving a step on your own, +2 for homework done on time, +1 per
+  15 minutes of focus, +1 for a day in a row, +1 for taking a suggested break, +1 when a
+  friend cheers you (once a day). They never buy hints or answers. Set up once with a
+  username and the month and year of birth; under 12 a linked parent allows it in Family.
+  Friends are added by username and both must say yes; a friend studying right now glows
+  "LIVE". There is no chat yet. Signed out, the screen shows sample people as a preview.
 
 Always use the current names above: "Homework", "Done & dusted", "Focus mode",
 "Family" and "Class". Earlier versions of the app called them "The Route",
@@ -667,9 +674,13 @@ something that does not exist trusts you less about the mathematics too.""",
   отмятат, променят се с натискане върху текста, а голяма задача можеш да разделиш на стъпки.
   Изтрита задача може да се върне няколко секунди след това.
 - „Готово и отметнато" — всичко вече свършено и въпросите, задавани тук преди.
-- „Екипът" — ПРЕГЛЕД на бъдещия социален екран: приятели на планина, подредени по
-  „хватките“ (валутата на Climby, печелят се с учене), спечелени тази седмица. Хората там са
-  примерни, още не истински приятели; добавянето, подкрепата и чатът още не работят.
+- „Екипът" — приятели на планина, подредени по „хватките“, спечелени тази седмица.
+  Хватките са валутата на Climby: +3 за сам решена стъпка, +2 за задача навреме, +1 на 15
+  минути фокус, +1 за още ден подред, +1 за предложена почивка, +1 когато приятел те подкрепи
+  (веднъж на ден). Никога не купуват подсказки или отговори. Настройва се веднъж с
+  потребителско име и месец и година на раждане; под 12 години свързан родител го разрешава в
+  Семейство. Приятели се добавят по потребителско име и двамата трябва да кажат „да“; приятел,
+  който учи в момента, свети „НА ЖИВО“. Чат още няма. Без вход екранът показва примерни хора.
 
 Винаги използвай сегашните имена по-горе: „Домашни“, „Готово и отметнато“, „Режим
 фокус“, „Семейство“ и „Клас“. Предишни версии на приложението ги наричаха „Маршрут“,
@@ -1548,8 +1559,12 @@ def ask(
         # Best effort, like the token count above it: the answer is already
         # bought, and a database hiccup here must not throw it away as a 500.
         try:
-            db.add(ScanHistory(user_id=user.id, question=body.question, answer=answer,
-                               lang=lang, solved_unaided=solved))
+            scan = ScanHistory(user_id=user.id, question=body.question, answer=answer,
+                               lang=lang, solved_unaided=solved)
+            db.add(scan)
+            db.flush()
+            if solved:
+                holds.on_solved(db, user.id, scan.id)     # +3 holds, once per question
             db.commit()
         except Exception as err:  # noqa: BLE001
             db.rollback()

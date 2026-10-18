@@ -5,6 +5,8 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
+import holds
+
 import rate_limit
 from auth import get_current_user
 from db import get_db
@@ -64,6 +66,12 @@ def update_task(
         setattr(task, field, value)
     if "done" in data and data["done"] != was_done:
         task.completed_at = datetime.now(timezone.utc) if data["done"] else None
+        if data["done"]:
+            # Holds for finishing — best effort: the tick must land even if this fails.
+            try:
+                holds.on_task_done(db, user.id, task)
+            except Exception as err:  # noqa: BLE001
+                print(f"[holds] task: {err!r}", flush=True)
 
     db.commit()
     db.refresh(task)

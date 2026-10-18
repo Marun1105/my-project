@@ -341,3 +341,77 @@ class PhonePhoto(Base):
     data = Column(String, nullable=False)
     media_type = Column(String, nullable=False, default="image/jpeg")
     created_at = Column(DateTime(timezone=True), default=_now, index=True)
+
+
+# ---------------------------------------------------------------------------
+# Crew: friends, holds, and what a friend may see. All of it in tables of its
+# own, so nothing about an existing account changes until the student opens
+# Crew and sets it up. See docs/plan-2026-10-social.md.
+# ---------------------------------------------------------------------------
+
+class SocialProfile(Base):
+    """What Crew needs that the account does not: the month and year of birth
+    (the age rules need an age, not a grade), the photo friends see, a parent's
+    approval where the age asks for one, and whether a focus session is running."""
+    __tablename__ = "social_profiles"
+
+    user_id = Column(String, ForeignKey("users.id"), primary_key=True)
+    birth_year = Column(Integer, nullable=False)
+    birth_month = Column(Integer, nullable=False)
+    # A small JPEG as a data URL (the editor saves 256 px), shown to friends.
+    avatar = Column(String, nullable=True)
+    parent_approved_at = Column(DateTime(timezone=True), nullable=True)
+    parent_approved_by = Column(String, ForeignKey("users.id"), nullable=True)
+    # A focus session running: refreshed every minute while it runs, so a
+    # closed laptop stops glowing within minutes, not never.
+    live_since = Column(DateTime(timezone=True), nullable=True)
+    live_until = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class FriendRequest(Base):
+    __tablename__ = "friend_requests"
+    __table_args__ = (UniqueConstraint("from_user_id", "to_user_id", name="uq_friend_request_pair"),)
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    from_user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    to_user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class Friendship(Base):
+    """One row per pair, the smaller id first, so a pair can exist only once."""
+    __tablename__ = "friendships"
+    __table_args__ = (UniqueConstraint("user_a", "user_b", name="uq_friendship_pair"),)
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_a = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    user_b = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class Block(Base):
+    __tablename__ = "blocks"
+    __table_args__ = (UniqueConstraint("blocker_id", "blocked_id", name="uq_block_pair"),)
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    blocker_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    blocked_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class HoldEntry(Base):
+    """Every hold earned (or, later, spent), so a balance can always be recomputed.
+
+    (reason, ref) is unique per account: the same solved question, the same task
+    done on time, the same day's streak can pay once and only once, however many
+    times the request that earns it is retried."""
+    __tablename__ = "hold_entries"
+    __table_args__ = (UniqueConstraint("user_id", "reason", "ref", name="uq_hold_once"),)
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    amount = Column(Integer, nullable=False)
+    reason = Column(String, nullable=False)
+    ref = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now, index=True)

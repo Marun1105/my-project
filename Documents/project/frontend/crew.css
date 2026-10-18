@@ -332,6 +332,7 @@
   transition: transform 0.25s cubic-bezier(.2, 1.6, .4, 1);
   overflow: hidden;
 }
+.crew-holo-wrap { position: relative; display: inline-flex; }
 .crew-holo::before {
   content: ''; position: absolute; inset: 0; border-radius: 50%;
   background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.75), transparent 45%);
@@ -482,3 +483,58 @@
 /* phones: the mountain starts under the headline and its row */
 .crew-stage.is-narrow .crew-world { inset: 25% -14% 9% -14%; }
 .crew-stage.is-narrow .crew-week .crew-preview-tag { position: static; order: 9; }
+
+/* -- the parent's switch, on a child's card in Family --------------------- */
+.family-crew {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); cursor: pointer;
+}
+.family-crew span:first-child { display: flex; flex-direction: column; gap: 2px; }
+.family-crew small { color: var(--text-faint); font-size: 12.5px; }
+
+/* -- the real thing: badges, more, messages, the gate --------------------- */
+.crew-badge {
+  position: absolute; top: -6px; right: -6px; z-index: 2;
+  min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+  background: #ff3b5c; color: #fff; font: 900 13px var(--font-heading); font-style: normal;
+  box-shadow: 0 0 0 3px #fff; animation: crew-badge 1.6s ease-in-out infinite;
+}
+.crew-badge.hidden { display: none; }
+@keyframes crew-badge { 50% { transform: scale(1.15); } }
+.crew-more { display: flex; justify-content: center; gap: 18px; margin-top: 12px; }
+.crew-link { border: 0; background: none; padding: 4px 2px; min-width: 0; cursor: pointer; color: #6b6585; font: 700 13px var(--font-body); text-decoration: underline; text-underline-offset: 3px; }
+.crew-link.is-danger { color: #d1243b; }
+.crew-link[data-armed] { color: #d1243b; }
+.crew-card-msg { margin: 10px 0 0; min-height: 0; color: #b42318; font: 600 13px var(--font-body); text-align: center; }
+.crew-card-msg:empty { display: none; }
+.crew-results-title { margin: 8px 6px 2px; font: 800 12px var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: #8a84a6; }
+.crew-pair { display: inline-flex; align-items: center; gap: 6px; }
+.crew-x { width: 34px; height: 34px; min-width: 0; padding: 0; border: 0; border-radius: 50%; background: #f1effa; color: #4b4566; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.crew-x svg { width: 14px; height: 14px; }
+.crew-add[disabled] { cursor: default; }
+
+.crew-gate {
+  position: absolute; inset: 0; z-index: 25;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(5, 3, 20, 0.35);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+.crew-gate-card { transform: none; animation: crew-gate-in .55s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes crew-gate-in { from { opacity: 0; transform: translateY(30px) scale(.94); } }
+.crew-setup { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.crew-field { display: flex; flex-direction: column; gap: 6px; }
+.crew-field > span:first-child { font: 800 13px var(--font-body); color: #1a1238; }
+.crew-field small { color: #8a84a6; font: 600 12px var(--font-body); }
+.crew-at { display: flex; align-items: center; height: 50px; padding: 0 14px; border-radius: 16px; border: 2px solid #ece9f8; background: #f7f6fc; }
+.crew-at:focus-within { border-color: #8b5cf6; background: #fff; }
+.crew-at b { color: #8b5cf6; font: 900 18px var(--font-heading); margin-right: 4px; }
+.crew-at input { flex: 1; min-width: 0; border: 0; background: none; outline: none; color: #1a1238; font: 700 16px var(--font-body); }
+.crew-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.crew-row select {
+  height: 50px; padding: 0 12px; border-radius: 16px; border: 2px solid #ece9f8; background: #f7f6fc;
+  color: #1a1238; font: 700 15px var(--font-body);
+}
+.crew-row select:focus { outline: none; border-color: #8b5cf6; background: #fff; }
+.crew-go { width: 100%; margin-top: 4px; }
+.crew-go[disabled] { opacity: .6; }

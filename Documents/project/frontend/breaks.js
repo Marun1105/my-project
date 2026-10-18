@@ -110,6 +110,8 @@ const Breaks = (() => {
     if (!f || !f.isRunning()) { closeCard(); return; }
     const length = B.breakMs(f.activeMs());
     if (!f.startBreak()) return;
+    // Taking the suggested break earns a hold (crew.js tells the server).
+    window.dispatchEvent(new CustomEvent('climby:break-taken'));
     breakEndsAt = Date.now() + length;
     showCard(c => {
       c.classList.add('is-break');

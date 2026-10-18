@@ -74,6 +74,7 @@ const Family = (() => {
   function buildStudentCard(s) {
     const card = document.createElement('div');
     card.className = 'family-card';
+    card.dataset.studentId = s.student_id;
 
     const head = document.createElement('div');
     head.className = 'family-card-head';
@@ -162,6 +163,50 @@ const Family = (() => {
     setEmptyText(empty, t('family.noStudents'));
     empty.classList.toggle('hidden', students.length > 0);
     for (const s of students) wrap.appendChild(buildStudentCard(s));
+    if (students.length) renderCrewApprovals(seq);
+  }
+
+  // Crew under the age rule waits for a parent's yes. Each child who needs it
+  // gets a switch on their card; turning it off closes Crew for them again.
+  async function renderCrewApprovals(seq) {
+    let list;
+    try { list = await api('/crew/approvals'); } catch { return; }
+    if (seq !== studentsSeq) return;
+    for (const a of list) {
+      if (!a.needs_approval) continue;
+      const card = $('familyStudents').querySelector(`.family-card[data-student-id="${CSS.escape(a.student_id)}"]`);
+      if (!card || card.querySelector('.family-crew')) continue;
+      const row = document.createElement('label');
+      row.className = 'family-crew';
+      const text = document.createElement('span');
+      const title = document.createElement('strong');
+      title.textContent = t('family.crewTitle');
+      const hint = document.createElement('small');
+      hint.textContent = t('family.crewHint');
+      text.append(title, hint);
+      const sw = document.createElement('span');
+      sw.className = 'switch';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.setAttribute('role', 'switch');
+      input.checked = !!a.approved;
+      input.setAttribute('aria-label', t('family.crewTitle'));
+      const track = document.createElement('span');
+      track.className = 'switch-track';
+      sw.append(input, track);
+      row.append(text, sw);
+      input.addEventListener('change', async () => {
+        input.disabled = true;
+        try {
+          await api('/crew/approvals', { method: 'POST', body: JSON.stringify({ student_id: a.student_id, allow: input.checked }) });
+        } catch {
+          input.checked = !input.checked;     // say no change happened, because none did
+        } finally {
+          input.disabled = false;
+        }
+      });
+      card.appendChild(row);
+    }
   }
 
   async function renderParents() {

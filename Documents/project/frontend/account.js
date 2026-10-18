@@ -148,7 +148,7 @@ const Account = (() => {
       try {
         ['climby-photo:', 'climby-memory-v1:', 'climby-chats-v1:'].forEach(prefix =>
           localStorage.removeItem(prefix + encodeURIComponent(String(id))));
-        ['climby-photo:', 'climby-chats-v1:'].forEach(prefix => localStorage.removeItem(prefix + String(id)));
+        ['climby-photo:', 'climby-chats-v1:', 'climby-holds-seen:'].forEach(prefix => localStorage.removeItem(prefix + String(id)));
       } catch { /* nothing kept, nothing to remove */ }
     }
     // Sign out locally too, and let the app fall back to the gate.

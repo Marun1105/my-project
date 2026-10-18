@@ -5,6 +5,7 @@ from typing import List
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
+import holds
 import rate_limit
 from auth import get_current_user
 from db import get_db
@@ -34,6 +35,11 @@ def create_session(
         focus_pct=body.focus_pct,
     )
     db.add(session)
+    db.flush()
+    try:
+        holds.on_focus(db, user.id, session)      # a hold per full quarter hour, capped per day
+    except Exception as err:  # noqa: BLE001 — the session matters more than the holds
+        print(f"[holds] focus: {err!r}", flush=True)
     db.commit()
     db.refresh(session)
     return session

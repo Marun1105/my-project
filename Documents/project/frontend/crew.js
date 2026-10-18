@@ -4,9 +4,9 @@
 // week; whoever is studying right now glows. Holds are the currency (the grips
 // on a climbing wall): earned by studying, spent later on the mountain itself.
 //
-// PREVIEW. This is the look and the feel, built before the server side so the
-// owner can judge it. The people below are made up. When the backend exists,
-// render() takes the same shape from /crew and nothing else here changes.
+// Signed in, it is the real thing (crew.py): your friends, your holds, who is
+// studying right now. Signed out, the same screen shows made-up people and
+// says so ("Preview"), so the idea can be seen before an account exists.
 const Crew = (() => {
   const $ = id => document.getElementById(id);
   const t = (k, v) => (window.t ? window.t(k, v) : k);
@@ -73,17 +73,84 @@ const Crew = (() => {
   let data = null;
   let built = false;
   let earnedShown = false;
+  let mode = 'demo';          // 'demo' (signed out) | 'live' (the server's data)
+  let loadSeq = 0;
+  const BACKEND = window.CLIMBY_BACKEND;
+
+  // One call to the server. Never throws: { ok, status, data }.
+  async function api(path, options = {}) {
+    const token = window.Auth && Auth.getToken();
+    if (!token) return { ok: false, status: 401, data: {} };
+    let res;
+    try {
+      res = await Net.fetch(BACKEND + path, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      });
+    } catch {
+      return { ok: false, status: 0, data: {} };
+    }
+    if (res.status === 401) { Auth.logout(); return { ok: false, status: 401, data: {} }; }
+    const body = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data: body };
+  }
+
+  function detail(r) {
+    const d = r && r.data && r.data.detail;
+    if (typeof d === 'string') return d;
+    return r && r.status === 0 ? t('crew.offline') : t('crew.error');
+  }
+
+  // A photo from the server goes into a style attribute: only a real image data URL may.
+  const PHOTO = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+  const safePhoto = v => (typeof v === 'string' && PHOTO.test(v) ? v : null);
+
+  // A colour per person that stays theirs: from the username, not the order.
+  function hueOf(name) {
+    let h = 0;
+    for (const c of String(name || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return h % GRADS.length;
+  }
+
+  // One person as the server sends them, in the shape the screen draws.
+  const person = p => ({
+    id: p.username, name: p.name, username: p.username, grade: p.grade,
+    holdsWeek: p.holds_week || 0, holdsTotal: p.holds_total || 0, streak: p.streak || 0,
+    live: !!p.live, liveMin: p.live_minutes || 0, mutual: p.mutual || 0,
+    photo: safePhoto(p.avatar), hue: hueOf(p.username), request: p.request || null,
+  });
+
+  function fromApi(d) {
+    const me = person(d.me);
+    me.id = 'me';
+    if (!me.photo && window.ProfilePhoto) me.photo = safePhoto(ProfilePhoto.get());
+    return {
+      me,
+      friends: (d.friends || []).map(person),
+      incoming: (d.incoming || []).map(person),
+      outgoing: new Set(d.outgoing || []),
+      suggested: (d.suggested || []).map(person),
+      groups: [],
+    };
+  }
+
+  // How many holds this device last showed, per account: the difference is
+  // what flies into the counter next time.
+  const SEEN = 'climby-holds-seen:';
+  function seenKey() { const u = window.Auth && Auth.getUser(); return u && u.id ? SEEN + u.id : null; }
+  function seen() { try { const k = seenKey(); const v = k && localStorage.getItem(k); return v === null || v === undefined ? null : Number(v); } catch { return null; } }
+  function remember(n) { try { const k = seenKey(); if (k) localStorage.setItem(k, String(n)); } catch { /* shown again next time */ } }
   let headlineTimer = null;
   let headlineIndex = 0;
   let cameFrom = null;
 
   const initial = p => (p.name || '?').trim().charAt(0).toUpperCase();
   function avatarStyle(p) {
-    if (p.photo) return `background-image:url("${p.photo}")`;
+    if (safePhoto(p.photo)) return `background-image:url("${p.photo}")`;
     return `--avatar-bg:${grad(p.hue || 0)}`;
   }
   function avatarHtml(p, extra = '') {
-    return `<span class="crew-avatar" style='${avatarStyle(p)}'${extra}>${p.photo ? '' : esc(initial(p))}</span>`;
+    return `<span class="crew-avatar" style='${avatarStyle(p)}'${extra}>${safePhoto(p.photo) ? '' : esc(initial(p))}</span>`;
   }
   function esc(s) {
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -150,10 +217,11 @@ const Crew = (() => {
           <button id="crewSearchBtn" class="crew-dock-btn" type="button" data-i18n-aria="crew.search" aria-label="${esc(t('crew.search'))}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
           </button>
+          <span class="crew-holo-wrap"><span id="crewAddBadge" class="crew-badge hidden"></span>
           <button id="crewAddBtn" class="crew-holo" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
             <span data-i18n="crew.addFriend">${esc(t('crew.addFriend'))}</span>
-          </button>
+          </button></span>
           <button id="crewMeBtn" class="crew-dock-btn" type="button" data-i18n-aria="crew.myProfile" aria-label="${esc(t('crew.myProfile'))}"></button>
         </div>
       </div>
@@ -166,7 +234,11 @@ const Crew = (() => {
     $('crewAddBtn').addEventListener('click', () => openSearch());
     $('crewMeBtn').addEventListener('click', () => openPerson(data.me));
     $('crewCardWrap').addEventListener('click', e => { if (e.target === $('crewCardWrap')) closeCard(); });
-    root.addEventListener('keydown', e => { if (e.key === 'Escape' && $('crewCardWrap').classList.contains('is-open')) { e.stopPropagation(); closeCard(); } });
+    // On the document, not the stage: a list that redraws under the pointer
+    // takes the focus with it, and Escape must still close the card.
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && $('crewCardWrap').classList.contains('is-open')) { e.stopPropagation(); closeCard(); }
+    }, true);
     parallax(root);
     built = true;
   }
@@ -194,7 +266,8 @@ const Crew = (() => {
   }
 
   // ---------------------------------------------------------------- render
-  function render(d) {
+  // walletFrom: what the counter shows before the holds fly in
+  function render(d, walletFrom) {
     data = d;
     if (!built) build();
     const host = $('crewBubbles');
@@ -256,6 +329,7 @@ const Crew = (() => {
     row.querySelectorAll('.crew-group').forEach(el => el.remove());
     const tag = $('crewStage').querySelector('.crew-preview-tag');
     (narrow ? row : $('crewStage').querySelector('.crew-hud')).appendChild(tag);
+    tag.classList.toggle('hidden', mode !== 'demo');
     $('crewStage').classList.toggle('is-narrow', narrow);
     const spots = [{ x: 13, y: 46 }, { x: 86, y: 58 }];
     data.groups.slice(0, spots.length).forEach((g, i) => {
@@ -276,9 +350,13 @@ const Crew = (() => {
     });
 
     const me = $('crewMeBtn');
-    me.style.cssText = data.me.photo ? `background-image:url("${data.me.photo}")` : `background:${grad(0)};color:#fff`;
-    me.textContent = data.me.photo ? '' : initial(data.me);
-    $('crewWalletCount').textContent = String(data.me.holdsTotal - (earnedShown ? 0 : 3));
+    const myPhoto = safePhoto(data.me.photo);
+    me.style.cssText = myPhoto ? `background-image:url("${myPhoto}")` : `background:${grad(data.me.hue || 0)};color:#fff`;
+    me.textContent = myPhoto ? '' : initial(data.me);
+    $('crewWalletCount').textContent = String(typeof walletFrom === 'number' ? walletFrom : data.me.holdsTotal);
+    const waiting = (data.incoming || []).length;
+    $('crewAddBadge').textContent = String(waiting);
+    $('crewAddBadge').classList.toggle('hidden', !waiting);
     $('crewWeekPill').innerHTML = `${holdSvg(1)}${esc(t('crew.weekPill', { n: data.me.holdsWeek }))}`;
     startHeadlines();
   }
@@ -291,10 +369,20 @@ const Crew = (() => {
     const ahead = all.filter(p => p.holdsWeek > me.holdsWeek).pop();   // the one just above me
     const live = data.friends.filter(f => f.live);
     const out = [];
+    const waiting = (data.incoming || []).length;
+    if (waiting) out.push([t(waiting === 1 ? 'crew.hlAskOne1' : 'crew.hlAsk1', { n: waiting, name: data.incoming[0].name }), t('crew.hlAsk2')]);
+    // nothing yet is not a number to show anyone: it is an invitation
+    const week = me.holdsWeek ? [t('crew.hlWeek1', { n: me.holdsWeek }), t('crew.hlWeek2')]
+                              : [t('crew.hlFirst1'), t('crew.hlFirst2')];
+    if (!data.friends.length) {
+      out.push([t('crew.hlAlone1'), t('crew.hlAlone2')]);
+      out.push(week);
+      return out;
+    }
     if (top.id === 'me') out.push([t('crew.hlTop1'), t('crew.hlTop2')]);
     else if (ahead) out.push([t('crew.hlAhead1', { name: ahead.name }), t('crew.hlAhead2', { n: ahead.holdsWeek - me.holdsWeek })]);
     if (live.length) out.push([t(live.length === 1 ? 'crew.hlLiveOne1' : 'crew.hlLive1', { n: live.length, name: live[0].name }), t('crew.hlLive2')]);
-    out.push([t('crew.hlWeek1', { n: me.holdsWeek }), t('crew.hlWeek2')]);
+    out.push(week);
     out.push([t('crew.hlSummit1', { name: top.id === 'me' ? t('crew.you') : top.name }), t('crew.hlSummit2')]);
     return out;
   }
@@ -324,7 +412,7 @@ const Crew = (() => {
   // ---------------------------------------------------------------- earning
   // The first visit plays what earning looks like: three holds fly from your
   // bubble into the counter, which jumps.
-  function earn(n, from) {
+  function earn(n, from, finalTotal) {
     const stage = $('crewStage');
     const wallet = $('crewWallet');
     const count = $('crewWalletCount');
@@ -353,9 +441,10 @@ const Crew = (() => {
         wallet.classList.add('is-bump');
         setTimeout(() => wallet.classList.remove('is-bump'), 180);
         if (landed === n) {
+          if (typeof finalTotal === 'number') count.textContent = String(finalTotal);
           const plus = document.createElement('div');
           plus.className = 'crew-plus';
-          plus.textContent = '+' + n;
+          plus.textContent = '+' + (typeof finalTotal === 'number' ? finalTotal - Number(count.dataset.from || 0) : n);
           plus.style.left = (x1 - 60) + 'px'; plus.style.top = (y1 + 26) + 'px';
           stage.appendChild(plus);
           setTimeout(() => plus.remove(), 1300);
@@ -417,7 +506,7 @@ const Crew = (() => {
         ${avatarHtml(p, ` style-ring`)}
         <div>
           <h2 id="crewCardTitle" class="crew-card-name">${esc(isMe ? p.name : p.name)}</h2>
-          <p class="crew-card-sub">@${esc(p.username)} · ${esc(t('crew.grade', { g: p.grade }))}</p>
+          <p class="crew-card-sub">@${esc(p.username)}${p.grade ? ' · ' + esc(t('crew.grade', { g: p.grade })) : ''}</p>
           ${p.live ? `<span class="crew-card-live">${esc(t('crew.liveFor', { n: p.liveMin }))}</span>` : ''}
         </div>
       </div>
@@ -434,14 +523,44 @@ const Crew = (() => {
              <button class="crew-chat" type="button" data-act="photo">${esc(t('crew.changePhoto'))}</button>`
           : `<button class="crew-cheer" type="button" data-act="cheer">${holdSvg(5, '#fff')}${esc(t('crew.cheer'))}</button>
              <button class="crew-chat" type="button" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>${esc(t('crew.chat'))} <em class="crew-soon">${esc(t('crew.soon'))}</em></button>`}
-      </div>`);
+      </div>
+      ${!isMe && mode === 'live' ? `<div class="crew-more">
+        <button class="crew-link" type="button" data-act="unfriend">${esc(t('crew.unfriend'))}</button>
+        <button class="crew-link is-danger" type="button" data-act="block">${esc(t('crew.block'))}</button>
+      </div>` : ''}
+      <p class="crew-card-msg" role="status"></p>`);
     const av = card.querySelector('.crew-avatar');
     if (av) { av.removeAttribute('style-ring'); av.style.setProperty('--ring', ring); }
     const cheer = card.querySelector('[data-act="cheer"]');
-    if (cheer) cheer.addEventListener('click', () => {
+    if (cheer) cheer.addEventListener('click', async () => {
+      if (mode === 'live') {
+        cheer.disabled = true;
+        const r = await api('/crew/cheer', { method: 'POST', body: JSON.stringify({ username: p.username }) });
+        if (!r.ok) {
+          say(card, r.status === 409 ? t('crew.cheeredAlready', { name: p.name }) : detail(r));
+          cheer.textContent = t(r.status === 409 ? 'crew.cheeredShort' : 'crew.cheer');
+          cheer.disabled = r.status === 409;
+          return;
+        }
+      }
       burst(cheer);
       cheer.textContent = t('crew.cheered', { name: p.name });
       cheer.disabled = true;
+    });
+    // Two presses for the lasting ones: the first asks, the second does.
+    card.querySelectorAll('[data-act="unfriend"], [data-act="block"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!btn.dataset.armed) {
+          btn.dataset.armed = '1';
+          btn.textContent = t(btn.dataset.act === 'block' ? 'crew.blockSure' : 'crew.unfriendSure', { name: p.name });
+          return;
+        }
+        btn.disabled = true;
+        const r = await api('/crew/' + btn.dataset.act, { method: 'POST', body: JSON.stringify({ username: p.username }) });
+        if (!r.ok) { say(card, detail(r)); btn.disabled = false; return; }
+        closeCard();
+        load();
+      });
     });
     const edit = card.querySelector('[data-act="edit"]');
     if (edit) edit.addEventListener('click', () => { closeCard(); if (window.AccountUI) AccountUI.open('accountRows'); });
@@ -467,35 +586,119 @@ const Crew = (() => {
     }));
   }
 
+  function personRow(p, action) {
+    const sub = p.mutual ? t('crew.mutual', { n: p.mutual }) : p.grade ? t('crew.grade', { g: p.grade }) : '';
+    return `<div class="crew-result" role="listitem">${avatarHtml(p)}
+      <div class="crew-result-text"><strong>${esc(p.name)}</strong><span>@${esc(p.username)}${sub ? ' · ' + esc(sub) : ''}</span></div>
+      ${action}</div>`;
+  }
+
   function openSearch() {
     const card = openCard(`
       <h2 id="crewCardTitle" class="crew-card-name">${esc(t('crew.findTitle'))}</h2>
       <p class="crew-card-sub">${esc(t('crew.findSub'))}</p>
       <div class="crew-search-field">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
-        <input class="crew-search-input" type="search" autocomplete="off" spellcheck="false" placeholder="${esc(t('crew.findPlaceholder'))}" aria-label="${esc(t('crew.findPlaceholder'))}">
+        <input class="crew-search-input" type="search" autocomplete="off" spellcheck="false" maxlength="21" placeholder="${esc(t('crew.findPlaceholder'))}" aria-label="${esc(t('crew.findPlaceholder'))}">
       </div>
-      <div class="crew-results" role="list"></div>`, '.crew-search-input');
+      <div class="crew-results" role="list"></div>
+      <p class="crew-card-msg" role="status"></p>`, '.crew-search-input');
     const input = card.querySelector('.crew-search-input');
     const list = card.querySelector('.crew-results');
-    const sent = new Set();
+    const sent = new Set(mode === 'live' ? [...data.outgoing] : []);
+    const nowFriends = new Set();
+    let results = null;           // what the server found for the text typed, or null
+    let seq = 0;
+
+    const addBtn = p => {
+      if (nowFriends.has(p.username)) return `<button class="crew-add is-sent" type="button" disabled>${esc(t('crew.nowFriends'))}</button>`;
+      if (p.request === 'incoming') return `<button class="crew-add" type="button" data-accept="${esc(p.username)}">${esc(t('crew.accept'))}</button>`;
+      const isSent = sent.has(p.username) || p.request === 'sent';
+      return `<button class="crew-add${isSent ? ' is-sent' : ''}" type="button" data-add="${esc(p.username)}"${isSent ? ' disabled' : ''}>${esc(t(isSent ? 'crew.sent' : 'crew.add'))}</button>`;
+    };
+
     const draw = () => {
       const q = input.value.trim().toLowerCase().replace(/^@/, '');
-      const people = data.suggested.filter(p => !q || p.name.toLowerCase().includes(q) || p.username.includes(q));
-      list.innerHTML = people.length ? people.map(p => `
-        <div class="crew-result" role="listitem">${avatarHtml(p)}
-          <div class="crew-result-text"><strong>${esc(p.name)}</strong><span>@${esc(p.username)} · ${esc(p.mutual ? t('crew.mutual', { n: p.mutual }) : t('crew.grade', { g: p.grade }))}</span></div>
-          <button class="crew-add${sent.has(p.id) ? ' is-sent' : ''}" type="button" data-id="${esc(p.id)}">${esc(t(sent.has(p.id) ? 'crew.sent' : 'crew.add'))}</button>
-        </div>`).join('') : `<p class="crew-card-sub">${esc(t('crew.noOne'))}</p>`;
-      list.querySelectorAll('[data-id]').forEach(b => b.addEventListener('click', () => {
-        if (sent.has(b.dataset.id)) return;
-        sent.add(b.dataset.id);
-        burst(b);
-        draw();
-      }));
+      let html = '';
+      if (mode === 'demo') {
+        const people = data.suggested.filter(p => !q || p.name.toLowerCase().includes(q) || p.username.includes(q));
+        html = people.map(p => personRow(p, addBtn(p))).join('');
+      } else if (!q) {
+        const waiting = data.incoming.filter(p => !nowFriends.has(p.username));
+        if (waiting.length) {
+          html += `<p class="crew-results-title">${esc(t('crew.wantsYou'))}</p>` + waiting.map(p => personRow(p,
+            `<span class="crew-pair"><button class="crew-add" type="button" data-accept="${esc(p.username)}">${esc(t('crew.accept'))}</button>
+             <button class="crew-x" type="button" data-decline="${esc(p.username)}" aria-label="${esc(t('crew.decline'))}">${CLOSE}</button></span>`)).join('');
+        }
+        if (data.suggested.length) {
+          html += `<p class="crew-results-title">${esc(t('crew.mayKnow'))}</p>` + data.suggested.map(p => personRow(p, addBtn(p))).join('');
+        }
+        if (!html) html = `<p class="crew-card-sub">${esc(t('crew.findHint'))}</p>`;
+      } else if (q.length < 3) {
+        html = `<p class="crew-card-sub">${esc(t('crew.findMore'))}</p>`;
+      } else if (results === null) {
+        html = `<p class="crew-card-sub">${esc(t('crew.searching'))}</p>`;
+      } else {
+        html = results.map(p => personRow(p, addBtn(p))).join('');
+      }
+      list.innerHTML = html || `<p class="crew-card-sub">${esc(t('crew.noOne'))}</p>`;
+      list.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => add(b)));
+      list.querySelectorAll('[data-accept]').forEach(b => b.addEventListener('click', () => accept(b)));
+      list.querySelectorAll('[data-decline]').forEach(b => b.addEventListener('click', () => decline(b)));
     };
-    input.addEventListener('input', draw);
+
+    async function add(b) {
+      const name = b.dataset.add;
+      if (sent.has(name)) return;
+      if (mode === 'demo') { sent.add(name); burst(b); draw(); return; }
+      b.disabled = true;
+      const r = await api('/crew/requests', { method: 'POST', body: JSON.stringify({ username: name }) });
+      if (!r.ok) { say(card, detail(r)); b.disabled = false; return; }
+      burst(b);
+      if (r.data.status === 'friends') { nowFriends.add(name); load(); } else sent.add(name);
+      draw();
+    }
+    async function accept(b) {
+      const name = b.dataset.accept;
+      b.disabled = true;
+      const r = await api('/crew/requests/accept', { method: 'POST', body: JSON.stringify({ username: name }) });
+      if (!r.ok) { say(card, detail(r)); b.disabled = false; return; }
+      burst(b);
+      nowFriends.add(name);
+      draw();
+      load();
+    }
+    async function decline(b) {
+      const name = b.dataset.decline;
+      b.disabled = true;
+      await api('/crew/requests/decline', { method: 'POST', body: JSON.stringify({ username: name }) });
+      data.incoming = data.incoming.filter(p => p.username !== name);
+      draw();
+      load();
+    }
+
+    let timer = 0;
+    input.addEventListener('input', () => {
+      results = null;
+      draw();
+      if (mode !== 'live') return;
+      clearTimeout(timer);
+      const q = input.value.trim().toLowerCase().replace(/^@/, '');
+      if (q.length < 3) return;
+      timer = setTimeout(async () => {
+        const mine = ++seq;
+        const r = await api('/crew/search?q=' + encodeURIComponent(q));
+        if (mine !== seq) return;            // a newer search is on its way
+        results = r.ok && Array.isArray(r.data) ? r.data.map(person) : [];
+        draw();
+      }, 260);
+    });
     draw();
+  }
+
+  function say(card, text) {
+    const el = card.querySelector('.crew-card-msg');
+    if (el) el.textContent = text || '';
   }
 
   function openWallet() {
@@ -510,15 +713,175 @@ const Crew = (() => {
   }
 
   // ---------------------------------------------------------------- showing
-  function shown() {
-    render(demo());
+  function demoShown() {
+    mode = 'demo';
+    render(demo(), earnedShown ? undefined : demo().me.holdsTotal - 3);
     if (!earnedShown && !calm()) {
       earnedShown = true;
       setTimeout(() => earn(3), 1500);
-    } else if (!earnedShown) {
+    } else {
       earnedShown = true;
       $('crewWalletCount').textContent = String(data.me.holdsTotal);
     }
+  }
+
+  // The real mountain. Called on showing the screen and after anything that
+  // changes it (a new friend, a block); the holds earned since this device last
+  // looked fly into the counter.
+  async function load() {
+    if (!window.Auth || !Auth.isLoggedIn()) { demoShown(); return; }
+    const mine = ++loadSeq;
+    if (!built) build();
+    const r = await api('/crew');
+    if (mine !== loadSeq || $('view-crew').classList.contains('hidden')) return;
+    if (!r.ok) {
+      if (!data || mode !== 'live') gate('error', r);
+      return;
+    }
+    if (r.data.needs) { gate(r.data.needs, r); return; }
+    mode = 'live';
+    closeGate();
+    const d = fromApi(r.data);
+    const before = seen();
+    const total = d.me.holdsTotal;
+    const gained = before === null ? 0 : total - before;
+    render(d, gained > 0 && !calm() ? before : total);
+    remember(total);
+    if (gained > 0 && !calm()) {
+      $('crewWalletCount').dataset.from = String(before);
+      setTimeout(() => earn(Math.min(gained, 6), null, total), 900);
+    }
+  }
+
+  // ---------------------------------------------------------------- the gates
+  // Before the mountain: set up (username, month and year of birth), wait for
+  // a parent, or this is not a student account. The mountain stays behind the
+  // card, empty, so the screen already looks like what it will become.
+  function emptyMountain() {
+    const u = (window.Auth && Auth.getUser()) || {};
+    const photo = window.ProfilePhoto ? safePhoto(ProfilePhoto.get()) : null;
+    mode = 'gate';
+    render({ me: { id: 'me', name: u.display_name || t('crew.you'), username: u.username || '', grade: u.grade,
+                   holdsWeek: 0, holdsTotal: 0, streak: 0, photo, hue: hueOf(u.username || u.id) },
+             friends: [], incoming: [], suggested: [], groups: [], outgoing: new Set() });
+  }
+
+  function closeGate() {
+    const g = $('crewGate');
+    if (g) g.remove();
+  }
+
+  function gate(kind, r) {
+    emptyMountain();
+    closeGate();
+    const box = document.createElement('div');
+    box.id = 'crewGate';
+    box.className = 'crew-gate';
+    const card = document.createElement('div');
+    card.className = 'crew-card crew-gate-card';
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-labelledby', 'crewGateTitle');
+    box.appendChild(card);
+    $('crewStage').appendChild(box);
+
+    if (kind === 'setup') {
+      const u = (window.Auth && Auth.getUser()) || {};
+      const year = new Date().getFullYear();
+      const years = [];
+      for (let y = year - 6; y >= year - 20; y--) years.push(y);
+      const months = Array.from({ length: 12 }, (_, i) => new Date(2000, i, 1).toLocaleString(window.I18n && I18n.get() === 'bg' ? 'bg-BG' : 'en-GB', { month: 'long' }));
+      const suggestion = (r.data.username || u.username || (u.display_name || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '')).slice(0, 20);
+      card.innerHTML = `
+        <h2 id="crewGateTitle" class="crew-card-name">${esc(t('crew.setupTitle'))}</h2>
+        <p class="crew-card-sub">${esc(t('crew.setupSub'))}</p>
+        <form class="crew-setup" novalidate>
+          <label class="crew-field"><span>${esc(t('crew.setupUsername'))}</span>
+            <span class="crew-at"><b>@</b><input name="username" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false" value="${esc(suggestion)}" required></span>
+            <small>${esc(t('crew.setupUsernameHint'))}</small></label>
+          <div class="crew-field"><span>${esc(t('crew.setupBirth'))}</span>
+            <span class="crew-row">
+              <select name="month" aria-label="${esc(t('crew.setupMonth'))}"><option value="">${esc(t('crew.setupMonth'))}</option>${months.map((m, i) => `<option value="${i + 1}">${esc(m)}</option>`).join('')}</select>
+              <select name="year" aria-label="${esc(t('crew.setupYear'))}"><option value="">${esc(t('crew.setupYear'))}</option>${years.map(y => `<option value="${y}">${y}</option>`).join('')}</select>
+            </span>
+            <small>${esc(t('crew.setupBirthHint'))}</small></div>
+          <button class="crew-cheer crew-go" type="submit">${esc(t('crew.setupGo'))}</button>
+          <p class="crew-card-msg" role="alert"></p>
+        </form>`;
+      const form = card.querySelector('form');
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const username = form.username.value.trim().replace(/^@/, '').toLowerCase();
+        const month = Number(form.month.value), yearV = Number(form.year.value);
+        if (!/^[a-z0-9][a-z0-9._]{1,18}[a-z0-9]$/.test(username) || username.includes('..')) { say(card, t('crew.setupBadName')); return; }
+        if (!month || !yearV) { say(card, t('crew.setupNeedBirth')); return; }
+        const go = form.querySelector('.crew-go');
+        go.disabled = true;
+        const res = await api('/crew/profile', { method: 'POST', body: JSON.stringify({ username, birth_month: month, birth_year: yearV }) });
+        go.disabled = false;
+        if (!res.ok) { say(card, detail(res)); return; }
+        if (window.Auth && Auth.updateUser) Auth.updateUser({ ...(Auth.getUser() || {}), username });
+        burst(go);
+        uploadPhoto();
+        closeGate();
+        load();
+      });
+      setTimeout(() => form.username.focus(), 80);
+    } else if (kind === 'parent') {
+      card.innerHTML = `
+        <h2 id="crewGateTitle" class="crew-card-name">${esc(t('crew.parentTitle'))}</h2>
+        <p class="crew-card-sub">${esc(t(r.data.has_parent ? 'crew.parentAsk' : 'crew.parentLink'))}</p>
+        <div class="crew-actions">
+          ${r.data.has_parent ? '' : `<button class="crew-cheer" type="button" data-act="family">${esc(t('crew.parentLinkBtn'))}</button>`}
+          <button class="crew-chat" type="button" data-act="again">${esc(t('crew.checkAgain'))}</button>
+        </div>`;
+      card.querySelector('[data-act="family"]')?.addEventListener('click', () => window.AccountUI && AccountUI.open('setFamily'));
+      card.querySelector('[data-act="again"]').addEventListener('click', () => load());
+    } else if (kind === 'role') {
+      card.innerHTML = `
+        <h2 id="crewGateTitle" class="crew-card-name">${esc(t('crew.roleTitle'))}</h2>
+        <p class="crew-card-sub">${esc(t('crew.roleSub'))}</p>`;
+    } else {
+      card.innerHTML = `
+        <h2 id="crewGateTitle" class="crew-card-name">${esc(t('crew.errorTitle'))}</h2>
+        <p class="crew-card-sub">${esc(detail(r))}</p>
+        <div class="crew-actions"><button class="crew-cheer" type="button" data-act="again">${esc(t('crew.checkAgain'))}</button></div>`;
+      card.querySelector('[data-act="again"]').addEventListener('click', () => load());
+    }
+  }
+
+  // ---------------------------------------------------------------- the rest of the app
+  // The photo from Settings is the one friends see.
+  async function uploadPhoto() {
+    if (!window.Auth || !Auth.isLoggedIn() || !window.ProfilePhoto) return;
+    const photo = safePhoto(ProfilePhoto.get());
+    if (photo) await api('/crew/avatar', { method: 'POST', body: JSON.stringify({ data: photo }) });
+    else await api('/crew/avatar', { method: 'DELETE' });
+  }
+
+  // A focus session running: friends see it glow. A heartbeat every minute;
+  // the server forgets it three minutes after the last one.
+  let liveTimer = 0;
+  function focusLive() {
+    const running = !!(window.Focus && Focus.isRunning && Focus.isRunning());
+    if (!window.Auth || !Auth.isLoggedIn()) return;
+    if (running && !liveTimer) {
+      api('/crew/live', { method: 'POST', body: JSON.stringify({ on: true }) });
+      liveTimer = setInterval(() => {
+        if (window.Focus && Focus.isRunning()) api('/crew/live', { method: 'POST', body: JSON.stringify({ on: true }) });
+        else focusLive();
+      }, 60000);
+    } else if (!running && liveTimer) {
+      clearInterval(liveTimer);
+      liveTimer = 0;
+      api('/crew/live', { method: 'POST', body: JSON.stringify({ on: false }) });
+    }
+  }
+
+  function visible() { return built && !$('view-crew').classList.contains('hidden'); }
+
+  function shown() {
+    if (window.Auth && Auth.isLoggedIn()) load();
+    else { closeGate(); demoShown(); }
   }
 
   function init() {
@@ -527,18 +890,25 @@ const Crew = (() => {
       if (e.detail.view === 'crew') shown();
       else { stopHeadlines(); if ($('crewCardWrap')) closeCard(); }
     });
-    window.addEventListener('climby:lang-changed', () => { if (built && !$('view-crew').classList.contains('hidden')) render(data ? { ...demo(), me: data.me } : demo()); });
-    window.addEventListener('climby:photo-changed', () => { if (built && !$('view-crew').classList.contains('hidden')) render(demo()); });
+    window.addEventListener('climby:lang-changed', () => { if (visible()) shown(); });
+    window.addEventListener('climby:auth-changed', () => { if (visible()) shown(); });
+    window.addEventListener('climby:photo-changed', () => {
+      uploadPhoto().then(() => { if (visible()) shown(); });
+    });
+    window.addEventListener('climby:focus-live', focusLive);
+    window.addEventListener('climby:break-taken', () => {
+      if (window.Auth && Auth.isLoggedIn()) api('/crew/break', { method: 'POST' });
+    });
     let resizeTimer = 0;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => { if (built && data && !$('view-crew').classList.contains('hidden')) render(data); }, 250);
+      resizeTimer = setTimeout(() => { if (visible() && data) render(data); }, 250);
     });
     if (!$('view-crew').classList.contains('hidden')) shown();
   }
 
   document.addEventListener('DOMContentLoaded', init);
-  return { render, earn };
+  return { render, earn, load };
 })();
 
 window.Crew = Crew;

@@ -21,7 +21,8 @@ import security
 from auth import get_current_user
 from db import get_db
 from models import (
-    ClassroomMember, Classroom, CodeAttempt, FamilyInvite, FamilyLink, FocusSession,
+    Block, ClassroomMember, Classroom, CodeAttempt, FamilyInvite, FamilyLink, FocusSession,
+    FriendRequest, Friendship, HoldEntry, SocialProfile,
     OAuthIdentity, PairRequest, PairedDevice, PhonePhoto, ProblemBrief, ScanHistory, Task, User,
     VerificationCode,
 )
@@ -171,12 +172,39 @@ def export_data(
             "teaching": [{"name": c.name, "created_at": _iso(c.created_at)} for c in classes_own],
         },
         "linked_phones": [{"name": d.name, "since": _iso(d.created_at)} for d in devices],
+        "crew": _crew_export(db, user),
     }
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     return JSONResponse(data, headers={
         "Content-Disposition": f'attachment; filename="climby-export-{stamp}.json"',
         "Cache-Control": "no-store",
     })
+
+
+def _crew_export(db: Session, user: User) -> dict:
+    """Crew: the profile, friends by name, requests, blocks, every hold."""
+    profile = db.get(SocialProfile, user.id)
+    if profile is None:
+        return {"set_up": False}
+
+    def names(ids):
+        ids = list(ids)
+        return [u.display_name for u in db.query(User).filter(User.id.in_(ids))] if ids else []
+
+    friends = [b if a == user.id else a for a, b in db.query(Friendship.user_a, Friendship.user_b).filter(
+        (Friendship.user_a == user.id) | (Friendship.user_b == user.id))]
+    entries = db.query(HoldEntry).filter(HoldEntry.user_id == user.id).order_by(HoldEntry.created_at).all()
+    return {
+        "set_up": True,
+        "birth": f"{profile.birth_year}-{profile.birth_month:02d}",
+        "has_photo": bool(profile.avatar),
+        "parent_approved_at": _iso(profile.parent_approved_at),
+        "friends": names(friends),
+        "requests_sent_to": names(r.to_user_id for r in db.query(FriendRequest).filter(FriendRequest.from_user_id == user.id)),
+        "requests_from": names(r.from_user_id for r in db.query(FriendRequest).filter(FriendRequest.to_user_id == user.id)),
+        "blocked": names(b.blocked_id for b in db.query(Block).filter(Block.blocker_id == user.id)),
+        "holds": [{"amount": e.amount, "for": e.reason, "at": _iso(e.created_at)} for e in entries],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -236,6 +264,17 @@ def delete_account(
     db.query(VerificationCode).filter(VerificationCode.user_id == uid).delete(synchronize_session=False)
     db.query(CodeAttempt).filter(CodeAttempt.user_id == uid).delete(synchronize_session=False)
     db.query(OAuthIdentity).filter(OAuthIdentity.user_id == uid).delete(synchronize_session=False)
+
+    # Crew: friendships, requests and blocks in both directions, the holds,
+    # the profile. A parent's approval they gave a child stops existing with
+    # them (the child is asked again by another linked parent).
+    db.query(Friendship).filter((Friendship.user_a == uid) | (Friendship.user_b == uid)).delete(synchronize_session=False)
+    db.query(FriendRequest).filter((FriendRequest.from_user_id == uid) | (FriendRequest.to_user_id == uid)).delete(synchronize_session=False)
+    db.query(Block).filter((Block.blocker_id == uid) | (Block.blocked_id == uid)).delete(synchronize_session=False)
+    db.query(HoldEntry).filter(HoldEntry.user_id == uid).delete(synchronize_session=False)
+    db.query(SocialProfile).filter(SocialProfile.parent_approved_by == uid).update(
+        {SocialProfile.parent_approved_by: None, SocialProfile.parent_approved_at: None}, synchronize_session=False)
+    db.query(SocialProfile).filter(SocialProfile.user_id == uid).delete(synchronize_session=False)
     db.query(User).filter(User.id == uid).delete(synchronize_session=False)
     db.commit()
     return {"status": "deleted"}
