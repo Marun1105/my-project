@@ -391,3 +391,151 @@ def test_deleting_an_account_removes_its_crew_and_keeps_the_others_working():
     assert client.get("/crew", headers=hb).json()["friends"] == []
     assert client.get("/crew", headers=hb).json()["me"]["holds_total"] == 1     # the cheer they got stays theirs
     assert client.get("/crew", headers=hk).json()["needs"] == "parent"
+
+
+# ---------------------------------------------------------------------------
+# from the code review, 2026-10-18
+# ---------------------------------------------------------------------------
+
+def _boom(*a, **k):
+    raise RuntimeError("holds are down")
+
+
+def test_a_failing_hold_never_costs_the_tick(monkeypatch):
+    _, h = _login("crew-r-tick@example.com")
+    task = client.post("/tasks", json={"text": "Tick me"}, headers=h).json()
+    monkeypatch.setattr(holds, "on_task_done", _boom)
+    res = client.patch(f"/tasks/{task['id']}", json={"done": True}, headers=h)
+    assert res.status_code == 200 and res.json()["done"] is True
+
+
+def test_a_failing_hold_never_costs_the_focus_session(monkeypatch):
+    uid, h = _login("crew-r-focus@example.com")
+    rate_limit._hits.clear()
+    monkeypatch.setattr(holds, "on_focus", _boom)
+    assert client.post("/focus", json={"duration_seconds": 1800}, headers=h).status_code == 200
+    db = SessionLocal()
+    assert db.query(FocusSession).filter(FocusSession.user_id == uid).count() == 1
+    db.close()
+
+
+def test_a_failing_hold_never_costs_the_question(monkeypatch):
+    from models import ScanHistory
+    uid, h = _login("crew-r-solved@example.com")
+    rate_limit._hits.clear()
+
+    class _Block:
+        type = "text"
+        text = "Right.\n```climby-solved\n```"
+
+    class _Resp:
+        content = [_Block()]
+        usage = None
+
+    monkeypatch.setattr(server.client.beta.messages, "create", lambda **kw: _Resp())
+    monkeypatch.setattr(holds, "on_solved", _boom)
+    assert client.post("/ask", json={"images": [], "question": "q", "lang": "en", "surface": "chat"}, headers=h).status_code == 200
+    db = SessionLocal()
+    assert db.query(ScanHistory).filter(ScanHistory.user_id == uid).count() == 1
+    db.close()
+
+
+def test_solved_holds_are_capped_per_day():
+    uid, _ = _login("crew-r-cap@example.com")
+    db = SessionLocal()
+    for i in range(20):
+        holds.on_solved(db, uid, f"scan-{i}")
+    db.commit()
+    total = sum(e.amount for e in db.query(HoldEntry).filter(HoldEntry.user_id == uid))
+    db.close()
+    assert total == holds.SOLVED_DAILY_CAP
+
+
+def test_search_is_not_crowded_out_by_accounts_outside_crew():
+    _, ha = _login("crew-r-seeker@example.com")
+    _setup(ha, "seeker_r")
+    db = SessionLocal()
+    for i in range(30):
+        db.add(User(display_name="X", email=f"crowd{i}@example.com", username=f"crowd{i:02d}",
+                    password_hash="x", is_email_verified=True, is_phone_verified=False))
+    db.commit(); db.close()
+    _, hc = _login("crew-r-real@example.com")
+    _setup(hc, "crowd_real_one")
+    assert [p["username"] for p in client.get("/crew/search?q=crowd", headers=ha).json()] == ["crowd_real_one"]
+
+
+def test_block_does_not_say_whether_a_username_exists():
+    _, h = _login("crew-r-block@example.com")
+    _setup(h, "blocker_r")
+    _, hx = _login("crew-r-outside@example.com")
+    db = SessionLocal()
+    db.query(User).filter(User.email == "crew-r-outside@example.com").update({User.username: "outside_x"})
+    db.commit(); db.close()
+    for name in ("outside_x", "nobody_at_all_x"):
+        assert client.post("/crew/block", json={"username": name}, headers=h).json() == {"status": "ok"}
+    # and someone not in Crew cannot use it at all
+    assert client.post("/crew/block", json={"username": "blocker_r"}, headers=hx).status_code == 403
+
+
+def test_crew_never_changes_the_username_you_sign_in_with():
+    _, h = _login("crew-r-login@example.com")
+    db = SessionLocal()
+    db.query(User).filter(User.email == "crew-r-login@example.com").update({User.username: "Ivan2012"})
+    db.commit(); db.close()
+    assert _setup(h, "ivan.climbs").status_code == 409
+    res = _setup(h, "ivan2012")
+    assert res.status_code == 200 and res.json()["me"]["username"] == "Ivan2012"
+
+
+def test_a_long_streak_is_counted_in_full():
+    uid, h = _login("crew-r-streak@example.com")
+    _setup(h, "streak_long")
+    db = SessionLocal()
+    now = datetime.now(timezone.utc)
+    for d in range(90):
+        db.add(HoldEntry(user_id=uid, amount=1, reason="break", ref=f"d{d}", created_at=now - timedelta(days=d)))
+    db.commit(); db.close()
+    assert client.get("/crew", headers=h).json()["me"]["streak"] == 90
+
+
+def test_linking_again_does_not_bring_back_an_old_yes():
+    kid, hk = _login("crew-r-kid@example.com")
+    parent, hp = _login("crew-r-parent@example.com", role="parent")
+    _setup(hk, "relink_kid", age=crew.PARENT_APPROVAL_UNDER - 2)
+    db = SessionLocal()
+    db.add(FamilyLink(parent_user_id=parent, student_user_id=kid))
+    db.commit(); db.close()
+    client.post("/crew/approvals", json={"student_id": kid, "allow": True}, headers=hp)
+    assert client.get("/crew", headers=hk).json()["needs"] is None
+    assert client.delete(f"/family/students/{kid}", headers=hp).status_code == 200
+    db = SessionLocal()
+    db.add(FamilyLink(parent_user_id=parent, student_user_id=kid))
+    db.commit(); db.close()
+    assert client.get("/crew", headers=hk).json()["needs"] == "parent"
+
+
+def test_the_friend_limit_holds_on_accept_too(monkeypatch):
+    _, ha = _login("crew-r-la@example.com")
+    _, hb = _login("crew-r-lb@example.com")
+    _, hc = _login("crew-r-lc@example.com")
+    _setup(ha, "limit_a"); _setup(hb, "limit_b"); _setup(hc, "limit_c")
+    _friends(ha, hb, "limit_b", "limit_a")
+    client.post("/crew/requests", json={"username": "limit_a"}, headers=hc)
+    monkeypatch.setattr(crew, "MAX_FRIENDS", 1)
+    assert client.post("/crew/requests/accept", json={"username": "limit_c"}, headers=ha).status_code == 409
+
+
+def test_strangers_see_no_photo_no_holds_no_live():
+    sa, ha = _login("crew-r-sa@example.com")
+    _, hb = _login("crew-r-sb@example.com")
+    _setup(ha, "stranger_a"); _setup(hb, "stranger_b")
+    client.post("/crew/avatar", json={"data": TINY_JPEG}, headers=ha)
+    client.post("/crew/live", json={"on": True}, headers=ha)
+    db = SessionLocal()
+    holds.award(db, sa, "solved", "s1", 3)
+    db.commit(); db.close()
+    client.post("/crew/requests", json={"username": "stranger_b"}, headers=ha)
+    seen = client.get("/crew", headers=hb).json()["incoming"][0]
+    assert seen["avatar"] is None and seen["holds_total"] == 0 and seen["live"] is False
+    found = client.get("/crew/search?q=stranger_a", headers=hb).json()[0]
+    assert found["avatar"] is None and found["holds_total"] == 0

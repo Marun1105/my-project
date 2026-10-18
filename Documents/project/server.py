@@ -1564,7 +1564,8 @@ def ask(
             db.add(scan)
             db.flush()
             if solved:
-                holds.on_solved(db, user.id, scan.id)     # +3 holds, once per question
+                # +3 holds, in a savepoint: the question is kept even if this fails
+                holds.safely(db, "solved", holds.on_solved, user.id, scan.id)
             db.commit()
         except Exception as err:  # noqa: BLE001
             db.rollback()

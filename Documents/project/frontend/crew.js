@@ -796,8 +796,8 @@ const Crew = (() => {
         <p class="crew-card-sub">${esc(t('crew.setupSub'))}</p>
         <form class="crew-setup" novalidate>
           <label class="crew-field"><span>${esc(t('crew.setupUsername'))}</span>
-            <span class="crew-at"><b>@</b><input name="username" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false" value="${esc(suggestion)}" required></span>
-            <small>${esc(t('crew.setupUsernameHint'))}</small></label>
+            <span class="crew-at"><b>@</b><input name="username" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false" value="${esc(suggestion)}"${r.data.username ? ' readonly' : ''} required></span>
+            <small>${esc(t(r.data.username ? 'crew.setupUsernameKept' : 'crew.setupUsernameHint'))}</small></label>
           <div class="crew-field"><span>${esc(t('crew.setupBirth'))}</span>
             <span class="crew-row">
               <select name="month" aria-label="${esc(t('crew.setupMonth'))}"><option value="">${esc(t('crew.setupMonth'))}</option>${months.map((m, i) => `<option value="${i + 1}">${esc(m)}</option>`).join('')}</select>
@@ -812,7 +812,8 @@ const Crew = (() => {
         e.preventDefault();
         const username = form.username.value.trim().replace(/^@/, '').toLowerCase();
         const month = Number(form.month.value), yearV = Number(form.year.value);
-        if (!/^[a-z0-9][a-z0-9._]{1,18}[a-z0-9]$/.test(username) || username.includes('..')) { say(card, t('crew.setupBadName')); return; }
+        // an account that has a username keeps it (it may be how they sign in)
+        if (!r.data.username && (!/^[a-z0-9][a-z0-9._]{1,18}[a-z0-9]$/.test(username) || username.includes('..'))) { say(card, t('crew.setupBadName')); return; }
         if (!month || !yearV) { say(card, t('crew.setupNeedBirth')); return; }
         const go = form.querySelector('.crew-go');
         go.disabled = true;
@@ -825,7 +826,7 @@ const Crew = (() => {
         closeGate();
         load();
       });
-      setTimeout(() => form.username.focus(), 80);
+      setTimeout(() => (r.data.username ? form.month : form.username).focus(), 80);
     } else if (kind === 'parent') {
       card.innerHTML = `
         <h2 id="crewGateTitle" class="crew-card-name">${esc(t('crew.parentTitle'))}</h2>

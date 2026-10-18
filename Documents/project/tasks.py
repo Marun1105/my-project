@@ -67,11 +67,8 @@ def update_task(
     if "done" in data and data["done"] != was_done:
         task.completed_at = datetime.now(timezone.utc) if data["done"] else None
         if data["done"]:
-            # Holds for finishing — best effort: the tick must land even if this fails.
-            try:
-                holds.on_task_done(db, user.id, task)
-            except Exception as err:  # noqa: BLE001
-                print(f"[holds] task: {err!r}", flush=True)
+            # Holds for finishing, in a savepoint: the tick lands even if this fails.
+            holds.safely(db, "task", holds.on_task_done, user.id, task)
 
     db.commit()
     db.refresh(task)

@@ -36,10 +36,9 @@ def create_session(
     )
     db.add(session)
     db.flush()
-    try:
-        holds.on_focus(db, user.id, session)      # a hold per full quarter hour, capped per day
-    except Exception as err:  # noqa: BLE001 — the session matters more than the holds
-        print(f"[holds] focus: {err!r}", flush=True)
+    # a hold per full quarter hour, capped per day — in a savepoint, so the
+    # session is saved even if this fails
+    holds.safely(db, "focus", holds.on_focus, user.id, session)
     db.commit()
     db.refresh(session)
     return session

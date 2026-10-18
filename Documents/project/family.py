@@ -16,7 +16,7 @@ import rate_limit
 from auth import get_current_user
 from db import get_db
 from focus_sessions import MIN_SESSION_SECONDS
-from models import FamilyInvite, FamilyLink, FocusSession, Task, User
+from models import FamilyInvite, FamilyLink, FocusSession, SocialProfile, Task, User
 from schemas import FamilyInviteOut, FamilyLinkRequest, StudentProgressOut
 
 router = APIRouter(prefix="/family", tags=["family"])
@@ -280,8 +280,18 @@ def unlink_student(student_id: str, user: User = Depends(get_current_user), db: 
     if not link:
         raise HTTPException(404, "Link not found.")
     db.delete(link)
+    _forget_crew_approval(db, user.id, student_id)
     db.commit()
     return {"status": "ok"}
+
+
+def _forget_crew_approval(db: Session, parent_id: str, student_id: str) -> None:
+    """A parent's yes to Crew ends with the link it was given through: linking
+    again later is not a yes, it has to be given again."""
+    db.query(SocialProfile).filter(
+        SocialProfile.user_id == student_id, SocialProfile.parent_approved_by == parent_id,
+    ).update({SocialProfile.parent_approved_by: None, SocialProfile.parent_approved_at: None},
+             synchronize_session=False)
 
 
 @router.get("/parents")
@@ -305,5 +315,6 @@ def revoke_parent(parent_id: str, user: User = Depends(get_current_user), db: Se
     if not link:
         raise HTTPException(404, "Link not found.")
     db.delete(link)
+    _forget_crew_approval(db, parent_id, user.id)
     db.commit()
     return {"status": "ok"}

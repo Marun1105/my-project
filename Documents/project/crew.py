@@ -147,6 +147,31 @@ def _person(u: User, p: SocialProfile, h: dict, mutual: int = 0) -> dict:
     }
 
 
+def _stranger(u: User, mutual: int = 0) -> dict:
+    """Someone who is not (yet) a friend: who they are, never how they are
+    doing, and no photo — the photo is for friends."""
+    return {
+        "username": u.username, "name": u.display_name, "grade": u.grade, "avatar": None,
+        "holds_week": 0, "holds_total": 0, "streak": 0, "live": False, "live_minutes": 0,
+        "mutual": mutual,
+    }
+
+
+def _friend_map(db: Session, ids) -> dict:
+    """{id: set of friend ids} for many people in one query."""
+    ids = list({i for i in ids if i})
+    out = {i: set() for i in ids}
+    if not ids:
+        return out
+    for a, b in db.query(Friendship.user_a, Friendship.user_b).filter(
+            or_(Friendship.user_a.in_(ids), Friendship.user_b.in_(ids))):
+        if a in out:
+            out[a].add(b)
+        if b in out:
+            out[b].add(a)
+    return out
+
+
 def _me(db: Session, user: User) -> SocialProfile:
     """The caller's own profile, or 403 with the state that is missing."""
     profile = db.get(SocialProfile, user.id)
@@ -188,19 +213,21 @@ def crew(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
                      if i not in outgoing_ids and i not in incoming_ids][:12]
     others = _visible(db, [i for i in incoming_ids if i not in blocked] + suggested_ids)
 
-    h = holds.totals(db, [user.id, *friends.keys(), *others.keys()])
+    # numbers only for friends and yourself
+    h = holds.totals(db, [user.id, *friends.keys()])
+    their_friends = _friend_map(db, [*friends.keys(), *others.keys()])
 
     def mutual(uid: str) -> int:
-        return len(_friend_ids(db, uid) & friend_ids)
+        return len(their_friends.get(uid, set()) & friend_ids)
 
     me = _person(user, profile, h.get(user.id, {}))
     return {
         "needs": None,
         "me": me,
         "friends": [_person(u, p, h.get(uid, {}), mutual(uid)) for uid, (u, p) in friends.items()],
-        "incoming": [_person(*others[i], h.get(i, {}), mutual(i)) for i in incoming_ids if i in others],
+        "incoming": [_stranger(others[i][0], mutual(i)) for i in incoming_ids if i in others],
         "outgoing": [u.username for u in db.query(User).filter(User.id.in_(list(outgoing_ids)))] if outgoing_ids else [],
-        "suggested": [_person(*others[i], h.get(i, {}), fof.get(i, 0)) for i in suggested_ids if i in others][:6],
+        "suggested": [_stranger(others[i][0], fof.get(i, 0)) for i in suggested_ids if i in others][:6],
         "groups": [],
     }
 
@@ -223,9 +250,15 @@ def set_up(body: ProfileIn, request: Request,
     if (user.role or "student") != "student":
         raise HTTPException(403, {"needs": "role"})
     name = body.username.strip().lstrip("@").lower()
-    if not USERNAME.match(name) or ".." in name or name in RESERVED:
+    # The username is also what some students sign in with: Crew uses the one
+    # the account has and never changes it.
+    if user.username:
+        if name != user.username.lower():
+            raise HTTPException(409, f"Your username is @{user.username} — Crew uses that one.")
+        name = user.username
+    elif not USERNAME.match(name) or ".." in name or name in RESERVED:
         raise HTTPException(400, "Use 3–20 letters, numbers, dots or underscores, starting and ending with a letter or number.")
-    taken = db.query(User.id).filter(func.lower(User.username) == name, User.id != user.id).first()
+    taken = db.query(User.id).filter(func.lower(User.username) == name.lower(), User.id != user.id).first()
     if taken:
         raise HTTPException(409, "That username is taken.")
 
@@ -247,7 +280,7 @@ def set_up(body: ProfileIn, request: Request,
         # the same username taken a moment ago, or a double click
         db.rollback()
         db.refresh(user)
-        if (user.username or "").lower() != name:
+        if (user.username or "").lower() != name.lower():
             raise HTTPException(409, "That username is taken.")
     return crew(user=user, db=db)
 
@@ -300,19 +333,20 @@ def search(q: str, request: Request, user: User = Depends(get_current_user), db:
     if len(name) < 3 or not re.match(r"^[a-z0-9._]+$", name):
         return []
     like = name.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
-    hits = (db.query(User.id).filter(func.lower(User.username).like(like, escape="\\"), User.id != user.id)
-            .order_by(func.length(User.username)).limit(25).all())
+    hits = (db.query(User.id)
+            .join(SocialProfile, SocialProfile.user_id == User.id)
+            .filter(func.lower(User.username).like(like, escape="\\"), User.id != user.id,
+                    func.coalesce(User.role, "student") == "student")
+            .order_by(func.length(User.username)).limit(40).all())
     blocked = _blocked_ids(db, user.id)
     friends = _friend_ids(db, user.id)
     found = _visible(db, [i for (i,) in hits if i not in blocked and i not in friends])
     outgoing = {r.to_user_id for r in db.query(FriendRequest).filter(FriendRequest.from_user_id == user.id)}
     incoming = {r.from_user_id for r in db.query(FriendRequest).filter(FriendRequest.to_user_id == user.id)}
-    h = holds.totals(db, found.keys())
+    their_friends = _friend_map(db, found.keys())
     out = []
     for uid, (u, p) in sorted(found.items(), key=lambda kv: len(kv[1][0].username or "")):
-        person = _person(u, p, h.get(uid, {}), len(_friend_ids(db, uid) & friends))
-        # strangers see who you are, not how you are doing
-        person.update(holds_week=0, holds_total=0, streak=0, live=False, live_minutes=0)
+        person = _stranger(u, len(their_friends.get(uid, set()) & friends))
         person["request"] = "sent" if uid in outgoing else "incoming" if uid in incoming else None
         out.append(person)
     return out[:8]
@@ -320,6 +354,12 @@ def search(q: str, request: Request, user: User = Depends(get_current_user), db:
 
 class UsernameIn(BaseModel):
     username: str = Field(min_length=1, max_length=40)
+
+
+def _room_for_friends(db: Session, *ids) -> None:
+    for uid in ids:
+        if len(_friend_ids(db, uid)) >= MAX_FRIENDS:
+            raise HTTPException(409, "That is a lot of friends already.")
 
 
 def _befriend(db: Session, a: str, b: str) -> None:
@@ -340,11 +380,11 @@ def send_request(body: UsernameIn, request: Request,
     other = _by_username(db, user, body.username)
     if other.id in _friend_ids(db, user.id):
         return {"status": "friends"}
-    if len(_friend_ids(db, user.id)) >= MAX_FRIENDS:
-        raise HTTPException(409, "That is a lot of friends already.")
+    _room_for_friends(db, user.id)
     # They asked first: saying it back is saying yes.
     if db.query(FriendRequest.id).filter(FriendRequest.from_user_id == other.id,
                                          FriendRequest.to_user_id == user.id).first():
+        _room_for_friends(db, other.id)
         _befriend(db, user.id, other.id)
         _commit(db)
         return {"status": "friends"}
@@ -362,6 +402,7 @@ def accept(body: UsernameIn, user: User = Depends(get_current_user), db: Session
     if not db.query(FriendRequest.id).filter(FriendRequest.from_user_id == other.id,
                                              FriendRequest.to_user_id == user.id).first():
         raise HTTPException(404, "No request from that person.")
+    _room_for_friends(db, user.id, other.id)
     _befriend(db, user.id, other.id)
     _commit(db)
     return {"status": "friends"}
@@ -370,6 +411,7 @@ def accept(body: UsernameIn, user: User = Depends(get_current_user), db: Session
 @router.post("/requests/decline")
 def decline(body: UsernameIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Declines theirs, or takes back mine. Says nothing to the other person."""
+    _me(db, user)
     name = body.username.strip().lstrip("@").lower()
     other = db.query(User).filter(func.lower(User.username) == name).first()
     if other is not None:
@@ -383,6 +425,7 @@ def decline(body: UsernameIn, user: User = Depends(get_current_user), db: Sessio
 
 @router.post("/unfriend")
 def unfriend(body: UsernameIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    _me(db, user)
     name = body.username.strip().lstrip("@").lower()
     other = db.query(User).filter(func.lower(User.username) == name).first()
     if other is not None:
@@ -399,10 +442,13 @@ def block(body: UsernameIn, request: Request,
     finds the other again. The other person is not told."""
     rate_limit.enforce(request, "crew-block", max_calls=30, window_seconds=3600,
                        message="Too many attempts. Please wait a moment.", user=user)
+    _me(db, user)
     name = body.username.strip().lstrip("@").lower()
     other = db.query(User).filter(func.lower(User.username) == name).first()
-    if other is None or other.id == user.id:
-        raise HTTPException(404, "Nobody with that username.")
+    # The same answer whether the name exists or not: this must not become a
+    # way to test which usernames are real. Only people in Crew can be blocked.
+    if other is None or other.id == user.id or db.get(SocialProfile, other.id) is None:
+        return {"status": "ok"}
     if not db.query(Block.id).filter(Block.blocker_id == user.id, Block.blocked_id == other.id).first():
         db.add(Block(blocker_id=user.id, blocked_id=other.id))
     x, y = _pair(user.id, other.id)

@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from models import HoldEntry
 
 SOLVED = 3              # solved it on your own (judged by ClimbAI, not claimed)
+SOLVED_DAILY_CAP = 24   # eight solved steps a day; asking the same thing again pays nothing past it
 ON_TIME = 2             # a task with a deadline, finished by it
 TASK_DONE = 1           # a task without a deadline, finished
 FOCUS_PER_15_MIN = 1    # each full quarter hour of a focus session
@@ -100,7 +101,23 @@ def _streak(db: Session, user_id: str) -> None:
 # ---------------------------------------------------------------------------
 
 def on_solved(db: Session, user_id: str, scan_id: str) -> int:
-    return award(db, user_id, "solved", scan_id, SOLVED)
+    left = SOLVED_DAILY_CAP - _earned_today(db, user_id, ("solved",))
+    return award(db, user_id, "solved", scan_id, min(SOLVED, max(0, left)))
+
+
+def safely(db: Session, label: str, fn, *args) -> int:
+    """Earn without ever risking the thing that earned it.
+
+    The call runs in its own savepoint. On Postgres any failed statement
+    aborts the whole transaction, so a try/except alone is not enough: the
+    caller's commit of the task, the session or the question would then fail
+    too. Rolling back to the savepoint leaves the caller's work intact."""
+    try:
+        with db.begin_nested():
+            return fn(db, *args)
+    except Exception as err:  # noqa: BLE001 — the student's work matters more than the holds
+        print(f"[holds] {label}: {err!r}", flush=True)
+        return 0
 
 
 def on_task_done(db: Session, user_id: str, task) -> int:
@@ -156,12 +173,16 @@ def totals(db: Session, user_ids) -> dict:
                       .group_by(HoldEntry.user_id)):
         out[uid]["week"] = int(week or 0)
     # the streak: consecutive days with an own hold, ending today or yesterday
-    since = day_start() - timedelta(days=60)
+    # a year back: a streak longer than that is shown as a year, which is fair
+    since = day_start() - timedelta(days=366)
     days = {i: set() for i in ids}
-    for uid, at in (db.query(HoldEntry.user_id, HoldEntry.created_at)
+    # one row per person and day, not every hold of the year
+    for uid, at in (db.query(HoldEntry.user_id, func.min(HoldEntry.created_at))
                     .filter(HoldEntry.user_id.in_(ids), HoldEntry.reason.in_(OWN_REASONS),
-                            HoldEntry.created_at >= since)):
-        days[uid].add(_as_utc(at).date())
+                            HoldEntry.created_at >= since)
+                    .group_by(HoldEntry.user_id, func.date(HoldEntry.created_at))):
+        if at is not None:
+            days[uid].add(_as_utc(at).date())
     today = _now().date()
     for uid, seen in days.items():
         d = today if today in seen else today - timedelta(days=1)

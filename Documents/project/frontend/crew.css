@@ -538,3 +538,4 @@
 .crew-row select:focus { outline: none; border-color: #8b5cf6; background: #fff; }
 .crew-go { width: 100%; margin-top: 4px; }
 .crew-go[disabled] { opacity: .6; }
+.crew-at input[readonly] { color: #6b6585; }
