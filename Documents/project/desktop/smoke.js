@@ -58,7 +58,14 @@ async function main() {
   if (!page) throw new Error('the app opened no window within 15 seconds');
   page.on('pageerror', e => note('page error', e.message.slice(0, 200)));
   page.on('console', m => { if (m.type() === 'error') note('console error', m.text().slice(0, 200)); });
-  page.on('requestfailed', r => { if (!/cdn\.jsdelivr|fonts\./.test(r.url())) note('request failed', r.url().slice(0, 120)); });
+  page.on('requestfailed', r => {
+    if (/cdn\.jsdelivr|fonts\./.test(r.url())) return;
+    const why = (r.failure() && r.failure().errorText) || '?';
+    // The ClimbAI loops are paused while out of sight (ai-activity.js), and a
+    // paused or replaced <video> cancels its own load: that is not a failure.
+    if (why === 'net::ERR_ABORTED' && /\/media\/.+\.webm$/.test(r.url())) return;
+    note('request failed', r.url().slice(0, 120) + ' (' + why + ')');
+  });
 
   await page.waitForTimeout(1500);
   // SMOKE_NOTIFY=1: show one real Windows notification through the bridge the
