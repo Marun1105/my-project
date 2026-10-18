@@ -15,6 +15,9 @@ contextBridge.exposeInMainWorld('CLIMBY_DESKTOP', {
   // invisible to anyone who doesn't press Alt. Settings shows them instead.
   version: () => ipcRenderer.invoke('climby:version'),
   checkForUpdates: () => ipcRenderer.invoke('climby:check-updates'),
+  // A Windows notification: a title and a line, nothing more (see main.js).
+  notify: payload => ipcRenderer.invoke('climby:notify', payload),
+  onNotificationClick: handler => ipcRenderer.on('climby:notification-click', (_event, tag) => handler(tag)),
   onUpdateStatus: handler => {
     const listener = (_event, status) => handler(status);
     ipcRenderer.on('climby:update-status', listener);

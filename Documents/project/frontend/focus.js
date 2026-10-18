@@ -32,6 +32,10 @@ const Focus = (() => {
   let sessionStart = null;
   let verificationPausedAt = null;
   let verificationPauseMs = 0;
+  // A break the student chose (breaks.js): the clock stops, nothing is counted
+  // as studying or as away, and the face check rests — they are not at the desk.
+  let breakStartedAt = null;
+  let breakPauseMs = 0;
   let verificationFeedbackKey = 'focus.verifyPausedHint';
   let focusedMs = 0;   // време, а не кадри
   let awayMs = 0;
@@ -324,6 +328,10 @@ const Focus = (() => {
   }
 
   function checkIdentity(descriptor) {
+    if (breakStartedAt !== null) {   // on a break nobody is expected at the desk
+      if (descriptor) descriptor.fill(0);
+      return;
+    }
     if (verificationPausedAt !== null) {
       // Paused: the same once-a-second look decides when to carry on, so the
       // student who sat back down does not have to find a button and hold
@@ -476,6 +484,8 @@ const Focus = (() => {
     $('focusVideo').srcObject = stream;
     sessionStart = Date.now();
     verificationPauseMs = 0;
+    breakStartedAt = null;
+    breakPauseMs = 0;
     if (!document.body.classList.contains('focus-live')) {
       document.body.classList.add('focus-live');
       window.dispatchEvent(new CustomEvent('climby:focus-live'));
@@ -659,7 +669,7 @@ const Focus = (() => {
     // Броим време, а не кадри: иначе бавен телефон би "учил" по-малко от бърз.
     if (lastTickAt) {
       const dt = Math.min(now - lastTickAt, 1000);
-      if (sessionStart && verificationPausedAt === null) {
+      if (sessionStart && verificationPausedAt === null && breakStartedAt === null) {
         if (isFocused) focusedMs += dt; else awayMs += dt;
       }
     }
@@ -1026,7 +1036,8 @@ const Focus = (() => {
   function activeSessionMs() {
     if (!sessionStart) return 0;
     const pauseMs = verificationPauseMs +
-      (verificationPausedAt === null ? 0 : Date.now() - verificationPausedAt);
+      (verificationPausedAt === null ? 0 : Date.now() - verificationPausedAt) +
+      breakPauseMs + (breakStartedAt === null ? 0 : Date.now() - breakStartedAt);
     return Math.max(0, Date.now() - sessionStart - pauseMs);
   }
 
@@ -1114,7 +1125,33 @@ const Focus = (() => {
     startTracking();
   }
 
+  // ---------- breaks (asked for by breaks.js) ----------
+  function startBreak() {
+    if (!sessionStart || breakStartedAt !== null) return false;
+    breakStartedAt = Date.now();
+    const badgeLabel = $('focusBadge').querySelector('.focus-badge-text > span');
+    if (badgeLabel) badgeLabel.textContent = t('breaks.onBreak');
+    $('focusStatus').textContent = t('breaks.onBreak');
+    paintBadge();
+    return true;
+  }
+
+  function endBreak() {
+    if (breakStartedAt === null) return false;
+    breakPauseMs += Date.now() - breakStartedAt;
+    breakStartedAt = null;
+    // a fresh count: what happened before the break says nothing about now
+    if (referenceDescriptor) identityMonitor = FaceVerification.createMonitor(referenceDescriptor, IDENTITY_DISTANCE);
+    lastTickAt = performance.now();
+    const badgeLabel = $('focusBadge').querySelector('.focus-badge-text > span');
+    if (badgeLabel) badgeLabel.textContent = verificationPausedAt === null ? t('focus.badge') : t('focus.badgePaused');
+    if (verificationPausedAt === null) $('focusStatus').textContent = t('focus.runningStatus');
+    paintBadge();
+    return true;
+  }
+
   function stopSession(silent) {
+    endBreak();   // a break that is still running is not study time
     const totalMs = activeSessionMs();
     startId++;   // ако точно сега се отваря камера, тя вече е ненужна
     stopTracking();
@@ -1137,6 +1174,8 @@ const Focus = (() => {
     sessionStart = null;
     clearIdentity();
     verificationPauseMs = 0;
+    breakStartedAt = null;
+    breakPauseMs = 0;
     updateToggleUI();
     document.body.classList.remove('focus-live');
     window.dispatchEvent(new CustomEvent('climby:focus-live'));
@@ -1233,7 +1272,16 @@ const Focus = (() => {
     renderStreak();
   }
 
-  return { init };
+  return {
+    init,
+    // for breaks.js
+    isRunning: () => !!sessionStart,
+    activeMs: activeSessionMs,
+    onBreak: () => breakStartedAt !== null,
+    startBreak,
+    endBreak,
+  };
 })();
 
+window.Focus = Focus;
 document.addEventListener('DOMContentLoaded', Focus.init);

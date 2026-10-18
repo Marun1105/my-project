@@ -5051,3 +5051,45 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
   }
   #settingsOverlay .settings-group { scroll-margin-top: 12px; }
 }
+
+/* ---------- the break reminder (breaks.js) ----------
+   Bottom right, where the ClimbAI button sits when no session runs (it steps
+   aside during one). Plain card, the accent only on the button that takes
+   the break: a suggestion, not an alarm. */
+.break-card {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 2900;
+  width: min(360px, calc(100vw - 32px));
+  padding: 16px 18px 14px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay, 0 10px 30px rgba(0, 0, 0, .28));
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .25s ease, transform .25s ease;
+}
+.break-card.is-in { opacity: 1; transform: none; }
+.break-card-title { margin: 0 0 4px; font-size: 13px; font-weight: 650; color: var(--accent-fg, var(--accent)); }
+.break-card-line { margin: 0; font-size: 15px; line-height: 1.5; }
+.break-card.is-break .break-card-time { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.break-card-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.break-btn {
+  flex: none;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.break-btn:hover { background: var(--accent-strong, var(--accent)); }
+.break-btn-quiet { background: transparent; color: var(--text); border-color: var(--border); }
+.break-btn-quiet:hover { background: var(--accent-soft); }
+@media (max-width: 560px) { .break-card { right: 16px; left: 16px; width: auto; bottom: 16px; } }
+@media (prefers-reduced-motion: reduce) { .break-card { transition: none; } }
+

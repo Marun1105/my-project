@@ -61,6 +61,14 @@ async function main() {
   page.on('requestfailed', r => { if (!/cdn\.jsdelivr|fonts\./.test(r.url())) note('request failed', r.url().slice(0, 120)); });
 
   await page.waitForTimeout(1500);
+  // SMOKE_NOTIFY=1: show one real Windows notification through the bridge the
+  // break reminder uses. Off by default, so a smoke run does not pop things up.
+  if (process.env.SMOKE_NOTIFY) {
+    const shown = await page.evaluate(() => window.CLIMBY_DESKTOP && window.CLIMBY_DESKTOP.notify
+      ? window.CLIMBY_DESKTOP.notify({ title: 'Climby', body: 'Smoke test: notifications work.' })
+      : 'no bridge');
+    if (shown !== true) note('notification', `the desktop bridge answered ${shown}`);
+  }
   const url = page.url();
   if (!url.startsWith('app://')) note('shell', `unexpected origin ${url}`);
 

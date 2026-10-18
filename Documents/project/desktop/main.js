@@ -4,7 +4,7 @@
 // има свой прозорец, своя икона в лентата на задачите и се стартира от менюто "Старт".
 // Сървърът (Render) остава същият, за да може ученикът да влезе в акаунта си и от
 // телефон, и от компютър и да вижда същия чеклист.
-const { app, BrowserWindow, Menu, dialog, protocol, net, session, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, Notification, dialog, protocol, net, session, shell, ipcMain } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
@@ -330,6 +330,31 @@ if (!gotLock) {
   // the same path as the hidden Help menu, dialogs and all.
   ipcMain.handle('climby:version', () => app.getVersion());
   ipcMain.handle('climby:check-updates', () => checkForUpdatesManually());
+
+  // The break reminder (frontend/breaks.js). The page's own Notification API
+  // stays denied by the permission handler below; this is the one way the
+  // page can show a notification, and it carries a title and a line of text
+  // and nothing else. Clicking it brings Climby to the front.
+  ipcMain.handle('climby:notify', (_event, payload) => {
+    if (!Notification.isSupported()) return false;
+    const title = String((payload && payload.title) || 'Climby').slice(0, 80);
+    const body = String((payload && payload.body) || '').slice(0, 300);
+    const tag = String((payload && payload.tag) || '').slice(0, 40);
+    const note = new Notification({ title, body, icon: path.join(FRONTEND_DIR, 'icon-192.png') });
+    note.on('click', () => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+      mainWindow.webContents.send('climby:notification-click', tag);
+    });
+    note.show();
+    return true;
+  });
+
+  // Windows shows a notification under the app's identity; without this an
+  // installed copy's notifications can be dropped silently.
+  if (process.platform === 'win32') app.setAppUserModelId('com.martinhristov.climby');
 
   app.whenReady().then(() => {
     // Content-Security-Policy нарочно не се слага тук с onHeadersReceived: същата

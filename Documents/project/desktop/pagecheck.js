@@ -660,6 +660,49 @@ function findChromium() {
 
   await guestPage.close();
 
+  // The break reminder, end to end, with a stand-in session: the card comes
+  // when study time passes the interval, "take" pauses the study clock, the
+  // countdown ending says so and un-pauses it. No real camera or clock needed.
+  const breaks = await page.evaluate(async () => {
+    const out = {};
+    const calls = [];
+    let studied = 50 * 60 * 1000;
+    let onBreak = false;
+    window.Focus = {
+      isRunning: () => true,
+      activeMs: () => studied,
+      onBreak: () => onBreak,
+      startBreak: () => { calls.push('start'); onBreak = true; return true; },
+      endBreak: () => { calls.push('end'); onBreak = false; return true; },
+    };
+    document.body.classList.add('focus-live');
+    window.dispatchEvent(new CustomEvent('climby:focus-live'));
+    Breaks.check();                       // first look sets the due time
+    studied += 60 * 60 * 1000;            // an hour later in study time
+    Breaks.check();
+    const card = document.querySelector('.break-card');
+    out.cardShown = !!card;
+    out.buttons = card ? [...card.querySelectorAll('button')].map(b => b.textContent) : [];
+    out.line = card ? card.querySelector('.break-card-line').textContent : '';
+    card && card.querySelectorAll('button')[1].click();   // take the break
+    out.afterTake = { calls: calls.slice(), breakCard: !!document.querySelector('.break-card.is-break') };
+    Breaks.finishBreak(true);             // the countdown ran out
+    const over = document.querySelector('.break-card');
+    out.overShown = !!over && !over.classList.contains('is-break');
+    out.calls = calls;
+    over && over.querySelector('button').click();
+    out.closed = !document.querySelector('.break-card');
+    document.body.classList.remove('focus-live');
+    window.dispatchEvent(new CustomEvent('climby:focus-live'));
+    return out;
+  });
+  if (!breaks.cardShown) problems.push('the break reminder never appeared');
+  if (breaks.buttons.length !== 2) problems.push('the break card should offer "not now" and "take a break"');
+  if (!breaks.line || /^breaks\./.test(breaks.line)) problems.push(`the break line is missing or untranslated: ${breaks.line}`);
+  if (breaks.afterTake.calls.join() !== 'start' || !breaks.afterTake.breakCard) problems.push('taking the break did not pause the study clock');
+  if (!breaks.overShown || breaks.calls.join() !== 'start,end') problems.push('the end of the break was not announced, or the clock did not resume');
+  if (!breaks.closed) problems.push('the break card did not close');
+
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT, fullPage: false });
   await browser.close();
   server.close();
