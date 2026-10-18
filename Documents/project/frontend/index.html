@@ -49,6 +49,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="subjects.css">
 <link rel="stylesheet" href="classes.css">
+<link rel="stylesheet" href="crew.css">
 <link rel="stylesheet" href="themes.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
 </head>
@@ -699,6 +700,11 @@
           </div>
         </div>
       </div>
+      <div class="nav-group">
+        <button class="nav-link nav-parent nav-crew" data-view="crew"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 20 9 9l3.5 5.5L15 11l6.5 9z"/><path d="M15 11V4.5l3.5 1.2L15 7"/></svg>
+          <span data-i18n="nav.crew">Crew</span>
+        </button>
+      </div>
     </nav>
 
     <div class="sidebar-spacer"></div>
@@ -1341,6 +1347,11 @@
 
 </main>
 
+<!-- Crew: friends on a mountain. crew.js draws everything inside the stage. -->
+<main id="view-crew" class="view hidden">
+  <div id="crewStage" class="crew-stage"></div>
+</main>
+
 
 
 
@@ -1472,6 +1483,7 @@
 <script src="subjects.js"></script>
 <script src="ai-planner.js"></script>
 <script src="history.js"></script>
+<script src="crew.js"></script>
 <script src="face-verification.js"></script>
 <script src="focus.js"></script>
 <script src="break-schedule.js"></script>

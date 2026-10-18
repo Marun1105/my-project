@@ -597,6 +597,9 @@ The screens, from the menu on the left:
   Tasks are ticked off, edited by clicking the text, and a big one can be split into steps by
   you. A deleted task can be undone for a few seconds afterwards.
 - "Done & dusted" — everything already finished, and the questions asked here before.
+- "Crew" — a PREVIEW of the coming social screen: friends on a mountain, placed by the
+  "holds" (Climby's currency, earned by studying) they earned this week. The people on it
+  are samples, not real friends yet; adding friends, cheering and chat do not work yet.
 
 Always use the current names above: "Homework", "Done & dusted", "Focus mode",
 "Family" and "Class". Earlier versions of the app called them "The Route",
@@ -664,6 +667,9 @@ something that does not exist trusts you less about the mathematics too.""",
   отмятат, променят се с натискане върху текста, а голяма задача можеш да разделиш на стъпки.
   Изтрита задача може да се върне няколко секунди след това.
 - „Готово и отметнато" — всичко вече свършено и въпросите, задавани тук преди.
+- „Екипът" — ПРЕГЛЕД на бъдещия социален екран: приятели на планина, подредени по
+  „хватките“ (валутата на Climby, печелят се с учене), спечелени тази седмица. Хората там са
+  примерни, още не истински приятели; добавянето, подкрепата и чатът още не работят.
 
 Винаги използвай сегашните имена по-горе: „Домашни“, „Готово и отметнато“, „Режим
 фокус“, „Семейство“ и „Клас“. Предишни версии на приложението ги наричаха „Маршрут“,

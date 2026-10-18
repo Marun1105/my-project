@@ -145,8 +145,10 @@ def _js_modules():
 
 @pytest.mark.parametrize("js_file", _js_modules())
 def test_element_ids_referenced_by_js_exist(html, js_file):
-    ids_in_html = set(re.findall(r'id="([^"]+)"', html))
     src = _read(js_file)
+    # a screen that draws its own markup (crew.js) declares its ids in it
+    ids_in_html = set(re.findall(r'id="([^"]+)"', html)) | set(re.findall(r'id="([^"$]+)"', src)) | set(
+        re.findall(r"\.id = '([^']+)'", src))
     referenced = set(re.findall(r"\$\('([^']+)'\)", src)) | set(
         re.findall(r"getElementById\('([^']+)'\)", src)
     )
@@ -822,7 +824,7 @@ def test_both_screens_say_which_one_they_are():
 # is also better for the student, who is then told the exact words on screen.
 _MAP_MUST_NAME = [
     # the screens
-    "nav.tutor", "nav.checklist", "nav.history", "nav.focus", "nav.classes", "nav.family",
+    "nav.tutor", "nav.checklist", "nav.history", "nav.focus", "nav.classes", "nav.family", "nav.crew",
     # the ways into ClimbAI
     "entry.cameraTitle", "entry.phoneTitle", "entry.paperTitle",
     # every row of Settings
