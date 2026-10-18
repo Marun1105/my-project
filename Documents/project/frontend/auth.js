@@ -545,8 +545,10 @@ const Auth = (() => {
 
   // After a password change the server hands back a fresh token; every other
   // session is over. Keep the same storage as before (remembered or not).
-  function replaceSession(token, user) {
-    _setSession(token, user, !!localStorage.getItem(TOKEN_KEY));
+  // remember: pass it when the stored token may already be gone (a 401 in
+  // between clears it), otherwise it is read from where the token is now.
+  function replaceSession(token, user, remember) {
+    _setSession(token, user, typeof remember === 'boolean' ? remember : !!localStorage.getItem(TOKEN_KEY));
   }
 
   // The profile changed (grade, town); the stored user should say so too,

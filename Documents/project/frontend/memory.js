@@ -25,8 +25,12 @@ const Memory = (() => {
       const saved = JSON.parse(localStorage.getItem(key()) || 'null');
       if (!saved || typeof saved !== 'object') return defaults();
       return {
-        // the old per-category records had no switch: they become "on"
-        on: saved.on !== false,
+        // A record from before the switch (per-category boxes) has no 'on':
+        // it stays off unless the person had ticked something. Only someone
+        // with no record at all starts with memory on.
+        on: 'on' in saved
+          ? saved.on !== false
+          : !!(saved.learning_level || saved.checklist || saved.focus_sessions || saved.previous_questions),
         personal_enabled: saved.personal_enabled === true,
         personal_note: typeof saved.personal_note === 'string' ? saved.personal_note.slice(0, 600) : '',
       };

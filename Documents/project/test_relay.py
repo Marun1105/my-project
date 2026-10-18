@@ -104,7 +104,16 @@ def _readers(calls):
 
 
 def _tutors(calls):
-    return [c for c in calls if c["model"] != relay.READER_MODEL]
+    # the system prompt arrives as cached blocks; the tests read it as text
+    out = []
+    for c in calls:
+        if c["model"] == relay.READER_MODEL:
+            continue
+        c = dict(c)
+        if isinstance(c.get("system"), list):
+            c["system"] = "".join(block["text"] for block in c["system"])
+        out.append(c)
+    return out
 
 
 def _has_image(call):

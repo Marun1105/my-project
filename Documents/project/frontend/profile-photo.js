@@ -89,6 +89,13 @@ const ProfilePhoto = (() => {
     root.addEventListener('click', e => { if (e.target === root) close(); });
     root.addEventListener('keydown', e => {
       if (e.key === 'Escape') { e.stopPropagation(); close(); }
+      if (e.key === 'Tab') {
+        const stops = [...root.querySelectorAll('button:not(.hidden), input, [tabindex="0"]')]
+          .filter(el => el.offsetParent !== null);
+        const first = stops[0], last = stops[stops.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
       const step = 8;
       const moves = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] };
       if (moves[e.key] && e.target === canvas.parentElement) {
@@ -102,6 +109,7 @@ const ProfilePhoto = (() => {
     stage.tabIndex = 0;
     stage.setAttribute('role', 'img');
     stage.setAttribute('aria-label', t('photo.hint'));
+    window.addEventListener('climby:lang-changed', () => stage.setAttribute('aria-label', t('photo.hint')));
     let drag = null;
     stage.addEventListener('pointerdown', e => {
       drag = { x: e.clientX, y: e.clientY, sx: state.x, sy: state.y };
@@ -109,8 +117,9 @@ const ProfilePhoto = (() => {
     });
     stage.addEventListener('pointermove', e => {
       if (!drag) return;
-      state.x = drag.sx + (e.clientX - drag.x);
-      state.y = drag.sy + (e.clientY - drag.y);
+      const k = VIEW / (stage.clientWidth || VIEW);
+      state.x = drag.sx + (e.clientX - drag.x) * k;
+      state.y = drag.sy + (e.clientY - drag.y) * k;
       clamp(); draw();
     });
     const end = () => { drag = null; };
@@ -183,6 +192,8 @@ const ProfilePhoto = (() => {
       root.querySelector('.photo-remove').classList.toggle('hidden', !get());
       cameFrom = document.activeElement;
       root.classList.remove('hidden');
+      const behind = document.getElementById('settingsOverlay');
+      if (behind) behind.inert = true;
       draw();
       root.querySelector('.photo-stage').focus();
     };
@@ -197,6 +208,8 @@ const ProfilePhoto = (() => {
     if (!root) return;
     root.classList.add('hidden');
     img = null;
+    const behind = document.getElementById('settingsOverlay');
+    if (behind) behind.inert = false;
     if (cameFrom && cameFrom.focus) cameFrom.focus();
   }
 

@@ -97,9 +97,14 @@ const Theme = (() => {
     try { saved = JSON.parse(load(KEY_LOOK) || '{}') || {}; } catch { saved = {}; }
     const look = { ...LOOK_DEFAULTS };
     // Looks saved before v2 (1.0.26–1.0.28) carry the flat background that was
-    // the default then; it is dropped once so the glow comes back. Everything
-    // else the student chose is kept.
-    if (saved.v !== LOOK_VERSION) delete saved.bg;
+    // the default then; it is dropped once so the glow comes back. A background
+    // the student picked on purpose (aurora, dots) is kept, as is everything
+    // else, and the record is marked so this happens only once.
+    if (Object.keys(saved).length && saved.v !== LOOK_VERSION) {
+      if (saved.bg === 'plain') delete saved.bg;
+      saved.v = LOOK_VERSION;
+      save(KEY_LOOK, JSON.stringify(saved));
+    }
     Object.keys(LOOK_VALUES).forEach(k => { if (LOOK_VALUES[k].includes(saved[k])) look[k] = saved[k]; });
     if (typeof saved.accent === 'string' && /^#[0-9a-f]{6}$/i.test(saved.accent)) look.accent = saved.accent.toLowerCase();
     return look;

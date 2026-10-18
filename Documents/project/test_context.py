@@ -38,6 +38,13 @@ def _login(email):
     return uid, {"Authorization": f"Bearer {res.json()['token']}"}
 
 
+def _flat(system):
+    """The system prompt arrives as cached blocks; the tests read it as text."""
+    if isinstance(system, list):
+        return "".join(block["text"] for block in system)
+    return system
+
+
 def _capture(monkeypatch):
     """Stub Anthropic and hand back whatever system prompt it was given.
 
@@ -56,7 +63,9 @@ def _capture(monkeypatch):
         content = [_Block()]
 
     def fake_create(**kwargs):
-        seen["system"] = kwargs["system"]
+        seen["system"] = _flat(kwargs["system"])
+        seen["raw_system"] = kwargs["system"]
+        seen["model"] = kwargs.get("model")
         return _Resp()
 
     monkeypatch.setattr(server.client.messages, "create", fake_create)
@@ -472,3 +481,23 @@ def test_the_surface_dict_covers_every_surface_the_model_accepts():
     assert set(server.SURFACE) == allowed, (
         f"SURFACE covers {sorted(server.SURFACE)}, the field accepts {sorted(allowed)}"
     )
+
+
+def test_an_eighth_grader_is_spoken_to_as_a_teenager_on_sonnet(monkeypatch):
+    """The owner, 2026-10-18: the chatbot "treats an 8th-grader like a kid"."""
+    uid, h = _login("grade8-register@example.com")
+    db = SessionLocal()
+    db.query(User).filter(User.id == uid).first().grade = 8
+    db.commit(); db.close()
+    seen = _capture(monkeypatch)
+    memory = {"learning_level": True, "checklist": False, "focus_sessions": False,
+              "previous_questions": False, "personal_note_enabled": False, "personal_note": ""}
+    assert _ask(headers=h, memory=memory).status_code == 200
+    assert "The student is in grade 8 (age about 14) — a teenager." in seen["system"]
+    assert "Never talk down." in seen["system"]
+    assert server.TUTOR_MODEL.startswith("claude-sonnet")
+    assert seen["model"] == server.TUTOR_MODEL
+    # the fixed part is cached, and the student's own context comes after it
+    blocks = seen["raw_system"]
+    assert blocks[0]["cache_control"] == {"type": "ephemeral"}
+    assert "grade 8" not in blocks[0]["text"] and "grade 8" in blocks[1]["text"]

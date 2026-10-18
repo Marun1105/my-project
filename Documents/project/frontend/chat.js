@@ -33,32 +33,92 @@ const Chat = (() => {
     return (u && u.id) ? String(u.id) : null;
   };
 
-  function forgetThread() {
-    try { localStorage.removeItem(THREAD_KEY); } catch {}
+  // Many chats, not one. Each is kept on this device per account, newest
+  // first, so a conversation can be opened again later — from the list in this
+  // panel or from Done & dusted. "New chat" puts the current one away instead
+  // of throwing it out; only its own ✕ deletes a chat.
+  const CHATS_PREFIX = 'climby-chats-v1:';
+  const CHATS_MAX = 30;      // chats kept
+  const TURNS_KEEP = 60;     // turns kept per chat (the server still gets the last THREAD_MAX)
+  let currentId = null;
+  let shownFor = null;       // whose chats the panel was last filled from
+
+  // A deliberate "Log out" click means the computer is being handed over — in
+  // a school that is the whole point of the button — so that account's chats
+  // leave the device with them (every question stays in the account, under
+  // Done & dusted). A silent 401 expiry does not: they are still sitting
+  // there. Called only from the auth handler, for the click.
+  function forgetThread(who) {
+    if (!who) return;
+    try {
+      localStorage.removeItem(CHATS_PREFIX + who);
+      localStorage.removeItem(THREAD_KEY);
+    } catch { /* nothing kept, nothing to remove */ }
+  }
+
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  function titleOf(turns) {
+    const first = (turns.find(x => x.role === 'user') || {}).text || '';
+    const line = first.replace(/\s+/g, ' ').trim();
+    return line.length > 70 ? line.slice(0, 68) + '…' : line;
+  }
+
+  function load() {
+    const who = owner();
+    if (!who) return null;             // a guest leaves nothing behind
+    let s = null;
+    try { s = JSON.parse(localStorage.getItem(CHATS_PREFIX + who) || 'null'); } catch { s = null; }
+    if (!s || !Array.isArray(s.chats)) s = { current: null, chats: [] };
+    // the single thread kept before there were many chats becomes the first one
+    try {
+      const old = JSON.parse(localStorage.getItem(THREAD_KEY) || 'null');
+      if (old && old.who === who && Array.isArray(old.turns) && old.turns.length) {
+        const id = newId();
+        s.chats.unshift({ id, title: titleOf(old.turns), updated: Date.now(), turns: old.turns });
+        s.current = id;
+        localStorage.removeItem(THREAD_KEY);
+        localStorage.setItem(CHATS_PREFIX + who, JSON.stringify(s));
+      }
+    } catch { /* the old thread stays where it was */ }
+    return s;
+  }
+
+  function store(s) {
+    const who = owner();
+    if (!who) return;
+    try { localStorage.setItem(CHATS_PREFIX + who, JSON.stringify(s)); } catch { /* lasts this visit */ }
+    window.dispatchEvent(new CustomEvent('climby:chats-changed'));
+  }
+
+  function list() {
+    const s = load();
+    return s ? s.chats.map(c => ({ id: c.id, title: c.title, updated: c.updated, turns: c.turns.length })) : [];
   }
 
   // Neither of these deletes. A guest writing nothing is what stops the leak;
-  // deleting as well looked like belt and braces and was data loss, because
-  // both run with no user on the way OUT of an account: the auth-changed
-  // handler is `clearView(); restore();`, so signing out — or a token quietly
-  // expiring into logout(false) — reached forgetThread() and threw away the
-  // conversation of the account that had just left. It was gone on signing
-  // back in. Only the "new chat" button throws a thread away.
+  // signing out empties the view but keeps the account's chats for its return.
   function persist() {
-    const who = owner();
-    if (!who) return;                  // a guest leaves nothing behind
-    try { localStorage.setItem(THREAD_KEY, JSON.stringify({ who, turns: history.slice(-THREAD_MAX) })); } catch {}
+    const s = load();
+    if (!s || !history.length) return;
+    let chat = currentId && s.chats.find(c => c.id === currentId);
+    if (!chat) {
+      currentId = newId();
+      chat = { id: currentId, title: titleOf(history), updated: Date.now(), turns: [] };
+    } else {
+      s.chats = s.chats.filter(c => c !== chat);
+    }
+    chat.turns = history.slice(-TURNS_KEEP);
+    chat.updated = Date.now();
+    if (!chat.title) chat.title = titleOf(history);
+    s.chats.unshift(chat);
+    s.chats = s.chats.slice(0, CHATS_MAX);
+    s.current = currentId;
+    store(s);
   }
 
-  function restore() {
-    const who = owner();
-    if (!who) return;                  // and is handed nothing either
-    let saved = null;
-    try { saved = JSON.parse(localStorage.getItem(THREAD_KEY) || 'null'); } catch { saved = null; }
-    if (!saved || saved.who !== who || !Array.isArray(saved.turns) || !saved.turns.length) return;
-    history = saved.turns.slice(-THREAD_MAX);
-    $('chatEmpty').classList.add('hidden');
-    for (const turn of history) {
+  function draw(turns) {
+    $('chatEmpty').classList.toggle('hidden', !!turns.length);
+    for (const turn of turns) {
       const el = bubble(turn.role === 'user' ? 'user' : 'ai');
       if (turn.role === 'user') el.textContent = turn.text;
       else {
@@ -69,6 +129,116 @@ const Chat = (() => {
     }
     scrollToEnd();
   }
+
+  function restore() {
+    shownFor = owner();
+    const s = load();
+    if (!s || !s.current) return;
+    const chat = s.chats.find(c => c.id === s.current);
+    if (!chat || !chat.turns.length) return;
+    currentId = chat.id;
+    history = chat.turns.slice();
+    draw(history);
+  }
+
+  // Open a saved chat in the panel.
+  function openThread(id) {
+    const s = load();
+    const chat = s && s.chats.find(c => c.id === id);
+    if (!chat) return false;
+    clearView();
+    currentId = chat.id;
+    history = chat.turns.slice();
+    s.current = chat.id;
+    store(s);
+    showThreads(false);
+    if (!open) setOpen(true);
+    draw(history);
+    return true;
+  }
+
+  // Carry on from an earlier question and answer (Done & dusted).
+  function startFrom(turns) {
+    clearView();
+    history = turns.filter(x => x && x.text).map(x => ({ role: x.role, text: String(x.text).slice(0, 4000) }));
+    persist();
+    showThreads(false);
+    if (!open) setOpen(true);
+    draw(history);
+  }
+
+  function removeThread(id) {
+    const s = load();
+    if (!s) return;
+    s.chats = s.chats.filter(c => c.id !== id);
+    if (s.current === id) s.current = null;
+    store(s);
+    if (currentId === id) clearView();
+    renderThreads();
+  }
+
+  // ---- the list of chats, inside the panel --------------------------------
+  function ago(ms) {
+    const mins = Math.round((Date.now() - ms) / 60000);
+    if (mins < 1) return t('chat.agoNow');
+    if (mins < 60) return t('chat.agoMin', { n: mins });
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return t('chat.agoHour', { n: hours });
+    return new Date(ms).toLocaleDateString(window.I18n && I18n.get() === 'bg' ? 'bg-BG' : 'en-GB', { day: 'numeric', month: 'short' });
+  }
+
+  function renderThreads() {
+    const box = $('chatThreadList');
+    if (!box) return;
+    box.textContent = '';
+    if (!owner()) {
+      const p = document.createElement('p');
+      p.className = 'chat-threads-empty';
+      p.textContent = t('chat.threadsGuest');
+      box.appendChild(p);
+      return;
+    }
+    const chats = list();
+    if (!chats.length) {
+      const p = document.createElement('p');
+      p.className = 'chat-threads-empty';
+      p.textContent = t('chat.threadsEmpty');
+      box.appendChild(p);
+      return;
+    }
+    for (const c of chats) {
+      const row = document.createElement('div');
+      row.className = 'chat-thread' + (c.id === currentId ? ' is-current' : '');
+      const openBtn = document.createElement('button');
+      openBtn.type = 'button';
+      openBtn.className = 'chat-thread-open';
+      const title = document.createElement('span');
+      title.className = 'chat-thread-title';
+      title.textContent = c.title || t('chat.untitled');
+      const meta = document.createElement('span');
+      meta.className = 'chat-thread-meta';
+      meta.textContent = ago(c.updated);
+      openBtn.append(title, meta);
+      openBtn.addEventListener('click', () => openThread(c.id));
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'chat-thread-del';
+      del.setAttribute('aria-label', t('chat.deleteChat'));
+      del.textContent = '✕';
+      del.addEventListener('click', () => removeThread(c.id));
+      row.append(openBtn, del);
+      box.appendChild(row);
+    }
+  }
+
+  function showThreads(show) {
+    const panel = $('chatThreads');
+    if (!panel) return;
+    panel.classList.toggle('hidden', !show);
+    $('chatThreadsBtn').setAttribute('aria-expanded', show ? 'true' : 'false');
+    if (show) renderThreads();
+  }
+
   let busy = false;
   let open = false;
   // Bumped whenever the thread on screen is swapped or thrown away. An answer
@@ -151,7 +321,7 @@ const Chat = (() => {
         loadingKey: 'loading.ai',
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ images: [], question: text, lang: I18n.get(), history,
+        body: JSON.stringify({ images: [], question: text, lang: I18n.get(), history: history.slice(-THREAD_MAX),
                                mode: window.Prefs ? Prefs.get('tutor') : 'hints',
                                context: false,
                                memory: token && window.Memory ? Memory.request() : null,
@@ -199,15 +369,20 @@ const Chat = (() => {
     epoch++;
     busy = false;
     history = [];
+    currentId = null;
     if (window.Suggest) Suggest.clearPending();
     $('chatLog').innerHTML = '';
     $('chatEmpty').classList.remove('hidden');
     if (window.Speak) Speak.stop();
   }
 
+  // "New chat": the one on screen is already saved; start a fresh one.
   function reset() {
-    forgetThread();
     clearView();
+    const s = load();
+    if (s) { s.current = null; store(s); }
+    showThreads(false);
+    $('chatInput').focus();
   }
 
   function setOpen(next) {
@@ -215,8 +390,92 @@ const Chat = (() => {
     $('chatPanel').classList.toggle('hidden', !open);
     $('aiFab').setAttribute('aria-expanded', open ? 'true' : 'false');
     $('aiFab').classList.toggle('is-open', open);
-    if (open) setTimeout(() => $('chatInput').focus(), 50);
+    if (open) { setTimeout(() => $('chatInput').focus(), 50); syncExpand(); }
     else if (window.Speak) Speak.stop();
+  }
+
+  // ---- size: drag the top-left corner, or the expand button --------------
+  // Kept per device. A phone shows the chat full screen, so none of this
+  // applies under 700px.
+  const SIZE_KEY = 'climby-chat-size';
+  const MIN_W = 340, MIN_H = 380;
+  const wide = () => window.innerWidth >= 700;
+  const maxW = () => window.innerWidth - 44;
+  const maxH = () => window.innerHeight - 114;
+
+  function applySize(w, h) {
+    const panel = $('chatPanel');
+    if (!w || !h || !wide()) { panel.style.width = ''; panel.style.height = ''; return; }
+    panel.style.width = Math.round(Math.min(maxW(), Math.max(MIN_W, w))) + 'px';
+    panel.style.height = Math.round(Math.min(maxH(), Math.max(MIN_H, h))) + 'px';
+  }
+
+  function savedSize() {
+    try { return JSON.parse(localStorage.getItem(SIZE_KEY) || 'null'); } catch { return null; }
+  }
+
+  function saveSize(size) {
+    try {
+      if (size) localStorage.setItem(SIZE_KEY, JSON.stringify(size));
+      else localStorage.removeItem(SIZE_KEY);
+    } catch { /* the size lasts for this visit */ }
+  }
+
+  function syncExpand() {
+    const panel = $('chatPanel');
+    const big = !!panel.style.width && panel.offsetWidth >= maxW() - 4 && panel.offsetHeight >= maxH() - 4;
+    $('chatExpand').setAttribute('aria-pressed', big ? 'true' : 'false');
+    $('chatExpand').classList.toggle('is-big', big);
+  }
+
+  function initResize() {
+    const panel = $('chatPanel');
+    const grip = $('chatGrip');
+    if (!grip) return;
+    const s = savedSize();
+    if (s) applySize(s.w, s.h);
+    let drag = null;
+    grip.addEventListener('pointerdown', e => {
+      if (!wide()) return;
+      e.preventDefault();
+      drag = { x: e.clientX, y: e.clientY, w: panel.offsetWidth, h: panel.offsetHeight };
+      grip.setPointerCapture(e.pointerId);
+      panel.classList.add('is-resizing');
+    });
+    grip.addEventListener('pointermove', e => {
+      if (!drag) return;
+      // anchored bottom-right: dragging up and left makes it bigger
+      applySize(drag.w + (drag.x - e.clientX), drag.h + (drag.y - e.clientY));
+    });
+    const end = () => {
+      if (!drag) return;
+      drag = null;
+      panel.classList.remove('is-resizing');
+      saveSize({ w: panel.offsetWidth, h: panel.offsetHeight });
+      syncExpand();
+    };
+    grip.addEventListener('pointerup', end);
+    grip.addEventListener('pointercancel', end);
+    grip.addEventListener('dblclick', () => { applySize(0, 0); saveSize(null); syncExpand(); });
+    // the keyboard can resize too: arrows grow and shrink by 40px
+    grip.addEventListener('keydown', e => {
+      const step = { ArrowLeft: [40, 0], ArrowRight: [-40, 0], ArrowUp: [0, 40], ArrowDown: [0, -40] }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      applySize(panel.offsetWidth + step[0], panel.offsetHeight + step[1]);
+      saveSize({ w: panel.offsetWidth, h: panel.offsetHeight });
+      syncExpand();
+    });
+    $('chatExpand').addEventListener('click', () => {
+      const big = $('chatExpand').getAttribute('aria-pressed') === 'true';
+      if (big) { applySize(0, 0); saveSize(null); }
+      else { applySize(maxW(), maxH()); saveSize({ w: maxW(), h: maxH() }); }
+      syncExpand();
+    });
+    window.addEventListener('resize', () => {
+      const now = savedSize();
+      applySize(now && now.w, now && now.h);
+    });
   }
 
   function init() {
@@ -225,6 +484,9 @@ const Chat = (() => {
     fab.addEventListener('click', () => setOpen(!open));
     $('chatClose').addEventListener('click', () => setOpen(false));
     $('chatNew').addEventListener('click', reset);
+    $('chatThreadsBtn').addEventListener('click', () => showThreads($('chatThreads').classList.contains('hidden')));
+    window.addEventListener('climby:lang-changed', renderThreads);
+    initResize();
     $('chatSend').addEventListener('click', send);
     $('chatMemoryManage').addEventListener('click', () => {
       if (window.AccountUI) AccountUI.open('setMemory');
@@ -243,12 +505,7 @@ const Chat = (() => {
     if (window.Memory) Memory.render();
     window.addEventListener('climby:memory-changed', syncContext);
     window.addEventListener('climby:auth-changed', (e) => {
-      // A deliberate "Log out" click means the student is handing the computer
-      // over — in a school that is the whole point of the button — so the
-      // thread goes with them. A silent 401 expiry (showGate false) does not:
-      // they are still sitting there, and taking the conversation away because
-      // a token aged out is the data loss this file already had once.
-      if (e && e.detail && e.detail.showGate) forgetThread();
+      if (e && e.detail && e.detail.showGate) forgetThread(shownFor);
       syncContext();
       clearView();
       restore();
@@ -280,7 +537,7 @@ const Chat = (() => {
 
   document.addEventListener('DOMContentLoaded', init);
 
-  return { open: () => setOpen(true), close: () => setOpen(false), reset };
+  return { open: () => setOpen(true), close: () => setOpen(false), reset, list, openThread, startFrom };
 })();
 
 window.Chat = Chat;

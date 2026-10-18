@@ -227,7 +227,18 @@ const History = (() => {
         rendered = true;
       }
     });
-    body.appendChild(toggle);
+    // Carry on where it stopped: the question and answer open as a chat.
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'scan-toggle scan-continue';
+    more.textContent = window.t('history.continueChat');
+    more.addEventListener('click', () => {
+      if (window.Chat) Chat.startFrom([{ role: 'user', text: scan.question }, { role: 'assistant', text: scan.answer }]);
+    });
+    const actions = document.createElement('div');
+    actions.className = 'scan-actions';
+    actions.append(toggle, more);
+    body.appendChild(actions);
     body.appendChild(answer);
 
     const del = document.createElement('button');
@@ -295,7 +306,39 @@ const History = (() => {
     $('scanHistoryList').innerHTML = '';
   }
 
+  // The chats kept on this device, newest first: press one and it opens.
+  function renderChats() {
+    const box = $('historyChats');
+    const host = $('historyChatList');
+    if (!box || !host || !window.Chat) return;
+    const chats = Chat.list();
+    box.classList.toggle('hidden', !chats.length);
+    host.textContent = '';
+    for (const c of chats) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'history-chat';
+      const icon = document.createElement('span');
+      icon.className = 'history-chat-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      const title = document.createElement('span');
+      title.className = 'history-chat-title';
+      title.textContent = c.title || window.t('chat.untitled');
+      const meta = document.createElement('span');
+      meta.className = 'history-chat-meta';
+      const n = Math.ceil(c.turns / 2);
+      meta.textContent = window.t(n === 1 ? 'history.chatMetaOne' : 'history.chatMeta', { n, ago: relativeAgo(new Date(c.updated).toISOString()) });
+      const text = document.createElement('span');
+      text.className = 'history-chat-text';
+      text.append(title, meta);
+      btn.append(icon, text);
+      btn.addEventListener('click', () => Chat.openThread(c.id));
+      host.appendChild(btn);
+    }
+  }
+
   async function renderScans() {
+    renderChats();
     const list = $('scanHistoryList');
     const empty = $('scanHistoryEmpty');
     const seq = ++scansSeq;
@@ -308,8 +351,12 @@ const History = (() => {
     }
     if (seq !== scansSeq) return; // изпреварени сме от по-ново рисуване
     list.innerHTML = '';
+    // Saved chats and no account questions yet: the chats are the answer to
+    // "have I asked anything", so the empty screen would contradict them.
+    const hasChats = !!(window.Chat && Chat.list().length);
+    if ($('historyEarlierTitle')) $('historyEarlierTitle').classList.toggle('hidden', !scans.length);
     if (!scans.length) {
-      empty.classList.remove('hidden');
+      empty.classList.toggle('hidden', hasChats);
       return;
     }
     empty.classList.add('hidden');
@@ -376,6 +423,8 @@ const History = (() => {
       // следващия да дочете списъка, докато сървърът се събужда.
       $('historyList').innerHTML = '';
       $('scanHistoryList').innerHTML = '';
+      if ($('historyChatList')) $('historyChatList').textContent = '';
+      if ($('historyChats')) $('historyChats').classList.add('hidden');
       if ($('historyStats')) $('historyStats').classList.add('hidden');
       $('historyEmpty').classList.add('hidden');
       $('scanHistoryEmpty').classList.add('hidden');
@@ -386,6 +435,9 @@ const History = (() => {
   }
 
   function init() {
+    window.addEventListener('climby:chats-changed', () => {
+      if (Auth.isLoggedIn() && !$('historyScansPanel').classList.contains('hidden')) renderChats();
+    });
     $('goToChecklistBtn').addEventListener('click', () => Auth.openEntryGate());
     window.addEventListener('climby:auth-changed', updateGate);
     window.addEventListener('climby:tasks-changed', render);

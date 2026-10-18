@@ -480,6 +480,7 @@ const Classes = (() => {
     $('classesLoginBtn').addEventListener('click', () => { AccountUI.close(); Auth.openEntryGate(); });
     window.addEventListener('climby:auth-changed', updateGate);
     window.addEventListener('climby:settings-opened', () => {
+      if (document.getElementById('setClass')?.classList.contains('hidden')) return;
       updateGate();
     });
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) updateGate(); });

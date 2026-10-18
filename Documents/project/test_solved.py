@@ -59,7 +59,7 @@ def _answers(monkeypatch, text):
     _Block.text = text
 
     def fake_create(**kwargs):
-        seen["system"] = kwargs["system"]
+        seen["system"] = "".join(b["text"] for b in kwargs["system"]) if isinstance(kwargs["system"], list) else kwargs["system"]
         return _Resp()
 
     monkeypatch.setattr(server.client.messages, "create", fake_create)

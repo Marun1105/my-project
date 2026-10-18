@@ -290,6 +290,7 @@ const Family = (() => {
     window.addEventListener('climby:auth-changed', updateGate);
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) render(); });
     window.addEventListener('climby:settings-opened', () => {
+      if (document.getElementById('setFamily')?.classList.contains('hidden')) return;
       updateGate();
     });
     updateGate();

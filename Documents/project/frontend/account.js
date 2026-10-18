@@ -36,16 +36,42 @@ const Account = (() => {
     return { ok: !!(res && res.ok), data };
   }
 
+  // FastAPI answers a validation error with a list; show its words, not
+  // "[object Object]".
+  function detailText(data) {
+    const d = data && data.detail;
+    if (Array.isArray(d)) return d.map(x => x && x.msg).filter(Boolean).join(' ') || t('account.errGeneric');
+    return typeof d === 'string' && d ? d : t('account.errGeneric');
+  }
+
+  let pwCodeSent = false;   // the button says "send a new code" once one is out
+
+  function paintPw() {
+    const btn = $('accountPwBtn');
+    if (!btn) return;
+    btn.textContent = t(pwCodeSent ? 'account.pwResend' : 'account.changePw');
+    const user = (window.Auth && Auth.getUser()) || {};
+    if (pwCodeSent) $('accountPwSent').textContent = t('account.pwSent', { email: user.email || '' });
+  }
+
+  function resetPw() {
+    pwCodeSent = false;
+    $('accountPwCode').value = '';
+    $('accountNewPw').value = '';
+    $('accountPwForm').classList.add('hidden');
+    paintPw();
+  }
+
   async function sendPwCode() {
     const user = Auth.getUser() || {};
     const msg = $('accountPwMsg');
     msg.classList.add('hidden');
     if (!user.email) { say(msg, t('account.errGeneric'), true); return; }
     const { ok, data } = await post('/auth/forgot-password', { channel: 'email', contact: user.email });
-    if (!ok) { say(msg, (data && data.detail) || t('account.errGeneric'), true); return; }
-    $('accountPwSent').textContent = t('account.pwSent', { email: user.email });
+    if (!ok) { say(msg, detailText(data), true); return; }
+    pwCodeSent = true;
+    paintPw();
     $('accountPwForm').classList.remove('hidden');
-    $('accountPwBtn').textContent = t('account.pwResend');
     $('accountPwCode').focus();
   }
 
@@ -56,17 +82,24 @@ const Account = (() => {
     const next = $('accountNewPw').value;
     if (!/^\d{6}$/.test(code)) { say(msg, t('account.pwBadCode'), true); return; }
     if (next.length < 8) { say(msg, t('account.pwTooShort'), true); return; }
+    // Decided before the reset: between it and the new sign-in the old token is
+    // dead, and any request that meets a 401 then clears the stored session.
+    const remember = (() => { try { return !!localStorage.getItem('climby-token'); } catch { return false; } })();
     const reset = await post('/auth/reset-password', { channel: 'email', contact: user.email, code, new_password: next });
-    if (!reset.ok) { say(msg, (reset.data && reset.data.detail) || t('account.errGeneric'), true); return; }
+    if (!reset.ok) { say(msg, detailText(reset.data), true); return; }
     // The change ended every session, this one too. Sign straight back in
     // with the new password so nobody is thrown out for doing the right thing.
     const login = await post('/auth/login', { identifier: user.email, password: next });
-    if (login.ok && login.data.token) Auth.replaceSession(login.data.token, login.data.user);
-    else { Auth.logout(true); return; }
-    $('accountPwCode').value = ''; $('accountNewPw').value = '';
-    $('accountPwForm').classList.add('hidden');
-    $('accountPwBtn').textContent = t('account.changePw');
-    say(msg, t('account.pwChanged'), false);
+    resetPw();
+    if (login.ok && login.data.token) {
+      Auth.replaceSession(login.data.token, login.data.user, remember);
+      say(msg, t('account.pwChanged'), false);
+      return;
+    }
+    // The password did change; only the sign-in after it failed (a rate limit
+    // on a school network, a dropped connection). Say so before the gate.
+    if (window.Toast) Toast.show(t('account.pwChangedSignIn'));
+    Auth.logout(true);
   }
 
   // ---- export ----
@@ -108,7 +141,17 @@ const Account = (() => {
     const res = await call('/account', { method: 'DELETE', body: JSON.stringify(body) }).catch(() => null);
     const data = res ? await res.json().catch(() => ({})) : {};
     if (!res || !res.ok) { say(msg, (data && data.detail) || t('account.errGeneric'), true); return; }
-    // Gone. Sign out locally too, and let the app fall back to the gate.
+    // Gone — and so is what this device kept for it: the photo, the memory
+    // switch and note, the chats. The screen said "for good".
+    const id = (Auth.getUser() || {}).id;
+    if (id) {
+      try {
+        ['climby-photo:', 'climby-memory-v1:', 'climby-chats-v1:'].forEach(prefix =>
+          localStorage.removeItem(prefix + encodeURIComponent(String(id))));
+        ['climby-photo:', 'climby-chats-v1:'].forEach(prefix => localStorage.removeItem(prefix + String(id)));
+      } catch { /* nothing kept, nothing to remove */ }
+    }
+    // Sign out locally too, and let the app fall back to the gate.
     Auth.logout(true);
     const overlay = $('settingsOverlay');
     if (overlay) overlay.classList.add('hidden');
@@ -119,7 +162,7 @@ const Account = (() => {
     const rows = $('accountRows');
     if (rows) rows.classList.toggle('hidden', !on);
     if (!on && $('accountPwForm')) {
-      $('accountPwForm').classList.add('hidden');
+      resetPw();
       $('accountPwMsg').classList.add('hidden');
     }
     if (!on && $('accountDeleteForm')) {
@@ -144,6 +187,8 @@ const Account = (() => {
       Net.guardSubmit(e.currentTarget, () => deleteAccount(e));
     });
     window.addEventListener('climby:auth-changed', sync);
+    // the language changes inside this very window; the button must follow
+    window.addEventListener('climby:lang-changed', paintPw);
     sync();
   }
 

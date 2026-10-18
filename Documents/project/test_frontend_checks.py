@@ -602,8 +602,11 @@ def test_the_chat_thread_is_kept_per_account():
     assert "(u && u.id) ? String(u.id) : null" in owner, (
         "the stored identity must be an account id or nothing at all"
     )
-    assert "saved.who !== who" in js
-    assert "JSON.stringify({ who," in js
+    # the chats are stored under the account's own key, and the single thread
+    # kept before them is only taken over by the account that wrote it
+    assert "localStorage.getItem(CHATS_PREFIX + who)" in js
+    assert "localStorage.setItem(CHATS_PREFIX + who," in js
+    assert "old.who === who" in js
 
 
 def test_the_thread_is_thrown_away_only_on_purpose():
@@ -624,29 +627,33 @@ def test_the_thread_is_thrown_away_only_on_purpose():
     only, and passed for a day while persist() and restore() both deleted."""
     js = _read("chat.js")
 
-    forget = js[js.index("function forgetThread()"):]
-    assert "removeItem(THREAD_KEY)" in forget[:forget.index("\n  }")]
+    forget = js[js.index("function forgetThread(who)"):]
+    forget = forget[:forget.index("\n  }")]
+    assert "removeItem(CHATS_PREFIX + who)" in forget
 
+    # "New chat" puts the chat away now; it no longer deletes it. A chat goes
+    # only by its own ✕ (removeThread) or a deliberate log out.
     reset = js[js.index("function reset()"):]
     reset = reset[:reset.index("\n  }")]
-    assert "forgetThread()" in reset, "the new chat button must still clear it"
+    assert "forgetThread" not in reset and "removeItem" not in reset
 
-    # every other mention of the removal, by either name, has to be a comment
-    after = js.index("function forgetThread()")
-    after = js.index("\n  }", after) + 4          # past its own body
+    after = js.index("function forgetThread(who)")
+    after = js.index("\n  }", after) + 4
     body = js[after:]
     callers = []
-    for n, line in enumerate(body.splitlines()):
+    for line in body.splitlines():
         stripped = line.strip()
         if stripped.startswith("//") or stripped.startswith("*"):
             continue
-        if "forgetThread()" in stripped or "removeItem(THREAD_KEY)" in stripped:
+        # the chats' own key; the old single thread is only removed by load()
+        # after it has been copied into the chats (checked below)
+        if "forgetThread(" in stripped or "removeItem(CHATS_PREFIX" in stripped:
             callers.append(stripped)
-    assert sorted(callers) == sorted([
-        "forgetThread();",
-        "if (e && e.detail && e.detail.showGate) forgetThread();",
-    ]), (
-        "the thread is thrown away from somewhere that is not a deliberate "
+    migrate = js[js.index("function load()"):]
+    migrate = migrate[:migrate.index("return s;")]
+    assert migrate.index("s.chats.unshift(") < migrate.index("localStorage.removeItem(THREAD_KEY)")
+    assert callers == ["if (e && e.detail && e.detail.showGate) forgetThread(shownFor);"], (
+        "chats are thrown away from somewhere that is not a deliberate "
         "choice by the student: %r" % (callers,)
     )
 
@@ -746,7 +753,10 @@ def test_a_restored_answer_has_both_buttons():
     js = _read("chat.js")
     restore = js[js.index("function restore()"):]
     restore = restore[:restore.index("\n  }")]
-    assert "Speak.attach" in restore and "Copy.attach" in restore
+    assert "draw(history)" in restore
+    draw = js[js.index("function draw(turns)"):]
+    draw = draw[:draw.index("\n  }")]
+    assert "Speak.attach" in draw and "Copy.attach" in draw
 
 
 def test_only_a_file_drop_is_cancelled():
@@ -1449,12 +1459,18 @@ def test_a_guest_conversation_is_never_written_down():
     assert "'guest'" not in owner, "a shared identity is not an identity"
     assert ": null" in owner
 
+    # every read and write goes through load()/store(), which do nothing
+    # without an account
+    for name in ("function load()", "function store(s)"):
+        fn = js[js.index(name):]
+        fn = fn[:fn.index("\n  }")]
+        assert "if (!who) return" in fn, (
+            f"{name} still acts for a signed-out visitor"
+        )
     for name in ("function persist()", "function restore()"):
         fn = js[js.index(name):]
         fn = fn[:fn.index("\n  }")]
-        assert "if (!who) return;" in fn, (
-            f"{name} still acts for a signed-out visitor"
-        )
+        assert "load()" in fn
         # ...and returns without deleting: it also runs on the way OUT of an
         # account, where deleting took the leaving account's own conversation.
         assert "forgetThread" not in fn, f"{name} deletes somebody else's thread"

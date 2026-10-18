@@ -51,7 +51,7 @@ app = FastAPI()
 client = Anthropic()  # чете ANTHROPIC_API_KEY от средата
 # The reader has its own hard stop (relay.READER_TIMEOUT_S), and the SDK's two
 # automatic retries would triple it into a wait the student's app gives up on.
-# One try; on failure Haiku reads the photos, which is the designed fallback.
+# One try; on failure the tutor model reads the photos, which is the designed fallback.
 reader_client = client.with_options(max_retries=0)
 
 # Схемата се пипа от всеки работник при вдигане, а на Render работниците са
@@ -199,12 +199,15 @@ SYSTEM = {
   твърде малко — на слабия.
 - Карай ученика да обясни: „защо направи това?", „какво значи този резултат?". Обяснението назад
   закрепва повече от четенето напред.
-- Кратко. Всеки отговор има естествен край и една следваща стъпка. Език за възрастта на ученика.
+- Кратко. Всеки отговор има естествен край и една следваща стъпка.
+- Никога отвисоко. Без детински приказки, без „Чудесен въпрос!“, без възклицания и ръкопляскане,
+  без емоджита, освен ако ученикът не ги използва пръв, без да обясняваш очевидното. Приемай,
+  че ученикът е умен. Когато не знаеш класа му, приеми, че е тийнейджър.
 - Насърчаващо, без лекции и без похвали на празно. По подразбиране подсказки първо. Но ако
   ученикът изрично поиска отговора, дай му го — напълно обяснен, така че да проследи всяка стъпка.
 
 Форма:
-- Обяснявай на български, ясно и просто, на ниво, подходящо за ученика.
+- Обяснявай на български, ясно, на нивото на ученика — с прости думи, никога с детински.
 - Ако предметът не може да се обясни оттук (напр. физическо възпитание, практическо музикално
   изпълнение), кажи го учтиво, вместо да отгатваш отговор.
 - Можеш да използваш Markdown и LaTeX между $...$ или $$...$$ — отговорът се показва в браузър.""",
@@ -228,12 +231,15 @@ How you teach (from the research on good tutors — see docs/ai-v-ucheneto.md):
   the weak.
 - Make the student explain: "why did you do that?", "what does this result mean?". Explaining
   back sticks better than reading forward.
-- Short. Every reply has a natural end and one next step. Language for the student's age.
+- Short. Every reply has a natural end and one next step.
+- Never talk down. No baby talk, no "Great question!", no cheerleading with exclamation marks,
+  no emojis unless the student uses them first, no explaining what they obviously already know.
+  Treat the student as smart. When you don't know their grade, assume a teenager.
 - Encouraging, without lectures and without empty praise. Hints first by default. But if the
   student explicitly asks for the answer, give it — fully explained, so they can follow every step.
 
 Form:
-- Explain in English, clearly and simply, at a level appropriate for the student.
+- Explain in English, clearly, at the student's level — plain words, never childish ones.
 - If the subject can't be taught from here (e.g. physical education, a practical music
   performance), say so politely instead of guessing an answer.
 - You can use Markdown and LaTeX between $...$ or $$...$$ — the answer is rendered in a browser.""",
@@ -1139,24 +1145,31 @@ STUDENT_CONTEXT = {
 # same question and need different answers — not a dumber one and a smarter
 # one, but different vocabulary, different length, a different amount of
 # rigour. Without this the tutor spoke to everyone as if they were about ten.
+# The model ClimbAI answers with. Sonnet since 2026-10: Haiku spoke to an
+# eighth-grader as if they were ten. TUTOR_MODEL on the server overrides it,
+# so a model change never needs a release.
+TUTOR_MODEL = os.environ.get("TUTOR_MODEL", "").strip() or "claude-sonnet-5-5"
+
 GRADE_REGISTER = {
     "en": {
         (1, 4):  "The student is in grade {g} (age about {age}). Use short sentences and everyday words, one idea at a time, "
-                 "concrete examples they can picture. Never a formula where a picture will do.",
-        (5, 8):  "The student is in grade {g} (age about {age}). Be clear and concrete; name the rule and show it working; "
-                 "define a term the first time you use it. Keep the tone friendly but don't talk down.",
-        (9, 12): "The student is in grade {g} (age about {age}). Speak as you would to a capable young adult: precise "
-                 "terminology, proper notation, the actual reasoning and the facts behind it, no simplification that "
-                 "would be wrong at exam level. Assume they can follow a real argument.",
+                 "concrete examples they can picture. Never a formula where a picture will do. Warm, but never sugary.",
+        (5, 7):  "The student is in grade {g} (age about {age}). Be clear and concrete; name the rule and show it working; "
+                 "define a new term the first time you use it. Friendly and direct, never babyish.",
+        (8, 12): "The student is in grade {g} (age about {age}) — a teenager. Speak as you would to a capable young adult: "
+                 "normal adult vocabulary, precise terminology, proper notation, the actual reasoning and the facts "
+                 "behind it, no simplification that would be wrong at exam level. No cheering, no 'well done!' after "
+                 "every step, no explaining what they obviously know. Assume they can follow a real argument.",
     },
     "bg": {
         (1, 4):  "Ученикът е в {g}. клас (около {age} г.). Кратки изречения, всекидневни думи, по една идея наведнъж, "
-                 "примери, които може да си представи. Никога формула там, където стига картинка.",
-        (5, 8):  "Ученикът е в {g}. клас (около {age} г.). Ясно и конкретно: назови правилото и го покажи в действие; "
-                 "обясни термина първия път, когато го използваш. Приятелски тон, но без снизхождение.",
-        (9, 12): "Ученикът е в {g}. клас (около {age} г.). Говори както на способен млад човек: точна терминология, "
-                 "правилен запис, истинското разсъждение и фактите зад него, без опростяване, което би било грешно на "
-                 "изпит. Приеми, че може да следва истинска аргументация.",
+                 "примери, които може да си представи. Никога формула там, където стига картинка. Топло, но не сладникаво.",
+        (5, 7):  "Ученикът е в {g}. клас (около {age} г.). Ясно и конкретно: назови правилото и го покажи в действие; "
+                 "обясни новия термин първия път, когато го използваш. Приятелски и направо, никога детински.",
+        (8, 12): "Ученикът е в {g}. клас (около {age} г.) — тийнейджър. Говори както на способен млад човек: нормален "
+                 "език на възрастен, точна терминология, правилен запис, истинското разсъждение и фактите зад него, "
+                 "без опростяване, което би било грешно на изпит. Без ръкопляскане, без „браво!“ след всяка стъпка, "
+                 "без да обясняваш очевидното. Приеми, че може да следва истинска аргументация.",
     },
 }
 
@@ -1342,7 +1355,7 @@ def _read_pages(db: Session, body: "Ask", user: Optional[User], lang: str):
 
     Best effort from end to end: a reader that errors, refuses, times out or
     answers in the wrong shape leaves the conversation exactly where it was
-    before the relay existed — Haiku reading the photographs.
+    before the relay existed — the tutor model reading the photographs.
     """
     image_blocks = [
         {"type": "image", "source": {
@@ -1353,7 +1366,7 @@ def _read_pages(db: Session, body: "Ask", user: Optional[User], lang: str):
         fields, resp = relay.read_pages(reader_client, image_blocks, body.question, lang,
                                         grade=getattr(user, "grade", None) if user else None)
     except Exception as err:  # noqa: BLE001 — every failure means the same thing here
-        print(f"[ask] reader failed, Haiku reads the photos instead: {err!r}", flush=True)
+        print(f"[ask] reader failed, the tutor reads the photos instead: {err!r}", flush=True)
         return None
     usage.record(db, resp)
     _sweep_guest_briefs(db)
@@ -1401,14 +1414,14 @@ def ask(
     # refused for budget gives its hit back. See usage.guard.
     usage.guard(db, lang, request, "ask", user)
     # Opus reads new photographs once; a follow-up names the page it already read.
-    # Either way Haiku then tutors from text and the photographs are not sent to
-    # it again. If reading fails, brief stays None and Haiku reads the photos
+    # Either way the tutor then works from text and the photographs are not sent to
+    # it again. If reading fails, brief stays None and the tutor reads the photos
     # itself, as it always did — the student never sees the relay fail.
     brief, fresh = None, False
     # Only on a conversation's first question. Installed copies from before the
     # relay resend every photograph on every follow-up and never send brief_id;
     # reading on each of those would cost them 35 seconds and an Opus call per
-    # message. Their follow-ups keep working exactly as before — Haiku reads the
+    # message. Their follow-ups keep working exactly as before — the tutor reads the
     # photos — until they update.
     if body.images and not body.history:
         brief = _read_pages(db, body, user, lang)
@@ -1426,6 +1439,9 @@ def ask(
     system += NOTATION[lang]                    # how a Bulgarian exercise book is written
     system += APP_MAP[lang]                     # what the app around it is
     system += SURFACE[body.surface][lang]       # and which room this is
+    # Everything above is the same for every student on this screen; everything
+    # below is about this one. The first part is cached (see the call).
+    fixed_len = len(system)
     # New clients make profile context an explicit choice too. Older clients
     # keep the prior grade-tailoring behavior.
     if body.memory is None or body.memory.learning_level:
@@ -1461,25 +1477,25 @@ def ask(
             today=today.isoformat(),
             tomorrow=(today + timedelta(days=1)).isoformat(),
         )
+    # The fixed part (teaching rules, notation, the app map, this screen) is
+    # cached; the student's grade, memory and today's date come after it, so
+    # they never break the cache.
+    system_blocks = [{"type": "text", "text": system[:fixed_len], "cache_control": {"type": "ephemeral"}}]
+    if system[fixed_len:].strip():
+        system_blocks.append({"type": "text", "text": system[fixed_len:]})
     try:
-        # Без prompt caching, и то нарочно: минималният кешируем префикс на
-        # Haiku 4.5 е 4096 токена, а най-дългият системен промпт тук (български,
-        # екранът със снимки) е около 3263. Под минимума cache_control не дава
-        # грешка — просто не кешира нищо и cache_read_input_tokens остава 0.
-        # Ако промптът някога мине 4096 токена, тогава си струва да се сложи
-        # cache_control на статичната част; дотогава е шум.
         resp = client.beta.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=TUTOR_MODEL,
             max_tokens=2500 if smart else 1500,
             betas=[relay.ADVISOR_BETA],
             tools=relay.tutor_tools(),
-            system=system,
+            system=system_blocks,
             messages=messages,
         )
     except APIError:
         raise HTTPException(502, ASK_ERROR_MESSAGE[lang])
     usage.record(db, resp)
-    # Only what comes after the last tool round-trip: Haiku sometimes announces
+    # Only what comes after the last tool round-trip: the model sometimes announces
     # the consultation first ("let me consult on the best method"), and that
     # sentence is not for the student.
     answer = relay.answer_text(resp)
