@@ -24,10 +24,31 @@ const Speak = (() => {
   // when it has not loaded. Voices arrive asynchronously, so the list can be
   // empty on the first call.
   function voiceFor(code) {
-    if (!synth) return null;
     const prefix = code.slice(0, 2).toLowerCase();
     if (window.Voices) return Voices.chosen(prefix);
+    if (!synth) return null;
     return synth.getVoices().find(v => (v.lang || '').toLowerCase().startsWith(prefix)) || null;
+  }
+
+  // The computer's best voice for this language, for when the online one fails.
+  function localVoice(code) {
+    if (!synth) return null;
+    const prefix = code.slice(0, 2).toLowerCase();
+    return synth.getVoices().find(v => (v.lang || '').toLowerCase().startsWith(prefix)) || null;
+  }
+
+  // Long answers go to the online voice in parts, a sentence boundary at a
+  // time, so the first words play while the rest is still on its way.
+  function parts(text) {
+    const out = [];
+    let cur = '';
+    for (const sentence of text.match(/[^.!?…]+[.!?…]*\s*/g) || [text]) {
+      if ((cur + sentence).length > 900 && cur) { out.push(cur.trim()); cur = ''; }
+      cur += sentence;
+      while (cur.length > 2000) { out.push(cur.slice(0, 2000)); cur = cur.slice(2000); }
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
   }
 
   // What gets read. Not innerText: KaTeX renders every formula twice — a hidden
@@ -52,7 +73,11 @@ const Speak = (() => {
     button.title = button.getAttribute('aria-label');
   }
 
+  let audio = null;          // the online voice playing, if any
+  let run = 0;               // bumped on every stop: an old part arriving late is dropped
   function stop() {
+    run++;
+    if (audio) { audio.pause(); URL.revokeObjectURL(audio.src); audio = null; }
     if (synth && (synth.speaking || synth.pending)) synth.cancel();
     current = null;
     setSpeaking(false);
@@ -64,14 +89,54 @@ const Speak = (() => {
     const text = textOf(el);
     if (!text) return;
     const code = lang();
+    const voice = voiceFor(code);
+    if (voice && voice.cloud) { speakOnline(voice, text, code); return; }
+    speakLocal(text, code, voice);
+  }
+
+  function speakLocal(text, code, voice) {
+    if (!synth) { setSpeaking(false); return; }
     const u = new SpeechSynthesisUtterance(text);
     u.lang = code;
-    const voice = voiceFor(code);
-    if (voice) u.voice = voice;
+    if (voice && !voice.cloud) u.voice = voice;
     u.onend = u.onerror = () => { if (current === u) { current = null; setSpeaking(false); } };
     current = u;
     setSpeaking(true);
     synth.speak(u);
+  }
+
+  // Part after part, the next one fetched while this one plays. If the online
+  // voice fails (the day's cap, no connection), the rest is read by the
+  // computer's own voice, if it has one for this language.
+  async function speakOnline(voice, text, code) {
+    const mine = ++run;
+    const list = parts(text);
+    current = { online: true };
+    setSpeaking(true);
+    let next = Voices.fetchAudio(voice, list[0]);
+    for (let i = 0; i < list.length; i++) {
+      let url;
+      try { url = await next; } catch {
+        if (mine !== run) return;
+        const rest = list.slice(i).join(' ');
+        const fallback = localVoice(code);
+        current = null;
+        if (fallback) speakLocal(rest, code, fallback); else setSpeaking(false);
+        return;
+      }
+      if (mine !== run) { URL.revokeObjectURL(url); return; }
+      if (i + 1 < list.length) next = Voices.fetchAudio(voice, list[i + 1]);
+      next && next.catch(() => {});        // a failure is handled when it is reached
+      audio = new Audio(url);
+      const ended = new Promise(resolve => { audio.onended = audio.onerror = resolve; });
+      try { await audio.play(); } catch { /* blocked: the end comes at once */ }
+      await ended;
+      URL.revokeObjectURL(url);
+      if (mine !== run) return;
+    }
+    audio = null;
+    current = null;
+    setSpeaking(false);
   }
 
   function toggle(el) {
@@ -88,8 +153,8 @@ const Speak = (() => {
   // answer and is cut off.
   function attach(el, opts) {
     stop();
-    if (!synth || !el) return;
-    // No voice for this language on this machine: no button. A Bulgarian
+    if (!el) return;
+    // No voice for this language, online or on this machine: no button. A Bulgarian
     // answer read with an English voice is worse than nothing.
     if (!voiceFor(lang())) return;
     const b = document.createElement('button');
@@ -113,17 +178,19 @@ const Speak = (() => {
   }
 
   function init() {
-    if (!synth) return;
-    // Voices arrive late; a button decided against before they load would be
-    // wrong. Re-attach once they are known, if an answer is on screen.
-    synth.addEventListener('voiceschanged', () => {
+    // Voices arrive late — the computer's, and the online list from the
+    // server; a button decided against before they load would be wrong.
+    // Re-attach once they are known, if an answer is on screen.
+    const reattach = () => {
       const answers = [...document.querySelectorAll('.answer:not(.hidden), .chat-ai')];
       for (const el of answers) {
         if (el.classList.contains('chat-thinking') || el.classList.contains('chat-error')) continue;
         if (el.querySelector('.speak-btn')) continue;
         attach(el, { silent: true });
       }
-    });
+    };
+    if (synth) synth.addEventListener('voiceschanged', reattach);
+    window.addEventListener('climby:voices-online', reattach);
     window.addEventListener('climby:view-shown', stop);
     // a voice swapped mid-sentence would finish the old one in the old voice
     window.addEventListener('climby:voice-changed', stop);

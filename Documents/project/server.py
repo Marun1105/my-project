@@ -30,6 +30,7 @@ import auth
 import classes
 import crew
 import holds
+import tts
 import devices
 import family
 import focus_sessions
@@ -81,6 +82,7 @@ app.include_router(account.router)
 app.include_router(oauth.router)
 app.include_router(papers.router)
 app.include_router(crew.router)
+app.include_router(tts.router)
 
 # Външната граница на всичко, което сървърът изобщо си позволява да прочете в паметта.
 # Pydantic проверява размерите ЧАК СЛЕД като FastAPI е задържал цялото тяло, а после
@@ -639,7 +641,8 @@ bottom left. Its sections, in order:
 - ClimbAI: "How ClimbAI explains" (hints first, or full solutions),
   "Read aloud" (only with the button, or every answer), "Voice"
   — the voices that can read answers aloud, as cards that slide sideways, each with a play
-  button to hear it first.
+  button to hear it first. Signed in, natural online voices come first (Bulgarian Kalina and
+  Borislav, and a dozen English ones); then the computer's own voices.
   If the computer has no voice for the language, that row says so and explains where Windows
   adds one. Bulgarian has no voice on a stock Windows, so the read-aloud button does not
   appear at all there. Then "ClimbAI memory" (the switch described above); nothing is
@@ -712,7 +715,8 @@ something that does not exist trusts you less about the mathematics too.""",
 - ClimbAI: „Как обяснява ClimbAI" (подсказки или цяло решение),
   „Четене на глас" (само с бутона или всеки отговор), „Глас" —
   гласовете, които могат да четат отговорите, като карти, които се плъзгат встрани, всяка с
-  копче за чуване. Ако компютърът
+  копче за чуване. При вход първи са естествените онлайн гласове (българските Калина и
+  Борислав и дузина английски), после гласовете на компютъра. Ако компютърът
   няма глас за езика, редът го казва и обяснява откъде Windows добавя. На Windows по
   подразбиране няма български глас, затова там копчето за четене на глас изобщо не се показва.
   После „Памет на ClimbAI“ (превключвателят отгоре); личност или местоположение

@@ -1192,10 +1192,12 @@ def test_the_voice_rescue_repairs_every_answer_not_the_last_one():
     this handler was written for — being repaired at all. A restored thread
     holds up to twelve bubbles and only one was ever fixed."""
     js = _read("speak.js")
-    rescue = js[js.index("'voiceschanged'"):]
-    # the first "});" in the block closes attach(el, { silent: true });
-    # the listener's own close carries the indentation it was opened at
-    rescue = rescue[:rescue.index(chr(10) + "    });")]
+    # one repair, run when the computer's voices load and when the online
+    # list arrives from the server
+    rescue = js[js.index("const reattach = () => {"):]
+    rescue = rescue[:rescue.index(chr(10) + "    };")]
+    assert "synth.addEventListener('voiceschanged', reattach)" in js
+    assert "addEventListener('climby:voices-online', reattach)" in js
     assert "cards.length - 1" not in rescue, "still repairing only one"
     assert "for (const el of" in rescue
     # a spinner and an error bubble are not answers

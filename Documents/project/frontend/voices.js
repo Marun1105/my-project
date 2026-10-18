@@ -25,6 +25,48 @@ const Voices = (() => {
     bg: 'Нека я решим стъпка по стъпка. Първо: какво вече знаем?',
   };
 
+  // ---------------------------------------------------------------- online
+  // Azure's neural voices, through the server (tts.py). Only when the server
+  // has them switched on and someone is signed in; they come first in the list
+  // because they are the good ones, and Bulgarian has no other.
+  const BACKEND = window.CLIMBY_BACKEND;
+  const online = { bg: [], en: [] };
+  let onlineLoaded = {};
+
+  function signedIn() { return !!(window.Auth && Auth.isLoggedIn()); }
+
+  async function loadOnline(code) {
+    if (onlineLoaded[code]) return online[code];
+    onlineLoaded[code] = true;
+    try {
+      const res = await Net.fetch(`${BACKEND}/tts/voices?lang=${code}`);
+      const data = res.ok ? await res.json() : null;
+      online[code] = data && data.enabled && Array.isArray(data.voices)
+        ? data.voices.map(v => ({ cloud: true, id: v.id, name: v.name, gender: v.gender, accent: v.accent, lang: code }))
+        : [];
+    } catch {
+      onlineLoaded[code] = false;          // try again next time
+      online[code] = [];
+    }
+    return online[code];
+  }
+
+  function onlineFor(code) { return signedIn() ? online[code] || [] : []; }
+
+  // Audio for some text in an online voice, as a URL to play. Throws when the
+  // server says no (cap reached, offline, switched off): the caller falls back.
+  async function fetchAudio(voice, text, rate) {
+    const token = window.Auth && Auth.getToken();
+    const res = await Net.fetch(`${BACKEND}/tts`, {
+      method: 'POST',
+      timeout: 30000,
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ voice: voice.id, text, rate: rate || 'normal' }),
+    });
+    if (!res.ok) throw new Error('tts ' + res.status);
+    return URL.createObjectURL(await res.blob());
+  }
+
   function langCode() {
     return (window.I18n ? I18n.get() : 'en') === 'bg' ? 'bg' : 'en';
   }
@@ -60,13 +102,22 @@ const Voices = (() => {
   // still installed, otherwise the best guess.
   function chosen(code) {
     code = code || langCode();
-    const list = forLang(code);
-    if (!list.length) return null;
     let saved = null;
     try { saved = localStorage.getItem(KEY + code); } catch { /* no storage, no memory */ }
+    const cloud = onlineFor(code);
+    if (saved && saved.startsWith('cloud:')) {
+      const picked = cloud.find(v => 'cloud:' + v.id === saved);
+      if (picked) return picked;
+    }
+    const list = forLang(code);
     // matched by name: voiceURI is not stable across machines or restarts
-    return list.find(v => v.name === saved) || ranked(code)[0] || null;
+    const local = list.find(v => v.name === saved);
+    if (local) return local;
+    // nothing picked yet: the best online voice, else the best on this computer
+    return cloud[0] || ranked(code)[0] || null;
   }
+
+  function idOf(v) { return v.cloud ? 'cloud:' + v.id : v.name; }
 
   function choose(code, name) {
     try { localStorage.setItem(KEY + code, name); } catch { /* applies for this session */ }
@@ -78,11 +129,16 @@ const Voices = (() => {
   // "Microsoft Zira - English (United States)" is the machine's name for it.
   // "Zira" is the name a person would use.
   function shortName(v) {
+    if (v.cloud) return v.name;
     let n = (v.name || '').replace(/^Microsoft\s+/i, '').replace(/\s*-\s*.*$/, '');
     return n.replace(/\b(Desktop|Online|Natural)\b/gi, '').trim() || v.name;
   }
 
   function detail(v) {
+    if (v.cloud) {
+      const accent = { US: 'US', UK: 'UK', AU: 'Australia', IE: 'Ireland', BG: 'България' }[v.accent] || v.accent;
+      return [window.t ? t('voice.online') : 'Online', window.t ? t('voice.natural') : 'Natural-sounding', accent].join(' · ');
+    }
     const bits = [];
     if (/natural|neural/i.test(v.name)) bits.push(window.t ? t('voice.natural') : 'Natural-sounding');
     else if (/\bdesktop\b/i.test(v.name)) bits.push(window.t ? t('voice.older') : 'Standard voice');
@@ -94,7 +150,9 @@ const Voices = (() => {
 
   let speaking = null;   // the card currently demonstrating itself
 
+  let sampleAudio = null;
   function stopSample() {
+    if (sampleAudio) { sampleAudio.pause(); URL.revokeObjectURL(sampleAudio.src); sampleAudio = null; }
     if (synth && (synth.speaking || synth.pending)) synth.cancel();
     if (speaking) speaking.classList.remove('is-playing');
     speaking = null;
@@ -105,6 +163,21 @@ const Voices = (() => {
     stopSample();
     if (wasThis) return;               // pressing the playing one stops it
     const code = langCode();
+    if (voice.cloud) {
+      speaking = card;
+      card.classList.add('is-playing');
+      fetchAudio(voice, SAMPLE[code] || SAMPLE.en).then(url => {
+        if (speaking !== card) { URL.revokeObjectURL(url); return; }
+        const audio = new Audio(url);
+        sampleAudio = audio;
+        audio.onended = audio.onerror = () => { if (speaking === card) stopSample(); };
+        audio.play().catch(() => stopSample());
+      }).catch(() => {
+        if (speaking === card) stopSample();
+        if (window.Toast) Toast.show(window.t ? t('voice.onlineFailed') : 'The online voice is not answering.');
+      });
+      return;
+    }
     const u = new SpeechSynthesisUtterance(SAMPLE[code] || SAMPLE.en);
     u.voice = voice;
     u.lang = voice.lang;
@@ -122,8 +195,8 @@ const Voices = (() => {
 
   function card(voice, code, picked) {
     const el = document.createElement('div');
-    el.className = 'voice-card';
-    el.dataset.voiceName = voice.name;
+    el.className = 'voice-card' + (voice.cloud ? ' is-online' : '');
+    el.dataset.voiceName = idOf(voice);
 
     const play = document.createElement('button');
     play.type = 'button';
@@ -166,7 +239,7 @@ const Voices = (() => {
     select.appendChild(tick);
     el.append(play, wave, select);
     select.addEventListener('click', () => {
-      choose(code, voice.name);
+      choose(code, idOf(voice));
       render();
       document.querySelector('#voicePicker .voice-select[aria-checked="true"]')?.focus();
     });
@@ -197,7 +270,7 @@ const Voices = (() => {
     host.innerHTML = '';
     host.removeAttribute('role');
     const code = langCode();
-    const list = ranked(code);
+    const list = [...onlineFor(code), ...ranked(code)];
 
     if (!list.length) {
       // Bulgarian on a stock Windows lands here. Saying so is the whole point:
@@ -223,7 +296,7 @@ const Voices = (() => {
     rail.setAttribute('role', 'radiogroup');
     rail.setAttribute('aria-label', window.t ? t('settings.voice') : 'Voice');
     const picked = chosen(code);
-    for (const v of list) rail.appendChild(card(v, code, picked && v.name === picked.name));
+    for (const v of list) rail.appendChild(card(v, code, picked && idOf(v) === idOf(picked)));
     host.append(prev, rail, next);
     const sync = () => {
       prev.disabled = rail.scrollLeft <= 2;
@@ -251,7 +324,20 @@ const Voices = (() => {
     return b;
   }
 
+  function refreshOnline() {
+    const code = langCode();
+    if (!signedIn()) { render(); return; }
+    loadOnline(code).then(() => {
+      render();
+      // a speak button may now be possible where no voice existed (Bulgarian)
+      window.dispatchEvent(new CustomEvent('climby:voices-online'));
+    });
+  }
+
   function init() {
+    refreshOnline();
+    window.addEventListener('climby:auth-changed', () => { onlineLoaded = {}; refreshOnline(); });
+    window.addEventListener('climby:lang-changed', refreshOnline);
     if (!synth) return;
     render();
     // the list arrives late, and again when the system's voices change
@@ -266,7 +352,7 @@ const Voices = (() => {
 
   document.addEventListener('DOMContentLoaded', init);
 
-  return { chosen, render, stopSample, shortName };
+  return { chosen, render, stopSample, shortName, fetchAudio, idOf };
 })();
 
 window.Voices = Voices;

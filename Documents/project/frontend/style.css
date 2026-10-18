@@ -5553,3 +5553,19 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
   background: var(--bg-sunken, var(--bg)); border: 1px solid var(--border); border-radius: var(--radius-sm);
 }
 .memory-know-text.hidden { display: none; }
+
+/* an online (Azure) voice: a thin gradient edge says "the good ones" */
+#settingsOverlay .voice-rail .voice-card.is-online {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--bg-elevated), var(--bg-elevated)) padding-box,
+    linear-gradient(120deg, #8b5cf6, #ec4899, #22d3ee) border-box;
+}
+#settingsOverlay .voice-rail .voice-card.is-online:has(.voice-select.is-picked) {
+  /* the tint over a solid layer: the tint alone is see-through, and the
+     gradient meant for the edge showed through the whole card */
+  background:
+    linear-gradient(var(--accent-soft), var(--accent-soft)) padding-box,
+    linear-gradient(var(--bg-elevated), var(--bg-elevated)) padding-box,
+    linear-gradient(120deg, #8b5cf6, #ec4899, #22d3ee) border-box;
+}
