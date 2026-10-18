@@ -5219,3 +5219,215 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
   .nav-ai > span:not(.nav-badge):not(.nav-ai-mark), #view-tutor .page-header h1, .chat-title strong { animation: none; }
 }
 
+
+
+/* ==========================================================================
+   Settings, 2026-10: account first, an icon on every row, Family and Class
+   as sections, memory as one switch, the voice rail, the photo editor.
+   ========================================================================== */
+
+/* -- an icon before every setting, in the theme's own colour -------------- */
+[data-icon="globe"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M3 12h18M12 3c2.6 2.8 3.8 5.8 3.8 9s-1.2 6.2-3.8 9c-2.6-2.8-3.8-5.8-3.8-9S9.4 5.8 12 3z'/></svg>"); }
+[data-icon="palette"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3a9 9 0 1 0 0 18c1.3 0 2-.8 2-1.8 0-1.4-1.2-1.7-1.2-3 0-1 .8-1.7 1.9-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z'/><circle cx='7.5' cy='11' r='1.2'/><circle cx='10.5' cy='7' r='1.2'/><circle cx='15.5' cy='7.5' r='1.2'/></svg>"); }
+[data-icon="drop"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3.5s6 6.4 6 10.6A6 6 0 0 1 6 14.1C6 9.9 12 3.5 12 3.5z'/><path d='M9.2 14.5a2.9 2.9 0 0 0 2.8 2.6'/></svg>"); }
+[data-icon="spark"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2.8l2.1 6.9 6.9 2.3-6.9 2.3L12 21.2l-2.1-6.9L3 12l6.9-2.3z'/><path d='M19 3v3M17.5 4.5h3'/></svg>"); }
+[data-icon="sky"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M3 19h18'/><path d='M5 19a7 7 0 0 1 14 0'/><path d='M12 4v2M4.9 7.4l1.4 1.4M19.1 7.4l-1.4 1.4'/></svg>"); }
+[data-icon="layers"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3 3 8l9 5 9-5z'/><path d='m3 13 9 5 9-5'/></svg>"); }
+[data-icon="corner"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M5 20V11a6 6 0 0 1 6-6h9'/><path d='M15 20h5v-5' stroke-dasharray='2 2.6'/></svg>"); }
+[data-icon="type"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M4 19 9 5l5 14M5.8 14.5h6.4'/><path d='M15.5 12.5a2.6 2.6 0 0 1 5 1V19m0-3.2c-3.6-.6-5.6.3-5.6 1.8 0 1 .8 1.6 1.9 1.6 1.6 0 3.7-1.2 3.7-3.4'/></svg>"); }
+[data-icon="peak"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M2.5 19.5 9 8l3.5 5.5L15 10l6.5 9.5z'/><path d='m7.6 10.5 1.4 1.4 1.3-1.6'/></svg>"); }
+[data-icon="wave"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M3 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0'/><path d='M3 17c2-2 4-2 6 0M3 7c2-2 4-2 6 0' opacity='.55'/></svg>"); }
+[data-icon="reset"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M4 12a8 8 0 1 0 2.4-5.7'/><path d='M4 4v4.5h4.5'/></svg>"); }
+[data-icon="textsize"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M3 18 7.5 6l4.5 12M4.6 14h5.8'/><path d='M14 18l3-8 3 8M15 15.5h4'/></svg>"); }
+[data-icon="book"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M3 5.5c3-1.3 6-1.3 9 .8 3-2.1 6-2.1 9-.8V19c-3-1.3-6-1.3-9 .8-3-2.1-6-2.1-9-.8z'/><path d='M12 6.3v13.5'/></svg>"); }
+[data-icon="bulb"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M9 17h6M10 20.5h4'/><path d='M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2h5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z'/></svg>"); }
+[data-icon="speaker"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M4 9.5h3.5L12 5.5v13l-4.5-4H4z'/><path d='M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11'/></svg>"); }
+[data-icon="mic"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='3' width='6' height='11' rx='3'/><path d='M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21'/></svg>"); }
+[data-icon="memory"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M9 4.5a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 .5V5.8A2.6 2.6 0 0 0 9 4.5z'/><path d='M15 4.5a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 .5'/><path d='M12 9.5h2.2M12 14h3'/></svg>"); }
+[data-icon="note"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M5 4h10l4 4v12H5z'/><path d='M15 4v4h4M8.5 12.5h7M8.5 16h4.5'/></svg>"); }
+[data-icon="compass"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='m15.5 8.5-2 5-5 2 2-5z'/></svg>"); }
+[data-icon="refresh"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M20 12a8 8 0 0 1-14 5.3M4 12A8 8 0 0 1 18 6.7'/><path d='M18 3v3.7h-3.7M6 21v-3.7h3.7'/></svg>"); }
+[data-icon="phone"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><rect x='7' y='2.5' width='10' height='19' rx='2.4'/><path d='M11 18.5h2'/></svg>"); }
+[data-icon="key"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><circle cx='8' cy='15' r='4.5'/><path d='m11.2 11.8 8.3-8.3M16.5 6.5l2.5 2.5M14 9l2 2'/></svg>"); }
+[data-icon="download"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3.5v11.5M7 10.5l5 5 5-5'/><path d='M4.5 16v3.5h15V16'/></svg>"); }
+[data-icon="trash"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6.5h16M9.5 6.5V4h5v2.5M6.5 6.5l1 13.5h9l1-13.5'/><path d='M10 10.5v6M14 10.5v6'/></svg>"); }
+[data-icon="family"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><circle cx='8' cy='7.5' r='3'/><circle cx='17' cy='9.5' r='2.3'/><path d='M2.5 20a5.5 5.5 0 0 1 11 0M14 20a3.8 3.8 0 0 1 7.5 0'/></svg>"); }
+[data-icon="class"] { --set-icon: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M12 4 2.5 8.8 12 13.6l9.5-4.8z'/><path d='M6.5 11v4.8c0 1.6 2.5 3 5.5 3s5.5-1.4 5.5-3V11M21.5 8.8v5'/></svg>"); }
+#settingsOverlay .settings-row[data-icon] > :first-child,
+#settingsOverlay .settings-section[data-icon] {
+  display: flex; align-items: center; gap: 12px; position: relative;
+}
+/* a label with a hint under it: the tile sits beside both lines */
+#settingsOverlay .settings-row[data-icon] > span:first-child:has(br) { display: block; padding-left: 42px; }
+/* the tile: a soft wash of the accent with a thin ring */
+#settingsOverlay .settings-row[data-icon] > :first-child::before,
+#settingsOverlay .settings-section[data-icon]::before {
+  content: '';
+  flex: none;
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent-fg) 13%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-fg) 30%, transparent);
+}
+#settingsOverlay .settings-row[data-icon] > span:first-child:has(br)::before {
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+}
+/* the glyph, drawn in the accent on top of the tile */
+#settingsOverlay .settings-row[data-icon] > :first-child::after,
+#settingsOverlay .settings-section[data-icon]::after {
+  content: '';
+  position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 18px;
+  background: var(--accent-fg);
+  -webkit-mask: var(--set-icon) center / contain no-repeat;
+  mask: var(--set-icon) center / contain no-repeat;
+}
+
+/* -- account: who you are, first ------------------------------------------ */
+.profile-card {
+  display: flex; align-items: center; gap: 18px;
+  padding: 10px 24px 20px;
+}
+.profile-photo {
+  position: relative; flex: none;
+  width: 76px; height: 76px; border-radius: 50%;
+  border: 0; padding: 0; cursor: pointer; background: none; color: inherit;
+}
+.profile-photo:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.profile-photo-img,
+.account-avatar.has-photo {
+  background-size: cover; background-position: center;
+}
+.profile-photo-img {
+  width: 100%; height: 100%; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background-color: var(--accent); color: var(--on-accent);
+  font: 700 30px var(--font-heading);
+  box-shadow: 0 0 0 3px var(--bg-elevated), 0 0 0 5px color-mix(in srgb, var(--accent-fg) 45%, transparent);
+}
+.profile-photo-edit {
+  position: absolute; right: -2px; bottom: -2px;
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-elevated); color: var(--accent-fg);
+  border: 1px solid var(--border);
+  transition: transform 0.15s ease;
+}
+.profile-photo-edit svg { width: 15px; height: 15px; }
+.profile-photo:hover .profile-photo-edit { transform: scale(1.1); }
+.profile-card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.profile-card-text strong { font: 650 19px var(--font-heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-card-text .settings-note { margin: 0; overflow: hidden; text-overflow: ellipsis; }
+.profile-card-text .settings-note:empty { display: none; }
+
+/* the red button with white text; the code form only after it */
+.account-pw-btn { align-self: flex-start; margin-top: 10px; background: #dc2626; border-color: #dc2626; color: #fff; }
+#accountPwForm { margin-top: 12px; }
+#accountPwForm .settings-note { flex-basis: 100%; margin: 0 0 4px; }
+#accountPwForm .btn-danger { background: #dc2626; border-color: #dc2626; color: #fff; }
+
+/* -- memory: one switch, then the note ------------------------------------- */
+#settingsOverlay #setMemory { grid-template-columns: 1fr auto; }
+#settingsOverlay #setMemory > .switch { grid-column: 2; grid-row: 1; }
+.memory-login-hint, .memory-storage-error { margin: 0 24px 10px; }
+.memory-note-row .memory-option { padding: 0; border: 0; background: none; }
+.memory-note-row.is-off { opacity: 0.5; }
+.memory-note-row .memory-note-input { margin-top: 10px; width: 100%; box-sizing: border-box; }
+
+/* -- family and class, living in Settings now ------------------------------ */
+#setFamily, #setClass { padding-bottom: 18px; }
+.settings-explainer { font-size: 13.5px; margin-bottom: 14px; }
+#setFamily .family-grid { grid-template-columns: 1fr; }
+#setFamily .history-section-title, #setClass .history-section-title { margin-top: 14px; }
+
+/* -- voices: a rail that slides sideways ---------------------------------- */
+#settingsOverlay .voice-picker {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center; gap: 8px; margin-top: 12px;
+}
+.voice-picker:has(.voice-none) { display: block !important; }
+.voice-rail {
+  display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory;
+  padding: 6px 4px 10px; scrollbar-width: none;
+  mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+}
+.voice-rail::-webkit-scrollbar { display: none; }
+.voice-arrow {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); background: var(--control-bg, var(--bg-elevated)); color: var(--text);
+  cursor: pointer;
+}
+.voice-arrow svg { width: 16px; height: 16px; }
+.voice-arrow:disabled { opacity: 0.3; cursor: default; }
+/* everything fits: no arrows at all */
+#settingsOverlay .voice-picker.fits { grid-template-columns: minmax(0, 1fr); }
+.voice-picker.fits .voice-arrow { display: none; }
+.voice-arrow:not(:disabled):hover { border-color: var(--accent-fg); color: var(--accent-fg); }
+#settingsOverlay .voice-rail .voice-card {
+  flex: 0 0 196px; scroll-snap-align: start;
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto;
+  gap: 12px 10px; align-items: center;
+  padding: 14px; border-radius: var(--radius);
+}
+.voice-rail .voice-play {
+  width: 42px; height: 42px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent); color: var(--on-accent); border: 0; cursor: pointer;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+#settingsOverlay .voice-rail .voice-play { width: 42px; height: 42px; background: var(--accent); }
+.voice-rail .voice-play svg { width: 17px; height: 17px; display: block; }
+.voice-ico-pause { display: none !important; }
+.voice-card.is-playing .voice-ico-play { display: none !important; }
+.voice-card.is-playing .voice-ico-pause { display: block !important; }
+.voice-wave {
+  display: flex; align-items: center; gap: 3px; height: 30px; overflow: hidden;
+}
+.voice-wave i {
+  flex: none; width: 3px; height: var(--h); border-radius: 2px;
+  background: color-mix(in srgb, var(--accent-fg) 35%, transparent);
+  transform: scaleY(0.35); transition: transform 0.3s ease, background 0.3s ease;
+}
+.voice-card.is-playing .voice-wave i {
+  background: var(--accent-fg);
+  animation: voice-wave 0.75s ease-in-out infinite alternate;
+}
+@keyframes voice-wave { from { transform: scaleY(0.25); } to { transform: scaleY(1.15); } }
+.voice-rail .voice-select { grid-column: 1 / -1; padding: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .voice-card.is-playing .voice-wave i { animation: none; transform: scaleY(0.9); }
+}
+:root[data-motion="off"] .voice-card.is-playing .voice-wave i { animation: none; transform: scaleY(0.9); }
+
+/* -- the photo editor ----------------------------------------------------- */
+.photo-editor {
+  position: fixed; inset: 0; z-index: 1300;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.6); padding: 16px;
+}
+.photo-editor.hidden { display: none; }
+.photo-editor-card {
+  width: min(380px, 100%); padding: 22px;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+.photo-editor-card h3 { margin: 0 0 4px; font-family: var(--font-heading); }
+.photo-editor-card .settings-note { margin: 0 0 14px; }
+.photo-stage {
+  position: relative; width: 280px; height: 280px; max-width: 100%; aspect-ratio: 1;
+  margin: 0 auto; border-radius: 50%; overflow: hidden; cursor: grab; touch-action: none;
+  background: repeating-conic-gradient(var(--border) 0 25%, transparent 0 50%) 0 0 / 20px 20px;
+}
+.photo-stage:active { cursor: grabbing; }
+.photo-stage:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.photo-stage canvas { width: 100%; height: 100%; display: block; }
+.photo-ring { position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 0 0 2px color-mix(in srgb, #fff 55%, transparent); pointer-events: none; }
+.photo-tools { display: flex; align-items: center; gap: 10px; margin: 16px 0 6px; color: var(--text-faint); }
+.photo-tools > svg { width: 18px; height: 18px; flex: none; }
+.photo-zoom { flex: 1; accent-color: var(--accent); }
+.photo-rotate { padding: 7px 9px; display: flex; }
+.photo-rotate svg { width: 17px; height: 17px; }
+.photo-actions { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.photo-actions .tour-spacer { flex: 1; }
+.photo-remove.hidden { display: none; }

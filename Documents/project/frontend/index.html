@@ -276,14 +276,60 @@
     <h2 id="settingsTitle" data-i18n="settings.title">Настройки</h2>
     <div class="settings-body">
     <nav class="settings-nav" aria-label="Settings sections" data-i18n-aria-label="settings.navAria">
-      <button type="button" class="settings-nav-link" data-settings-jump="setAppearance" aria-current="location" data-i18n="settings.secAppearance">Appearance</button>
-      <button type="button" class="settings-nav-link" data-settings-jump="setTutor" data-i18n="settings.secTutor">ClimbAI</button>
-      <button type="button" class="settings-nav-link" data-settings-jump="setMemory" data-i18n="memory.title">ClimbAI memory</button>
-      <button type="button" class="settings-nav-link" data-settings-jump="setApp" data-i18n="settings.secApp">The app</button>
-      <button type="button" class="settings-nav-link" data-settings-jump="setConnections" data-i18n="settings.secConnections">Family & classes</button>
       <button type="button" class="settings-nav-link settings-nav-account" data-settings-jump="accountRows" data-i18n="settings.secAccount">Account</button>
+      <button type="button" class="settings-nav-link" data-settings-jump="setAppearance" data-i18n="settings.secAppearance">Appearance</button>
+      <button type="button" class="settings-nav-link" data-settings-jump="setTutor" data-i18n="settings.secTutor">ClimbAI</button>
+      <button type="button" class="settings-nav-link" data-settings-jump="setFamily" data-settings-role="parent student" data-i18n="nav.family">Family</button>
+      <button type="button" class="settings-nav-link" data-settings-jump="setClass" data-settings-role="teacher student" data-i18n="nav.classes">Class</button>
+      <button type="button" class="settings-nav-link" data-settings-jump="setApp" data-i18n="settings.secApp">The app</button>
     </nav>
     <div class="settings-main">
+    <!-- The account comes first: who you are, your photo, your password, your
+         data, and leaving. Signed-in only. Leaving is last and behind a
+         confirmation, because it is total. -->
+    <section id="accountRows" class="settings-group hidden">
+    <h3 class="settings-section" data-i18n="settings.secAccount">Account</h3>
+    <div class="profile-card">
+      <button id="profilePhotoBtn" class="profile-photo" type="button" data-i18n-aria="photo.change" aria-label="Change photo">
+        <span id="profilePhoto" class="profile-photo-img">?</span>
+        <span class="profile-photo-edit" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
+      </button>
+      <div class="profile-card-text">
+        <strong id="profileName"></strong>
+        <small id="profileEmail" class="settings-note"></small>
+        <small id="settingsProfileSummary" class="settings-note"></small>
+      </div>
+      <button id="settingsProfileBtn" class="btn-secondary" type="button" data-i18n="settings.profileBtn">Edit</button>
+      <input id="profilePhotoInput" type="file" accept="image/*" hidden>
+    </div>
+    <div class="settings-row settings-row-stack" data-icon="key">
+      <span data-i18n="account.passwordTitle">Password</span>
+      <p class="settings-note" data-i18n="account.pwHint">We email you a code. With it you choose the new password — so nobody else can change it, even on an unlocked computer.</p>
+      <button id="accountPwBtn" class="btn-danger account-pw-btn" type="button" data-i18n="account.changePw">Change password</button>
+      <form id="accountPwForm" class="account-form hidden" novalidate>
+        <p id="accountPwSent" class="settings-note" role="status"></p>
+        <input id="accountPwCode" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" data-i18n-placeholder="account.pwCode" placeholder="The 6-digit code">
+        <input id="accountNewPw" type="password" autocomplete="new-password" minlength="8" data-i18n-placeholder="account.newPw" placeholder="New password (8+ characters)">
+        <button class="btn-danger" type="submit" data-i18n="account.pwSave">Save the new password</button>
+      </form>
+      <p id="accountPwMsg" class="settings-note hidden" role="status"></p>
+    </div>
+    <div class="settings-row" data-icon="download">
+      <span><span data-i18n="account.exportTitle">Your data</span><br><small class="settings-note" data-i18n="account.exportHint">Everything Climby keeps about you, as one file.</small></span>
+      <button id="accountExportBtn" class="btn-secondary" type="button" data-i18n="account.exportBtn">Download</button>
+    </div>
+      <div class="settings-row settings-row-stack account-danger" data-icon="trash">
+        <span data-i18n="account.deleteTitle">Delete account</span>
+        <p class="settings-note" data-i18n="account.deleteHint">Removes your account and everything in it — tasks, questions, sessions, links. Immediately, and for good.</p>
+        <button id="accountDeleteBtn" class="btn-danger-outline" type="button" data-i18n="account.deleteBtn">Delete my account</button>
+        <form id="accountDeleteForm" class="account-form hidden" novalidate>
+          <input id="accountDeletePw" type="password" autocomplete="current-password" data-i18n-placeholder="account.deletePw" placeholder="Your password, to confirm">
+          <input id="accountDeleteWord" type="text" autocomplete="off" class="hidden" data-i18n-placeholder="account.deleteWord" placeholder="Type DELETE to confirm">
+          <button class="btn-danger" type="submit" data-i18n="account.deleteConfirm">Delete everything</button>
+        </form>
+        <p id="accountDeleteMsg" class="settings-note hidden" role="alert"></p>
+      </div>
+    </section>
     <section class="settings-group appearance-group" id="setAppearance">
     <h3 class="settings-section" data-i18n="settings.secAppearance">Appearance</h3>
     <p class="settings-note settings-description" data-i18n="settings.appearanceHint">Choose the language and look that feel right for you.</p>
@@ -295,9 +341,9 @@
         <div class="tp-side">
           <div class="tp-brand"><span class="tp-logo"></span><b>Climby</b></div>
           <div class="tp-nav tp-nav-ai"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg><span data-i18n="nav.tutor">ClimbAI</span></div>
-          <div class="tp-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/></svg><span data-i18n="nav.focus">Възход</span></div>
+          <div class="tp-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3h11M6.5 21h11"/><path d="M8 3v2.6c0 2 1.6 3.4 4 5.4 2.4-2 4-3.4 4-5.4V3"/><path d="M8 21v-2.6c0-2 1.6-3.4 4-5.4 2.4 2 4 3.4 4 5.4V21"/></svg><span data-i18n="nav.focus">Възход</span></div>
           <div class="tp-nav tp-nav-on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span data-i18n="nav.checklist">Маршрут</span></div>
-          <div class="tp-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg><span data-i18n="nav.family">Свръзка</span></div>
+          <div class="tp-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16.5 9"/></svg><span data-i18n="nav.history">Готово</span></div>
           <div class="tp-user"><span class="tp-avatar">C</span><span class="tp-line"></span></div>
         </div>
         <div class="tp-main">
@@ -321,7 +367,7 @@
         <span id="themePreviewState" class="theme-stage-state" data-i18n="theme.current">Текуща</span>
       </div>
     </div>
-    <div class="settings-row settings-row-stack">
+    <div class="settings-row settings-row-stack" data-icon="globe">
       <span data-i18n="settings.language">Език</span>
       <div class="theme-switch" role="group" data-i18n-aria-label="settings.language" aria-label="Език">
         <button type="button" class="theme-switch-option" data-lang="bg" aria-pressed="false">Български</button>
@@ -331,7 +377,7 @@
     <!-- The theme studio: a live copy of the main screen on top, the themes
          under it. Pointing at a theme (or an option) shows it on the copy;
          clicking applies it. appearance.js builds the cards. -->
-    <div class="settings-row settings-row-stack theme-studio">
+    <div class="settings-row settings-row-stack theme-studio" data-icon="palette">
       <span data-i18n="settings.theme">Тема</span>
       <div class="theme-switch theme-filter" role="group" data-i18n-aria="theme.filterAria" aria-label="Покажи теми">
         <button type="button" class="theme-switch-option active" data-theme-filter="all" aria-pressed="true" data-i18n="theme.filterAll">Всички</button>
@@ -346,19 +392,19 @@
           <select id="themeAutoDark" class="settings-select" data-auto-palette="dark"></select></label>
       </div>
     </div>
-    <div class="settings-row settings-row-stack">
+    <div class="settings-row settings-row-stack" data-icon="drop">
       <span data-i18n="look.accent">Акцентен цвят</span>
       <div id="accentSwatches" class="accent-swatches" role="group" data-i18n-aria="look.accent" aria-label="Акцентен цвят"></div>
       <p class="settings-note" data-i18n="look.accentNote">Цветът на бутоните, отметките и избраното. Темата си има свой — тук може да го смениш.</p>
     </div>
-    <div class="settings-row settings-row-stack">
+    <div class="settings-row settings-row-stack" data-icon="spark">
       <span data-i18n="look.ai">Цветът на ClimbAI</span>
       <div class="theme-switch look-switch" role="group" data-i18n-aria="look.ai" aria-label="Цветът на ClimbAI">
         <button type="button" class="theme-switch-option" data-look="ai" data-value="climby" data-i18n="look.aiClimby">Виолетовото на Climby</button>
         <button type="button" class="theme-switch-option" data-look="ai" data-value="theme" data-i18n="look.aiTheme">По темата</button>
       </div>
     </div>
-    <div class="settings-row settings-row-stack">
+    <div class="settings-row settings-row-stack" data-icon="sky">
       <span data-i18n="look.bg">Фон</span>
       <div class="theme-switch look-switch" role="group" data-i18n-aria="look.bg" aria-label="Фон">
         <button type="button" class="theme-switch-option" data-look="bg" data-value="plain" data-i18n="look.bgPlain">Чист</button>
@@ -367,14 +413,14 @@
         <button type="button" class="theme-switch-option" data-look="bg" data-value="dots" data-i18n="look.bgDots">Точки</button>
       </div>
     </div>
-    <div class="settings-row settings-row-stack">
+    <div class="settings-row settings-row-stack" data-icon="layers">
       <span data-i18n="look.glass">Повърхности</span>
       <div class="theme-switch look-switch" role="group" data-i18n-aria="look.glass" aria-label="Повърхности">
         <button type="button" class="theme-switch-option" data-look="glass" data-value="frosted" data-i18n="look.glassFrosted">Матово стъкло</button>
         <button type="button" class="theme-switch-option" data-look="glass" data-value="solid" data-i18n="look.glassSolid">Плътни</button>
       </div>
     </div>
-    <div class="settings-row settings-row-stack">
+    <div class="settings-row settings-row-stack" data-icon="corner">
       <span data-i18n="look.corners">Ъгли</span>
       <div class="theme-switch look-switch" role="group" data-i18n-aria="look.corners" aria-label="Ъгли">
         <button type="button" class="theme-switch-option" data-look="corners" data-value="sharp"><span class="corner-ico c-sharp" aria-hidden="true"></span><span data-i18n="look.cornersSharp">Остри</span></button>
@@ -382,7 +428,7 @@
         <button type="button" class="theme-switch-option" data-look="corners" data-value="round"><span class="corner-ico c-round" aria-hidden="true"></span><span data-i18n="look.cornersRound">Заоблени</span></button>
       </div>
     </div>
-    <div class="settings-row">
+    <div class="settings-row" data-icon="type">
       <span class="settings-label" data-i18n="look.font">Шрифт</span>
       <div class="settings-control">
         <select class="settings-select" data-look="font" data-i18n-aria="look.font" aria-label="Шрифт">
@@ -392,7 +438,7 @@
         </select>
       </div>
     </div>
-    <div class="settings-row">
+    <div class="settings-row" data-icon="peak">
       <span class="settings-label" data-i18n="look.watermark">Логото на фона</span>
       <div class="settings-control">
         <select class="settings-select" data-look="watermark" data-i18n-aria="look.watermark" aria-label="Логото на фона">
@@ -401,7 +447,7 @@
         </select>
       </div>
     </div>
-    <div class="settings-row">
+    <div class="settings-row" data-icon="wave">
       <span class="settings-label" data-i18n="look.motion">Анимации</span>
       <div class="settings-control">
         <select class="settings-select" data-look="motion" data-i18n-aria="look.motion" aria-label="Анимации">
@@ -410,11 +456,11 @@
         </select>
       </div>
     </div>
-    <div class="settings-row">
+    <div class="settings-row" data-icon="reset">
       <span><span data-i18n="look.reset">Стандартен вид</span><br><small class="settings-note" data-i18n="look.resetNote">Връща цвета, фона, ъглите и шрифта. Темата остава.</small></span>
       <button id="lookResetBtn" class="btn-secondary tour-replay" type="button" data-i18n="look.resetBtn">Върни</button>
     </div>
-    <div class="settings-row">
+    <div class="settings-row" data-icon="textsize">
       <span class="settings-label" data-i18n="settings.text">Text size</span>
       <div class="settings-control">
         <select class="settings-select" data-pref="text" data-i18n-aria-label="settings.text" aria-label="Text size">
@@ -424,7 +470,7 @@
         </select>
       </div>
     </div>
-    <div class="settings-row">
+    <div class="settings-row" data-icon="book">
       <span class="settings-label" data-i18n="settings.reading">Reading</span>
       <div class="settings-control">
         <select class="settings-select" data-pref="reading" data-i18n-aria-label="settings.reading" aria-label="Reading">
@@ -437,7 +483,7 @@
     </section>
     <section class="settings-group" id="setTutor">
     <h3 class="settings-section" data-i18n="settings.secTutor">ClimbAI</h3>
-    <div class="settings-row">
+    <div class="settings-row" data-icon="bulb">
       <span class="settings-label" data-i18n="settings.tutorMode">How ClimbAI explains</span>
       <div class="settings-control">
         <select class="settings-select" data-pref="tutor" data-i18n-aria-label="settings.tutorMode" aria-label="How ClimbAI explains">
@@ -447,7 +493,7 @@
       </div>
       <p class="settings-note" data-i18n="settings.tutorNote">Hints teach more; full solutions are for the night before a test.</p>
     </div>
-    <div class="settings-row">
+    <div class="settings-row" data-icon="speaker">
       <span class="settings-label" data-i18n="settings.autoread">Read aloud</span>
       <div class="settings-control">
         <select class="settings-select" data-pref="autoread" data-i18n-aria-label="settings.autoread" aria-label="Read aloud">
@@ -456,55 +502,134 @@
         </select>
       </div>
     </div>
-    <div class="settings-row settings-row-stack" id="voiceRow">
+    <div class="settings-row settings-row-stack" id="voiceRow" data-icon="mic">
       <span class="settings-label" data-i18n="settings.voice">Voice</span>
       <p class="settings-note" data-i18n="voice.pickerHint">Choose a voice and preview it before you use it.</p>
       <div id="voicePicker" class="voice-picker"></div>
     </div>
+    <div class="settings-row" data-icon="memory" id="setMemory">
+      <span><span data-i18n="memory.title">ClimbAI memory</span><br><small class="settings-note" data-i18n="memory.switchHint">ClimbAI remembers your grade, homework, focus time and recent questions, so it never starts from zero.</small></span>
+      <label class="switch"><input id="memoryOn" type="checkbox" role="switch" data-i18n-aria="memory.title" aria-label="ClimbAI memory"><span class="switch-track"></span></label>
+    </div>
+    <p id="memoryLoginHint" class="settings-note memory-login-hint hidden" data-i18n="memory.loginHint">Sign in and ClimbAI remembers you. Chat works without it too.</p>
+    <p id="memoryStorageError" class="settings-note memory-storage-error hidden" role="alert" data-i18n="memory.storageError">Your memory choices could not be saved in this browser.</p>
+    <div class="settings-row settings-row-stack memory-note-row" data-icon="note">
+      <label class="memory-option">
+        <input id="memoryPersonal" type="checkbox">
+        <span><strong data-i18n="memory.personal">Tell ClimbAI something about you</strong><small data-i18n="memory.personalHint">How you like things explained, what you find hard. Only what you write — ClimbAI never guesses.</small></span>
+      </label>
+      <textarea id="memoryPersonalNote" class="memory-note-input hidden" maxlength="600" rows="3" data-i18n-placeholder="memory.personalPlaceholder" placeholder="For example: Please use visual examples when explaining fractions."></textarea>
+    </div>
     </section>
-    <section class="settings-group" id="setMemory">
-      <h3 class="settings-section" data-i18n="memory.title">ClimbAI memory</h3>
-      <p class="settings-note settings-description" data-i18n="memory.intro">Choose what ClimbAI may use across its screens. Everything starts off.</p>
-      <p id="memoryLoginHint" class="settings-note settings-description hidden" data-i18n="memory.loginHint">Sign in to opt in to using your saved app context. Chat still works without memory.</p>
-      <div class="memory-options">
-        <label class="memory-option">
-          <input id="memoryGrade" type="checkbox">
-          <span><strong data-i18n="memory.grade">School grade</strong><small data-i18n="memory.gradeHint">Use the grade in your profile to match explanations to your level. Your profile city is not included.</small></span>
-        </label>
-        <label class="memory-option">
-          <input id="memoryChecklist" type="checkbox">
-          <span><strong data-i18n="memory.checklist">Homework checklist</strong><small data-i18n="memory.checklistHint">Only your unfinished tasks, subjects and due dates.</small></span>
-        </label>
-        <label class="memory-option">
-          <input id="memoryFocus" type="checkbox">
-          <span><strong data-i18n="memory.focus">Focus sessions</strong><small data-i18n="memory.focusHint">A short total of recent time and focus percentage, not camera data.</small></span>
-        </label>
-        <label class="memory-option">
-          <input id="memoryQuestions" type="checkbox">
-          <span><strong data-i18n="memory.questions">Earlier ClimbAI questions</strong><small data-i18n="memory.questionsHint">A few recent questions, not full answer transcripts.</small></span>
-        </label>
-        <label class="memory-option">
-          <input id="memoryPersonal" type="checkbox">
-          <span><strong data-i18n="memory.personal">A note you write</strong><small data-i18n="memory.personalHint">Add learning preferences or details you choose. ClimbAI will not guess your personality or location.</small></span>
-        </label>
-        <textarea id="memoryPersonalNote" class="memory-note-input" maxlength="600" rows="3" disabled data-i18n-placeholder="memory.personalPlaceholder" placeholder="For example: Please use visual examples when explaining fractions."></textarea>
-      </div>
-      <p id="memoryStorageError" class="settings-note memory-storage-error hidden" role="alert" data-i18n="memory.storageError">Your memory choices could not be saved in this browser.</p>
-      <p class="settings-note memory-privacy" data-i18n="memory.privacy">Your choices and note stay on this device. Your profile grade is sent only if you select it; your profile city is never included. Selected context is sent with ClimbAI questions to Climby and its AI provider. Turns in the current conversation are also sent so replies make sense. Categories you turn off are not sent. This does not delete your existing account history.</p>
-      <div class="settings-row memory-actions">
-        <span class="settings-note" data-i18n="memory.controlHint">Change these choices anytime, or clear them now.</span>
-        <button id="memoryClear" class="btn-secondary" type="button" data-i18n="memory.clear">Clear memory choices and note</button>
-      </div>
+    <section class="settings-group" id="setFamily" data-settings-role="parent student">
+      <h3 class="settings-section" data-icon="family" data-i18n="nav.family">Family</h3>
+      <p class="settings-note settings-description" data-i18n="page.familySubtitle">A parent and a student, linked with a code. Only the numbers are shared — tasks stay private.</p>
+  <div id="familyGate" class="auth-gate-simple">
+    <div class="explainer">
+      <strong data-i18n="family.why">Защо трябва да влезеш:</strong> <span data-i18n="family.whyBody">родителският изглед свързва акаунта ти с този на детето ти.</span>
+    </div>
+    <div class="controls">
+      <button id="familyLoginBtn" class="btn-primary" type="button" data-i18n="family.login">Влез</button>
+    </div>
+  </div>
+
+  <div id="familyApp" class="hidden">
+    <!-- One screen, two people. A parent enters a code and sees numbers; a
+         student makes a code and sees who holds their rope. The account has a
+         role, so each person sees their half and never the other's. -->
+    <div id="familyParentHalf" class="hidden">
+    <div class="explainer settings-explainer">
+      <strong data-i18n="family.intro">Parent view.</strong> <span data-i18n="family.introBody">You see summary numbers only — how many tasks are done and how long they studied. The text of tasks and questions to ClimbAI stays private to the student.</span>
+    </div>
+
+    <h3 class="history-section-title" data-i18n="family.studentsTitle">Свързани ученици</h3>
+    <div id="familyStudents" class="family-students"></div>
+    <div id="familyStudentsEmpty" class="empty-state hidden"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8.5" r="3.2"/><path d="M2.5 19.5c0-3.1 2.7-5.2 6-5.2s6 2.1 6 5.2"/><circle cx="17.5" cy="10" r="2.4"/><path d="M17 14.6c2.3.3 4 1.9 4 4.9"/></svg></span><p class="empty-title" data-i18n="family.noStudents">Още нямаш свързан ученик. Поискай код от детето си и го въведи отдолу.</p></div>
+
+    <form id="familyLinkForm" class="family-link-form">
+      <input id="familyCodeInput" class="code-input" type="text" maxlength="6" autocomplete="off"
+             data-i18n-placeholder="family.codePlaceholder" placeholder="Код от ученика">
+      <button class="btn-primary" type="submit" data-i18n="family.linkBtn">Свържи</button>
+    </form>
+    <p id="familyLinkError" class="auth-error hidden"></p>
+    </div>
+
+    <div id="familyStudentHalf" class="hidden">
+    <div class="explainer settings-explainer">
+      <strong data-i18n="family.introStudent">Your rope team.</strong> <span data-i18n="family.introStudentBody">Whoever you give a code to sees your numbers — how many tasks, how many minutes, how many days in a row. Never what a task says or what you asked.</span>
+    </div>
+
+    <!-- Side by side on a wide screen: making a code, and who already holds one. -->
+    <div class="family-grid">
+    <section class="family-panel">
+    <h3 class="history-section-title" data-i18n="family.shareTitle">Дай достъп на родител</h3>
+    <p class="hint" data-i18n="family.shareBody">Създай код и го дай на родителя си. Кодът важи 48 часа и може да се използва веднъж.</p>
+    <div class="controls">
+      <button id="familyInviteBtn" class="btn-ghost" type="button" data-i18n="family.inviteBtn">Създай код</button>
+    </div>
+    <p id="familyInviteCode" class="family-code hidden"></p>
+    </section>
+
+    <section id="familyParents" class="family-panel"></section>
+    </div>
+    </div>
+  </div>
+    </section>
+    <section class="settings-group" id="setClass" data-settings-role="teacher student">
+      <h3 class="settings-section" data-icon="class" data-i18n="nav.classes">Class</h3>
+      <p class="settings-note settings-description" data-i18n="page.classesSubtitle">Your class and the code to join it. The teacher sees only the numbers.</p>
+  <div id="classesGate" class="auth-gate-simple">
+    <div class="explainer">
+      <strong data-i18n="classes.why">Защо трябва да влезеш:</strong> <span data-i18n="classes.whyBody">класовете стоят в акаунта — на учителя или на ученика.</span>
+    </div>
+    <div class="controls">
+      <button id="classesLoginBtn" class="btn-primary" type="button" data-i18n="classes.login">Влез</button>
+    </div>
+  </div>
+
+  <!-- изглед за УЧИТЕЛ -->
+  <div id="teacherApp" class="hidden">
+    <div class="explainer settings-explainer">
+      <strong data-i18n="classes.teacherIntro">Твоите класове.</strong> <span data-i18n="classes.teacherIntroBody">Кажи кода на класа и учениците се присъединяват сами. Виждаш само числа — колко задачи и колко време са учили. Какво пише в задачите и какво питат остава лично за тях.</span>
+    </div>
+
+    <form id="classCreateForm" class="family-link-form">
+      <input id="classNameInput" type="text" maxlength="40" autocomplete="off"
+             data-i18n-placeholder="classes.namePlaceholder" placeholder="Име на класа, напр. 7А">
+      <button class="btn-primary" type="submit" data-i18n="classes.createBtn">Направи клас</button>
+    </form>
+    <p id="classesError" class="auth-error hidden"></p>
+
+    <div id="classesList"></div>
+    <div id="classesEmpty" class="empty-state hidden"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2 2.5 9 12 13.8 21.5 9z"/><path d="M6.5 11.3V16c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-4.7"/></svg></span><p class="empty-title" data-i18n="classes.emptyTeacher">Още нямаш класове — направи първия отгоре.</p></div>
+  </div>
+
+  <!-- изглед за УЧЕНИК -->
+  <div id="studentClassesApp" class="hidden">
+    <div class="explainer settings-explainer">
+      <strong data-i18n="classes.studentIntro">Класовете ти.</strong> <span data-i18n="classes.studentIntroBody">Учителят вижда само колко задачи си свършил и колко време си учил — никога какво пише в тях или какво си питал.</span>
+    </div>
+
+    <form id="classJoinForm" class="family-link-form">
+      <input id="classCodeInput" class="code-input" type="text" maxlength="6" autocomplete="off"
+             data-i18n-placeholder="classes.codePlaceholder" placeholder="Код от учителя">
+      <button class="btn-primary" type="submit" data-i18n="classes.joinBtn">Присъедини се</button>
+    </form>
+    <p id="studentClassesError" class="auth-error hidden"></p>
+
+    <div id="studentClassesList"></div>
+    <div id="studentClassesEmpty" class="empty-state hidden"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2 2.5 9 12 13.8 21.5 9z"/><path d="M6.5 11.3V16c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-4.7"/></svg></span><p class="empty-title" data-i18n="classes.emptyStudent">Още не си в клас. Поискай код от учителя си.</p></div>
+  </div>
     </section>
     <section class="settings-group" id="setApp">
     <h3 class="settings-section" data-i18n="settings.secApp">The app</h3>
-    <div class="settings-row">
+    <div class="settings-row" data-icon="compass">
       <span data-i18n="settings.tour">Show the tour again</span>
       <button id="tourReplayBtn" class="btn-secondary tour-replay" type="button" data-i18n="settings.tourBtn">Start</button>
     </div>
     <!-- Desktop only (settings.js hides it elsewhere). The menu bar that held
          these is hidden, and nobody presses Alt to find a menu. -->
-    <div class="settings-row hidden" id="settingsAboutRow">
+    <div class="settings-row hidden" id="settingsAboutRow" data-icon="refresh">
       <span><span data-i18n="settings.version">Version</span> <strong id="settingsVersion">…</strong></span>
       <div class="settings-update-control">
         <span id="settingsUpdateStatus" class="settings-note" role="status" aria-live="polite"></span>
@@ -513,53 +638,10 @@
     </div>
     <!-- Свързаните телефони живеят тук, защото откачането е нещо, което се прави
          веднъж и обикновено набързо — при изгубен телефон. -->
-    <div class="settings-row settings-row-stack" id="settingsDevicesRow">
+    <div class="settings-row settings-row-stack" id="settingsDevicesRow" data-icon="phone">
       <span data-i18n="settings.devicesTitle">Свързани телефони</span>
       <div id="settingsDevices" class="device-list"></div>
     </div>
-    </section>
-    <section class="settings-group" id="setConnections">
-      <h3 class="settings-section" data-i18n="settings.secConnections">Family & classes</h3>
-      <p class="settings-note settings-description" data-i18n="settings.connectionsHint">Manage family links or the classes you teach or join.</p>
-      <div class="settings-row settings-row-stack settings-access-row">
-        <div class="settings-access-links">
-          <button class="btn-secondary settings-access-link" type="button" data-settings-view="family" data-settings-role="parent student"><strong data-i18n="settings.familyLink">Family progress</strong><small data-i18n="settings.familyLinkHint">Link a parent or see who follows your progress.</small></button>
-          <button class="btn-secondary settings-access-link" type="button" data-settings-view="classes" data-settings-role="teacher student"><strong data-i18n="settings.classesLink">Classes</strong><small data-i18n="settings.classesLinkHint">Join a class with a code, or manage the ones you teach.</small></button>
-        </div>
-      </div>
-    </section>
-    <!-- The account itself: change the password, take the data, leave. Signed-in
-         only. Leaving is last and behind a confirmation, because it is total. -->
-    <section id="accountRows" class="settings-group hidden">
-    <h3 class="settings-section" data-i18n="settings.secAccount">Account</h3>
-    <div class="settings-row">
-      <span><span data-i18n="settings.profileTitle">About you</span><br><small id="settingsProfileSummary" class="settings-note"></small></span>
-      <button id="settingsProfileBtn" class="btn-secondary" type="button" data-i18n="settings.profileBtn">Edit</button>
-    </div>
-      <div class="settings-row settings-row-stack">
-        <span data-i18n="account.passwordTitle">Password</span>
-        <form id="accountPasswordForm" class="account-form" novalidate>
-          <input id="accountCurrentPw" type="password" autocomplete="current-password" data-i18n-placeholder="account.currentPw" placeholder="Current password">
-          <input id="accountNewPw" type="password" autocomplete="new-password" minlength="8" data-i18n-placeholder="account.newPw" placeholder="New password (8+ characters)">
-          <button class="btn-secondary" type="submit" data-i18n="account.changePw">Change password</button>
-        </form>
-        <p id="accountPwMsg" class="settings-note hidden" role="status"></p>
-      </div>
-      <div class="settings-row">
-        <span><span data-i18n="account.exportTitle">Your data</span><br><small class="settings-note" data-i18n="account.exportHint">Everything Climby keeps about you, as one file.</small></span>
-        <button id="accountExportBtn" class="btn-secondary" type="button" data-i18n="account.exportBtn">Download</button>
-      </div>
-      <div class="settings-row settings-row-stack account-danger">
-        <span data-i18n="account.deleteTitle">Delete account</span>
-        <p class="settings-note" data-i18n="account.deleteHint">Removes your account and everything in it — tasks, questions, sessions, links. Immediately, and for good.</p>
-        <button id="accountDeleteBtn" class="btn-danger-outline" type="button" data-i18n="account.deleteBtn">Delete my account</button>
-        <form id="accountDeleteForm" class="account-form hidden" novalidate>
-          <input id="accountDeletePw" type="password" autocomplete="current-password" data-i18n-placeholder="account.deletePw" placeholder="Your password, to confirm">
-          <input id="accountDeleteWord" type="text" autocomplete="off" class="hidden" data-i18n-placeholder="account.deleteWord" placeholder="Type DELETE to confirm">
-          <button class="btn-danger" type="submit" data-i18n="account.deleteConfirm">Delete everything</button>
-        </form>
-        <p id="accountDeleteMsg" class="settings-note hidden" role="alert"></p>
-      </div>
     </section>
     </div>
     </div>
@@ -1230,119 +1312,9 @@
 
 </main>
 
-<main id="view-family" class="view hidden">
-<header class="page-header">
-  <h1 data-i18n="nav.family">Родител</h1>
-  <p class="page-subtitle" data-i18n="page.familySubtitle">Родител и ученик, свързани с код. Споделят се само числата — задачите остават лични.</p>
-  <button class="help-toggle" type="button" data-help-view="family" aria-expanded="false" data-i18n-aria="help.aria" aria-label="Как работи този екран"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 17h.01"/></svg></button>
-</header>
 
 
-  <div id="familyGate" class="auth-gate-simple">
-    <div class="explainer">
-      <strong data-i18n="family.why">Защо трябва да влезеш:</strong> <span data-i18n="family.whyBody">родителският изглед свързва акаунта ти с този на детето ти.</span>
-    </div>
-    <div class="controls">
-      <button id="familyLoginBtn" class="btn-primary" type="button" data-i18n="family.login">Влез</button>
-    </div>
-  </div>
 
-  <div id="familyApp" class="hidden">
-    <!-- One screen, two people. A parent enters a code and sees numbers; a
-         student makes a code and sees who holds their rope. The account has a
-         role, so each person sees their half and never the other's. -->
-    <div id="familyParentHalf" class="hidden">
-    <div class="explainer help-note hidden">
-      <strong data-i18n="family.intro">Parent view.</strong> <span data-i18n="family.introBody">You see summary numbers only — how many tasks are done and how long they studied. The text of tasks and questions to ClimbAI stays private to the student.</span>
-    </div>
-
-    <h3 class="history-section-title" data-i18n="family.studentsTitle">Свързани ученици</h3>
-    <div id="familyStudents" class="family-students"></div>
-    <div id="familyStudentsEmpty" class="empty-state hidden"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8.5" r="3.2"/><path d="M2.5 19.5c0-3.1 2.7-5.2 6-5.2s6 2.1 6 5.2"/><circle cx="17.5" cy="10" r="2.4"/><path d="M17 14.6c2.3.3 4 1.9 4 4.9"/></svg></span><p class="empty-title" data-i18n="family.noStudents">Още нямаш свързан ученик. Поискай код от детето си и го въведи отдолу.</p></div>
-
-    <form id="familyLinkForm" class="family-link-form">
-      <input id="familyCodeInput" class="code-input" type="text" maxlength="6" autocomplete="off"
-             data-i18n-placeholder="family.codePlaceholder" placeholder="Код от ученика">
-      <button class="btn-primary" type="submit" data-i18n="family.linkBtn">Свържи</button>
-    </form>
-    <p id="familyLinkError" class="auth-error hidden"></p>
-    </div>
-
-    <div id="familyStudentHalf" class="hidden">
-    <div class="explainer help-note hidden">
-      <strong data-i18n="family.introStudent">Your rope team.</strong> <span data-i18n="family.introStudentBody">Whoever you give a code to sees your numbers — how many tasks, how many minutes, how many days in a row. Never what a task says or what you asked.</span>
-    </div>
-
-    <!-- Side by side on a wide screen: making a code, and who already holds one. -->
-    <div class="family-grid">
-    <section class="family-panel">
-    <h3 class="history-section-title" data-i18n="family.shareTitle">Дай достъп на родител</h3>
-    <p class="hint" data-i18n="family.shareBody">Създай код и го дай на родителя си. Кодът важи 48 часа и може да се използва веднъж.</p>
-    <div class="controls">
-      <button id="familyInviteBtn" class="btn-ghost" type="button" data-i18n="family.inviteBtn">Създай код</button>
-    </div>
-    <p id="familyInviteCode" class="family-code hidden"></p>
-    </section>
-
-    <section id="familyParents" class="family-panel"></section>
-    </div>
-    </div>
-  </div>
-
-</main>
-
-<main id="view-classes" class="view hidden">
-<header class="page-header">
-  <h1 data-i18n="nav.classes">Клас</h1>
-  <p class="page-subtitle" data-i18n="page.classesSubtitle">Класът ти и кодът, с който се влиза в него. Учителят вижда само числата.</p>
-  <button class="help-toggle" type="button" data-help-view="classes" aria-expanded="false" data-i18n-aria="help.aria" aria-label="Как работи този екран"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 17h.01"/></svg></button>
-</header>
-
-
-  <div id="classesGate" class="auth-gate-simple">
-    <div class="explainer">
-      <strong data-i18n="classes.why">Защо трябва да влезеш:</strong> <span data-i18n="classes.whyBody">класовете стоят в акаунта — на учителя или на ученика.</span>
-    </div>
-    <div class="controls">
-      <button id="classesLoginBtn" class="btn-primary" type="button" data-i18n="classes.login">Влез</button>
-    </div>
-  </div>
-
-  <!-- изглед за УЧИТЕЛ -->
-  <div id="teacherApp" class="hidden">
-    <div class="explainer help-note hidden">
-      <strong data-i18n="classes.teacherIntro">Твоите класове.</strong> <span data-i18n="classes.teacherIntroBody">Кажи кода на класа и учениците се присъединяват сами. Виждаш само числа — колко задачи и колко време са учили. Какво пише в задачите и какво питат остава лично за тях.</span>
-    </div>
-
-    <form id="classCreateForm" class="family-link-form">
-      <input id="classNameInput" type="text" maxlength="40" autocomplete="off"
-             data-i18n-placeholder="classes.namePlaceholder" placeholder="Име на класа, напр. 7А">
-      <button class="btn-primary" type="submit" data-i18n="classes.createBtn">Направи клас</button>
-    </form>
-    <p id="classesError" class="auth-error hidden"></p>
-
-    <div id="classesList"></div>
-    <div id="classesEmpty" class="empty-state hidden"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2 2.5 9 12 13.8 21.5 9z"/><path d="M6.5 11.3V16c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-4.7"/></svg></span><p class="empty-title" data-i18n="classes.emptyTeacher">Още нямаш класове — направи първия отгоре.</p></div>
-  </div>
-
-  <!-- изглед за УЧЕНИК -->
-  <div id="studentClassesApp" class="hidden">
-    <div class="explainer help-note hidden">
-      <strong data-i18n="classes.studentIntro">Класовете ти.</strong> <span data-i18n="classes.studentIntroBody">Учителят вижда само колко задачи си свършил и колко време си учил — никога какво пише в тях или какво си питал.</span>
-    </div>
-
-    <form id="classJoinForm" class="family-link-form">
-      <input id="classCodeInput" class="code-input" type="text" maxlength="6" autocomplete="off"
-             data-i18n-placeholder="classes.codePlaceholder" placeholder="Код от учителя">
-      <button class="btn-primary" type="submit" data-i18n="classes.joinBtn">Присъедини се</button>
-    </form>
-    <p id="studentClassesError" class="auth-error hidden"></p>
-
-    <div id="studentClassesList"></div>
-    <div id="studentClassesEmpty" class="empty-state hidden"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2 2.5 9 12 13.8 21.5 9z"/><path d="M6.5 11.3V16c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-4.7"/></svg></span><p class="empty-title" data-i18n="classes.emptyStudent">Още не си в клас. Поискай код от учителя си.</p></div>
-  </div>
-
-</main>
 
 
   </div>
@@ -1434,6 +1406,7 @@
 <script src="net.js"></script>
 <script src="offline.js"></script>
 <script src="theme.js"></script>
+<script src="profile-photo.js"></script>
 <script src="settings.js"></script>
 <script src="appearance.js"></script>
 <script src="account.js"></script>

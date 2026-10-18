@@ -280,7 +280,7 @@ const Family = (() => {
   }
 
   function init() {
-    $('familyLoginBtn').addEventListener('click', () => Auth.openEntryGate());
+    $('familyLoginBtn').addEventListener('click', () => { AccountUI.close(); Auth.openEntryGate(); });
     $('familyLinkForm').addEventListener('submit', e => {
       e.preventDefault();
       Net.guardSubmit(e.currentTarget, () => handleLink(e));
@@ -289,8 +289,8 @@ const Family = (() => {
     $('familyInviteBtn').addEventListener('click', () => Net.guardClick($('familyInviteBtn'), handleInvite));
     window.addEventListener('climby:auth-changed', updateGate);
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) render(); });
-    window.addEventListener('climby:view-shown', e => {
-      if (e.detail.view === 'family') updateGate();
+    window.addEventListener('climby:settings-opened', () => {
+      updateGate();
     });
     updateGate();
   }

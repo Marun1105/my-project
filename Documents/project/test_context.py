@@ -349,7 +349,7 @@ def test_the_tutor_uses_the_current_screen_names_not_the_old_ones(monkeypatch):
     # from the line that tells the tutor which names to use, so the next rename
     # fails here instead of quietly teaching the old ones.
     current_line = system.split("Always use the current names above:", 1)[1].split("Earlier", 1)[0]
-    for current in ('"Homework HQ"', '"Done & dusted"', '"Focus mode"', '"Family progress"', '"Classroom crew"'):
+    for current in ('"Homework"', '"Done & dusted"', '"Focus mode"', '"Family"', '"Class"'):
         assert current in current_line
     assert "never use them yourself" in system
     assert 'Adding to the Route' not in system and 'on their Route' not in system

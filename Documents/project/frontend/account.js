@@ -23,17 +23,49 @@ const Account = (() => {
   }
 
   // ---- password ----
-  async function changePassword(e) {
-    e.preventDefault();
-    const msg = $('accountPwMsg');
-    const current = $('accountCurrentPw').value;
-    const next = $('accountNewPw').value;
-    if (next.length < 8) { say(msg, t('account.pwTooShort'), true); return; }
-    const res = await call('/account/password', { method: 'POST', body: JSON.stringify({ current_password: current || null, new_password: next }) }).catch(() => null);
+  // No current-password form any more. The button emails a code (the same
+  // one "Forgot password" sends), and only the code plus a new password
+  // change it: a computer left signed in is not enough to take the account.
+  async function post(path, body) {
+    const res = await Net.fetch(BACKEND + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).catch(() => null);
     const data = res ? await res.json().catch(() => ({})) : {};
-    if (!res || !res.ok) { say(msg, (data && data.detail) || t('account.errGeneric'), true); return; }
-    Auth.replaceSession(data.token, data.user);
-    $('accountCurrentPw').value = ''; $('accountNewPw').value = '';
+    return { ok: !!(res && res.ok), data };
+  }
+
+  async function sendPwCode() {
+    const user = Auth.getUser() || {};
+    const msg = $('accountPwMsg');
+    msg.classList.add('hidden');
+    if (!user.email) { say(msg, t('account.errGeneric'), true); return; }
+    const { ok, data } = await post('/auth/forgot-password', { channel: 'email', contact: user.email });
+    if (!ok) { say(msg, (data && data.detail) || t('account.errGeneric'), true); return; }
+    $('accountPwSent').textContent = t('account.pwSent', { email: user.email });
+    $('accountPwForm').classList.remove('hidden');
+    $('accountPwBtn').textContent = t('account.pwResend');
+    $('accountPwCode').focus();
+  }
+
+  async function changePassword() {
+    const user = Auth.getUser() || {};
+    const msg = $('accountPwMsg');
+    const code = $('accountPwCode').value.trim();
+    const next = $('accountNewPw').value;
+    if (!/^\d{6}$/.test(code)) { say(msg, t('account.pwBadCode'), true); return; }
+    if (next.length < 8) { say(msg, t('account.pwTooShort'), true); return; }
+    const reset = await post('/auth/reset-password', { channel: 'email', contact: user.email, code, new_password: next });
+    if (!reset.ok) { say(msg, (reset.data && reset.data.detail) || t('account.errGeneric'), true); return; }
+    // The change ended every session, this one too. Sign straight back in
+    // with the new password so nobody is thrown out for doing the right thing.
+    const login = await post('/auth/login', { identifier: user.email, password: next });
+    if (login.ok && login.data.token) Auth.replaceSession(login.data.token, login.data.user);
+    else { Auth.logout(true); return; }
+    $('accountPwCode').value = ''; $('accountNewPw').value = '';
+    $('accountPwForm').classList.add('hidden');
+    $('accountPwBtn').textContent = t('account.changePw');
     say(msg, t('account.pwChanged'), false);
   }
 
@@ -86,6 +118,10 @@ const Account = (() => {
     const on = !!(window.Auth && Auth.isLoggedIn());
     const rows = $('accountRows');
     if (rows) rows.classList.toggle('hidden', !on);
+    if (!on && $('accountPwForm')) {
+      $('accountPwForm').classList.add('hidden');
+      $('accountPwMsg').classList.add('hidden');
+    }
     if (!on && $('accountDeleteForm')) {
       $('accountDeleteForm').classList.add('hidden');
       $('accountDeleteBtn').classList.remove('hidden');
@@ -96,9 +132,10 @@ const Account = (() => {
     if (!$('accountRows')) return;
     // Two presses sent two changes; the second one failed on the old password
     // the first had just replaced, and said so in red.
-    $('accountPasswordForm').addEventListener('submit', e => {
+    $('accountPwBtn').addEventListener('click', () => Net.guardClick($('accountPwBtn'), sendPwCode));
+    $('accountPwForm').addEventListener('submit', e => {
       e.preventDefault();
-      Net.guardSubmit(e.currentTarget, () => changePassword(e));
+      Net.guardSubmit(e.currentTarget, changePassword);
     });
     $('accountExportBtn').addEventListener('click', exportData);
     $('accountDeleteBtn').addEventListener('click', revealDelete);

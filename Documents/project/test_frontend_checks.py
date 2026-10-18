@@ -52,19 +52,19 @@ def test_sidebar_labels_are_playful_but_clear_in_both_locales(i18n):
     labels = {
         "bg": {
             "nav.tutor": "Попитай ClimbAI",
-            "nav.checklist": "Щабът на домашните",
+            "nav.checklist": "Домашни",
             "nav.history": "Готово и отметнато",
             "nav.focus": "Режим фокус",
-            "nav.family": "Семеен напредък",
-            "nav.classes": "Нашият клас",
+            "nav.family": "Семейство",
+            "nav.classes": "Клас",
         },
         "en": {
             "nav.tutor": "Ask ClimbAI",
-            "nav.checklist": "Homework HQ",
+            "nav.checklist": "Homework",
             "nav.history": "Done & dusted",
             "nav.focus": "Focus mode",
-            "nav.family": "Family progress",
-            "nav.classes": "Classroom crew",
+            "nav.family": "Family",
+            "nav.classes": "Class",
         },
     }
     for lang, expected in labels.items():
@@ -92,18 +92,19 @@ def test_every_key_used_in_html_exists(html, i18n):
     assert not missing, f"липсват преводи за: {missing}"
 
 
-def test_memory_is_opt_in_disclosed_and_managed_in_settings(html, i18n):
+def test_memory_is_one_switch_with_the_note_behind_its_own_box(html, i18n):
+    """ClimbAI memory is one switch, on by default (the owner's choice, 2026-10-18);
+    the note box appears only after its own box is ticked."""
     memory = _read("memory.js")
-    assert 'checklist: false' in memory
-    assert 'learning_level: false' in memory
-    assert 'focus_sessions: false' in memory
-    assert 'previous_questions: false' in memory
-    assert 'personal_enabled: false' in memory
-    for control_id in ("memoryGrade", "memoryChecklist", "memoryFocus", "memoryQuestions", "memoryPersonal"):
-        assert re.search(rf'<input id="{control_id}" type="checkbox">', html)
-    assert 'id="memoryClear"' in html
+    assert "const defaults = () => ({ on: true, personal_enabled: false, personal_note: '' });" in memory
+    assert 'id="memoryOn" type="checkbox" role="switch"' in html
+    assert '<input id="memoryPersonal" type="checkbox">' in html
+    assert 'class="memory-note-input hidden"' in html
+    for gone in ("memoryGrade", "memoryChecklist", "memoryFocus", "memoryQuestions", "memoryClear"):
+        assert f'id="{gone}"' not in html
+    # turning it off sends nothing, the note included
+    assert "const note = on && value.personal_enabled" in memory
     assert 'id="chatMemoryManage"' in html
-    assert 'Selected context is sent with ClimbAI questions' in i18n
     assert 'memory.js' in _read("sw.js")
 
 
@@ -383,7 +384,7 @@ def test_phone_page_never_leaves_a_promise_rejection_unhandled(phone_page):
 # checklist.* и history.* — това са вътрешни имена и е нормално. Но текстът, който
 # ЧОВЕКЪТ чете, не бива да сочи към екран, който го няма в менюто.
 RETIRED_SCREEN_WORDS = [
-    "чеклист", "Семейство", "Чеклист",
+    "чеклист", "Чеклист", "Семеен напредък", "Family progress", "Homework HQ",
     # The Teacher tab became ClimbAI. Its title was renamed; the strings that
     # *pointed at it* — an empty state, a settings hint — were missed twice,
     # which is exactly the failure this list exists to catch.
@@ -819,7 +820,6 @@ _MAP_MUST_NAME = [
     "settings.reading", "settings.secTutor", "settings.tutorMode", "settings.autoread",
     "settings.voice", "settings.secApp", "settings.tour", "settings.version",
     "settings.checkUpdates", "settings.devicesTitle", "settings.secAccount",
-    "settings.secConnections", "settings.familyLink", "settings.classesLink",
     "settings.profileTitle", "account.passwordTitle", "account.exportTitle",
     "account.deleteTitle",
 ]
@@ -1011,18 +1011,21 @@ def test_settings_fills_the_screen():
     assert "grid-column: 2; grid-row: 1;" in css
 
 
-def test_family_and_classes_are_reached_from_settings_with_role_visibility():
+def test_family_and_class_are_sections_inside_settings_with_role_visibility():
     html = _read("index.html")
     sidebar = html[html.index('<nav class="side-nav">'):html.index("</nav>", html.index('<nav class="side-nav">'))]
     assert 'data-view="family"' not in sidebar
     assert 'data-view="classes"' not in sidebar
-    assert 'data-settings-view="family"' in html and 'data-settings-view="classes"' in html
-    assert 'data-settings-jump="setConnections"' in html
-    assert 'id="setConnections"' in html
-    assert 'data-settings-role="parent student"' in html
-    assert 'data-settings-role="teacher student"' in html
+    # not screens of their own any more: sections of Settings
+    assert 'id="view-family"' not in html and 'id="view-classes"' not in html
+    assert '<section class="settings-group" id="setFamily" data-settings-role="parent student">' in html
+    assert '<section class="settings-group" id="setClass" data-settings-role="teacher student">' in html
+    assert 'data-settings-jump="setFamily"' in html and 'data-settings-jump="setClass"' in html
+    # the account comes first
+    main = html[html.index('<div class="settings-main">'):]
+    assert main.index('id="accountRows"') < main.index('id="setAppearance"')
     settings = _read("settings.js")
-    assert "updateSettingsAccess" in settings and "Nav.activate(btn.dataset.settingsView)" in settings
+    assert "updateSettingsAccess" in settings and "open: openSettings" in settings
 
 
 def test_theme_selector_only_appears_in_settings():

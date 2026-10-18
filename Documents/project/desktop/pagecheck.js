@@ -200,14 +200,13 @@ function findChromium() {
   if (!reducedMotionFallback) problems.push('reduced motion did not use the static ClimbAI poster');
 
   const memoryControls = await page.evaluate(() => {
-    const ids = ['memoryGrade', 'memoryChecklist', 'memoryFocus', 'memoryQuestions', 'memoryPersonal'];
+    const sw = document.getElementById('memoryOn');
     const personal = document.getElementById('memoryPersonal');
     const note = document.getElementById('memoryPersonalNote');
-    const clear = document.getElementById('memoryClear');
+    const fire = (el, type) => el.dispatchEvent(new Event(type, { bubbles: true }));
     localStorage.removeItem('climby-memory-v1:guest');
     Memory.render();
-    const defaultsOff = ids.every(id => !document.getElementById(id).checked) && note.disabled;
-    const guestLocked = ids.every(id => document.getElementById(id).disabled) &&
+    const guestLocked = sw.disabled && !sw.checked &&
       !document.getElementById('memoryLoginHint').classList.contains('hidden');
     const originalGetUser = Auth.getUser;
     const originalIsLoggedIn = Auth.isLoggedIn;
@@ -215,44 +214,57 @@ function findChromium() {
     Auth.isLoggedIn = () => true;
     localStorage.removeItem('climby-memory-v1:memory-check-user');
     Memory.render();
-    document.getElementById('memoryChecklist').checked = true;
-    document.getElementById('memoryChecklist').dispatchEvent(new Event('change', { bubbles: true }));
-    const selectedOnly = Memory.request().checklist &&
-      !Memory.request().learning_level && !Memory.request().focus_sessions &&
-      !Memory.request().previous_questions;
-    document.getElementById('memoryGrade').checked = true;
-    document.getElementById('memoryGrade').dispatchEvent(new Event('change', { bubbles: true }));
-    const gradeRoundTrip = Memory.request().learning_level &&
-      JSON.parse(localStorage.getItem('climby-memory-v1:memory-check-user')).learning_level === true;
-    personal.checked = true;
-    personal.dispatchEvent(new Event('change', { bubbles: true }));
-    const noteEnabled = !note.disabled;
-    note.value = 'Use visual examples.';
-    note.dispatchEvent(new Event('input', { bubbles: true }));
-    const noteSentWhenSelected = Memory.request().personal_note === 'Use visual examples.';
-    personal.checked = false;
-    personal.dispatchEvent(new Event('change', { bubbles: true }));
-    const noteOmittedWhenDisabled = Memory.request().personal_note === '';
-    clear.click();
-    const cleared = ids.every(id => !document.getElementById(id).checked) &&
-      note.value === '' && note.disabled && !Memory.isEnabled();
+    const r = () => Memory.request();
+    const onByDefault = sw.checked && r().checklist && r().learning_level && r().focus_sessions && r().previous_questions;
+    const noteHiddenUntilAsked = note.classList.contains('hidden');
+    personal.checked = true; fire(personal, 'change');
+    const noteShownWhenAsked = !note.classList.contains('hidden');
+    note.value = 'Use visual examples.'; fire(note, 'input');
+    const noteSent = r().personal_note === 'Use visual examples.';
+    sw.checked = false; fire(sw, 'change');
+    const offSendsNothing = !r().checklist && !r().learning_level && !r().focus_sessions &&
+      !r().previous_questions && r().personal_note === '' && note.classList.contains('hidden');
+    const saved = JSON.parse(localStorage.getItem('climby-memory-v1:memory-check-user'));
+    const offRemembered = saved.on === false;
     const originalSetItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function (key, value) {
       if (key.startsWith('climby-memory-v1:')) throw new Error('storage unavailable');
       return originalSetItem.call(this, key, value);
     };
-    document.getElementById('memoryChecklist').checked = true;
-    document.getElementById('memoryChecklist').dispatchEvent(new Event('change', { bubbles: true }));
+    sw.checked = true; fire(sw, 'change');
     const storageFailureVisible = !document.getElementById('memoryStorageError').classList.contains('hidden');
     Storage.prototype.setItem = originalSetItem;
-    clear.click();
+    localStorage.removeItem('climby-memory-v1:memory-check-user');
     Auth.getUser = originalGetUser;
     Auth.isLoggedIn = originalIsLoggedIn;
     Memory.render();
-    return { defaultsOff, guestLocked, selectedOnly, gradeRoundTrip, noteEnabled, noteSentWhenSelected, noteOmittedWhenDisabled, cleared, storageFailureVisible };
+    return { guestLocked, onByDefault, noteHiddenUntilAsked, noteShownWhenAsked, noteSent, offSendsNothing, offRemembered, storageFailureVisible };
   });
   for (const [check, passed] of Object.entries(memoryControls)) {
     if (!passed) problems.push('ClimbAI memory control failed: ' + check);
+  }
+  // The photo editor: choose a picture, frame it, save — and the sidebar shows it.
+  const photo = await page.evaluate(async () => {
+    const originalGetUser = Auth.getUser;
+    Auth.getUser = () => ({ id: 'photo-check-user', display_name: 'Ana' });
+    const c = document.createElement('canvas'); c.width = 400; c.height = 300;
+    const g = c.getContext('2d'); g.fillStyle = '#c026d3'; g.fillRect(0, 0, 400, 300);
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    ProfilePhoto.open(new File([blob], 'me.png', { type: 'image/png' }));
+    await new Promise(r => setTimeout(r, 400));
+    const editor = document.querySelector('.photo-editor');
+    const opened = !!editor && !editor.classList.contains('hidden');
+    if (opened) editor.querySelector('.photo-save').click();
+    const saved = (ProfilePhoto.get() || '').startsWith('data:image/jpeg');
+    const sidebar = document.getElementById('accountAvatar').classList.contains('has-photo');
+    const closed = !editor || editor.classList.contains('hidden');
+    localStorage.removeItem('climby-photo:photo-check-user');
+    Auth.getUser = originalGetUser;
+    window.dispatchEvent(new CustomEvent('climby:photo-changed'));
+    return { opened, saved, sidebar, closed };
+  });
+  for (const [check, passed] of Object.entries(photo)) {
+    if (!passed) problems.push('profile photo editor failed: ' + check);
   }
   await page.evaluate(() => document.getElementById('chatMemoryManage').click());
   await page.waitForTimeout(150);

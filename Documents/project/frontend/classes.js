@@ -433,12 +433,12 @@ const Classes = (() => {
       const body = _el('p', 'cls-role-body');
       const cta = _el('button', 'empty-cta');
       cta.type = 'button';
-      cta.addEventListener('click', () => Nav.activate('family'));
+      cta.addEventListener('click', () => AccountUI.open('setFamily'));
       box.appendChild(icon);
       box.appendChild(title);
       box.appendChild(body);
       box.appendChild(cta);
-      document.getElementById('view-classes').appendChild(box);
+      document.getElementById('setClass').appendChild(box);
       _roleNote = { box, title, body, cta };
     }
     _roleNote.box.classList.toggle('hidden', !show);
@@ -477,10 +477,10 @@ const Classes = (() => {
       e.preventDefault();
       Net.guardSubmit(e.currentTarget, () => handleJoin(e));
     });
-    $('classesLoginBtn').addEventListener('click', () => Auth.openEntryGate());
+    $('classesLoginBtn').addEventListener('click', () => { AccountUI.close(); Auth.openEntryGate(); });
     window.addEventListener('climby:auth-changed', updateGate);
-    window.addEventListener('climby:view-shown', e => {
-      if (e.detail.view === 'classes') updateGate();
+    window.addEventListener('climby:settings-opened', () => {
+      updateGate();
     });
     window.addEventListener('climby:lang-changed', () => { if (Auth.isLoggedIn()) updateGate(); });
     updateGate();

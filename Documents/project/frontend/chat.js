@@ -227,9 +227,7 @@ const Chat = (() => {
     $('chatNew').addEventListener('click', reset);
     $('chatSend').addEventListener('click', send);
     $('chatMemoryManage').addEventListener('click', () => {
-      const settings = document.getElementById('settingsMenuBtn');
-      if (settings) settings.click();
-      setTimeout(() => document.querySelector('[data-settings-jump="setMemory"]')?.click(), 0);
+      if (window.AccountUI) AccountUI.open('setMemory');
     });
     // What the tutor can see is stated, not hidden. Both the line and the
     // starter that relies on it appear only when there is an account to see.

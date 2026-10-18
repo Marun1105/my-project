@@ -103,24 +103,18 @@ async function main() {
       if (overflow) note('layout', `horizontal overflow on ${view} (${theme})`);
     }
 
-    for (const view of ['family', 'classes']) {
+    // Family and Class are sections of Settings now, not screens.
+    for (const section of ['setFamily', 'setClass']) {
       await page.locator('#accountBtn').click({ force: true });
       await page.locator('#settingsMenuBtn').click({ force: true });
-      const category = page.locator('.settings-nav-link[data-settings-jump="setConnections"]');
-      if (!(await category.count())) note('settings', 'Family & classes is missing from the Settings menu');
-      else await category.evaluate(el => el.click());
-      const shortcut = page.locator(`#setConnections [data-settings-view="${view}"]`);
-      if (!(await shortcut.isVisible())) {
-        note('settings', `no visible ${view} link for a guest (${theme})`);
-        await page.locator('#settingsClose').click({ force: true });
-        continue;
-      }
-      await shortcut.evaluate(el => el.click());
+      const link = page.locator(`.settings-nav-link[data-settings-jump="${section}"]`);
+      if (!(await link.count())) note('settings', `${section} is missing from the Settings menu`);
+      else await link.evaluate(el => el.click());
       await page.waitForTimeout(500);
-      const shown = await page.locator(`#view-${view}`).isVisible();
-      if (!shown) note('nav', `${view} did not open from Settings (${theme})`);
+      if (!(await page.locator(`#${section}`).isVisible())) note('settings', `${section} is not visible for a guest (${theme})`);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
-      if (overflow) note('layout', `horizontal overflow on ${view} (${theme})`);
+      if (overflow) note('layout', `horizontal overflow on ${section} (${theme})`);
+      await page.locator('#settingsClose').click({ force: true });
     }
   }
 

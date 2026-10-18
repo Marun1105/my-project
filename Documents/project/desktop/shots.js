@@ -141,6 +141,26 @@ function findChromium() {
     console.log('  ' + path.relative(process.cwd(), file));
   }
 
+  // Settings, one picture per section, scrolled to its top — signed in, so
+  // the account section is there too.
+  await page.evaluate(() => {
+    const u = { id: 'u1', display_name: 'Мартин', email: 'martin@example.com', role: 'student', grade: 8 };
+    window.Auth.getUser = () => u;
+    window.Auth.getRole = () => 'student';
+    window.dispatchEvent(new CustomEvent('climby:auth-changed'));
+    document.getElementById('settingsMenuBtn').click();
+  });
+  await page.waitForTimeout(500);
+  const groups = await page.evaluate(() =>
+    [...document.querySelectorAll('#settingsOverlay .settings-group:not(.hidden)')].map(g => g.id));
+  for (const id of groups) {
+    await page.evaluate(g => document.getElementById(g).scrollIntoView({ block: 'start' }), id);
+    await page.waitForTimeout(300);
+    const file = path.join(OUT, `${tag}-settings-${id}.png`);
+    await page.screenshot({ path: file });
+    console.log('  ' + path.relative(process.cwd(), file));
+  }
+
   await browser.close();
   server.close();
   console.log(`${views.length} screens at ${VIEWPORT.width}x${VIEWPORT.height}`);

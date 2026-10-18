@@ -114,7 +114,12 @@ const Voices = (() => {
     synth.speak(u);
   }
 
-  const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>';
+  const PLAY = '<svg class="voice-ico-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>';
+  const PAUSE = '<svg class="voice-ico-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg>';
+  // The wave: still and low until the voice speaks, then every bar moves on
+  // its own beat. Heights are fixed per bar so it reads as a voice, not noise.
+  const WAVE = [5, 9, 14, 8, 18, 11, 22, 13, 17, 9, 20, 12, 15, 7, 11, 6];
+
   function card(voice, code, picked) {
     const el = document.createElement('div');
     el.className = 'voice-card';
@@ -123,9 +128,19 @@ const Voices = (() => {
     const play = document.createElement('button');
     play.type = 'button';
     play.className = 'voice-play';
-    play.innerHTML = PLAY + '<span class="voice-bars" aria-hidden="true"><i></i><i></i><i></i></span>';
+    play.innerHTML = PLAY + PAUSE;
     play.setAttribute('aria-label', (window.t ? t('voice.test') : 'Hear') + ' ' + shortName(voice));
     play.addEventListener('click', e => { e.stopPropagation(); playSample(voice, el); });
+
+    const wave = document.createElement('span');
+    wave.className = 'voice-wave';
+    wave.setAttribute('aria-hidden', 'true');
+    WAVE.forEach((h, i) => {
+      const bar = document.createElement('i');
+      bar.style.setProperty('--h', h + 'px');
+      bar.style.animationDelay = (i * 0.07 % 0.6).toFixed(2) + 's';
+      wave.appendChild(bar);
+    });
 
     const name = document.createElement('span');
     name.className = 'voice-name';
@@ -149,7 +164,7 @@ const Voices = (() => {
     tick.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
 
     select.appendChild(tick);
-    el.append(play, select);
+    el.append(play, wave, select);
     select.addEventListener('click', () => {
       choose(code, voice.name);
       render();
@@ -180,6 +195,7 @@ const Voices = (() => {
     if (!host) return;
     stopSample();
     host.innerHTML = '';
+    host.removeAttribute('role');
     const code = langCode();
     const list = ranked(code);
 
@@ -198,10 +214,41 @@ const Voices = (() => {
       return;
     }
 
-    host.setAttribute('role', 'radiogroup');
-    host.setAttribute('aria-label', window.t ? t('settings.voice') : 'Voice');
+    // A horizontal rail: the cards slide sideways, with arrows on a wide
+    // screen and a swipe on a phone.
+    const prev = arrow('prev');
+    const next = arrow('next');
+    const rail = document.createElement('div');
+    rail.className = 'voice-rail';
+    rail.setAttribute('role', 'radiogroup');
+    rail.setAttribute('aria-label', window.t ? t('settings.voice') : 'Voice');
     const picked = chosen(code);
-    for (const v of list) host.appendChild(card(v, code, picked && v.name === picked.name));
+    for (const v of list) rail.appendChild(card(v, code, picked && v.name === picked.name));
+    host.append(prev, rail, next);
+    const sync = () => {
+      prev.disabled = rail.scrollLeft <= 2;
+      next.disabled = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 2;
+      host.classList.toggle('fits', prev.disabled && next.disabled);
+    };
+    prev.addEventListener('click', () => rail.scrollBy({ left: -rail.clientWidth * 0.8, behavior: 'smooth' }));
+    next.addEventListener('click', () => rail.scrollBy({ left: rail.clientWidth * 0.8, behavior: 'smooth' }));
+    rail.addEventListener('scroll', sync, { passive: true });
+    requestAnimationFrame(() => {
+      const on = rail.querySelector('.voice-select.is-picked');
+      if (on) rail.scrollLeft = Math.max(0, on.closest('.voice-card').offsetLeft - rail.offsetLeft - 8);
+      sync();
+    });
+  }
+
+  function arrow(which) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'voice-arrow voice-arrow-' + which;
+    b.setAttribute('aria-label', window.t ? t(which === 'prev' ? 'voice.prev' : 'voice.next') : which);
+    b.innerHTML = which === 'prev'
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+    return b;
   }
 
   function init() {

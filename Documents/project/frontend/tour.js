@@ -23,7 +23,6 @@ const Tour = (() => {
     { view: 'focus',     target: '.nav-link[data-view="focus"]',     title: 'tour.focusTitle',   body: 'tour.focusBody' },
     { view: 'checklist', target: '.nav-link[data-view="checklist"]', title: 'tour.routeTitle',   body: 'tour.routeBody' },
     { view: 'history',   target: '.nav-link[data-view="history"]',   title: 'tour.historyTitle', body: 'tour.historyBody' },
-    { view: 'family',    target: '.nav-link[data-view="family"]',    title: 'tour.familyTitle',  body: 'tour.familyBody' },
     { view: 'tutor',     target: '#view-tutor .help-toggle',         title: 'tour.helpTitle',    body: 'tour.helpBody' },
     { view: 'tutor',     target: '#settingsMenuBtn',                 title: 'tour.doneTitle',    body: 'tour.doneBody', openMenu: true },
   ];

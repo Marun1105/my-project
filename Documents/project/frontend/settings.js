@@ -17,12 +17,18 @@ const AccountUI = (() => {
     $('accountBtn').setAttribute('aria-expanded', 'true');
   }
 
-  function openSettings() {
+  // section: open straight at one part of Settings (Family, Class, ...)
+  function openSettings(section) {
     closeMenu();
     document.documentElement.classList.add('settings-open');
     $('settingsOverlay').classList.remove('hidden');
     renderDevices();
-    markNav('setAppearance');
+    const first = document.querySelector('#settingsOverlay .settings-group:not(.hidden)');
+    const target = (typeof section === 'string' && $(section)) || first;
+    if (target) {
+      target.scrollIntoView({ block: 'start' });
+      markNav((target.closest('.settings-group') || target).id);
+    }
     window.dispatchEvent(new CustomEvent('climby:settings-opened'));
   }
 
@@ -98,11 +104,13 @@ const AccountUI = (() => {
     window.dispatchEvent(new CustomEvent('climby:settings-closed'));
   }
 
+  // A parent has no class, a teacher no family: the sections, and their
+  // links in the list, are hidden for the role they do not apply to.
   function updateSettingsAccess() {
     const role = window.Auth && Auth.isLoggedIn() ? Auth.getRole() : null;
-    document.querySelectorAll('[data-settings-role]').forEach(button => {
-      const allowed = button.dataset.settingsRole.split(' ');
-      button.classList.toggle('hidden', !!role && !allowed.includes(role));
+    document.querySelectorAll('[data-settings-role]').forEach(el => {
+      const allowed = el.dataset.settingsRole.split(' ');
+      el.classList.toggle('hidden', !!role && !allowed.includes(role));
     });
   }
 
@@ -113,10 +121,16 @@ const AccountUI = (() => {
 
     if (user) {
       const initial = (user.display_name || '?').trim().charAt(0).toUpperCase();
-      avatar.textContent = initial || '?';
+      if (window.ProfilePhoto) ProfilePhoto.paint(avatar, initial || '?');
+      else avatar.textContent = initial || '?';
       name.removeAttribute('data-i18n');
       name.textContent = user.display_name;
+      if ($('profileName')) $('profileName').textContent = user.display_name || '';
+      if ($('profileEmail')) $('profileEmail').textContent = user.email || '';
+      if ($('profilePhoto') && window.ProfilePhoto) ProfilePhoto.paint($('profilePhoto'), initial || '?');
     } else {
+      avatar.style.backgroundImage = '';
+      avatar.classList.remove('has-photo');
       avatar.textContent = '?';
       name.setAttribute('data-i18n', 'account.guest');
       name.textContent = t('account.guest');
@@ -148,7 +162,8 @@ const AccountUI = (() => {
         const groups = document.querySelectorAll('#settingsOverlay .settings-group:not(.hidden)');
         current = groups[groups.length - 1].id;
       }
-      markNav(current || 'setAppearance');
+      const first = document.querySelector('#settingsOverlay .settings-group:not(.hidden)');
+      markNav(current || (first && first.id));
     };
     overlay.addEventListener('scroll', () => {
       if (!queued) { queued = true; requestAnimationFrame(update); }
@@ -159,6 +174,7 @@ const AccountUI = (() => {
     updateAccount();
     window.addEventListener('climby:auth-changed', updateAccount);
     window.addEventListener('climby:lang-changed', updateAccount);
+    window.addEventListener('climby:photo-changed', updateAccount);
     window.addEventListener('climby:auth-changed', updateSettingsAccess);
     updateSettingsAccess();
     window.addEventListener('climby:auth-changed', renderDevices);
@@ -167,7 +183,7 @@ const AccountUI = (() => {
     window.addEventListener('climby:lang-changed', renderDevices);
 
     $('accountBtn').addEventListener('click', e => { e.stopPropagation(); toggleMenu(); });
-    $('settingsMenuBtn').addEventListener('click', openSettings);
+    $('settingsMenuBtn').addEventListener('click', () => openSettings());
     $('menuLoginBtn').addEventListener('click', () => { closeMenu(); Auth.openEntryGate(); });
 
     // The section list on the left: scroll the group into view inside the
@@ -180,13 +196,6 @@ const AccountUI = (() => {
           if (link === btn) link.setAttribute('aria-current', 'location');
           else link.removeAttribute('aria-current');
         });
-      });
-    });
-
-    document.querySelectorAll('[data-settings-view]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        closeSettings();
-        if (window.Nav) Nav.activate(btn.dataset.settingsView);
       });
     });
 
@@ -206,8 +215,9 @@ const AccountUI = (() => {
     });
   }
 
-  return { init };
+  return { init, open: openSettings, close: closeSettings };
 })();
+window.AccountUI = AccountUI;
 
 // The version and the update check, only where there is a desktop to ask.
 // In a browser the row stays hidden: there is nothing to update.
