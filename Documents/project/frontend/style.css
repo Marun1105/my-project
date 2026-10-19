@@ -5518,7 +5518,8 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
   #profileEmail { overflow-wrap: anywhere; white-space: normal; }
 }
 
-#settingsOverlay .settings-row[data-icon="bell"] > .switch { grid-column: 2; grid-row: 1; }
+#settingsOverlay .settings-row[data-icon="bell"] > .switch,
+#settingsOverlay .settings-row[data-icon="speaker"] > .switch { grid-column: 2; grid-row: 1; }
 
 /* -- Focus: the camera view, small or big, markers on or off -------------- */
 .focus-preview { transition: width 0.3s ease, height 0.3s ease, border-color 0.45s ease, box-shadow 0.45s ease; }
@@ -5569,3 +5570,38 @@ button:not(.nav-link):not(.settings-nav-link):active, .entry-choice:active, .cha
     linear-gradient(var(--bg-elevated), var(--bg-elevated)) padding-box,
     linear-gradient(120deg, #8b5cf6, #ec4899, #22d3ee) border-box;
 }
+
+
+/* -- holds, earned anywhere: the counter by Crew, the "+20", the flyers ------ */
+.holds-counter {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px 2px 5px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-fg) 14%, transparent);
+  color: var(--text); font: 800 12.5px var(--font-heading); font-variant-numeric: tabular-nums;
+  transition: transform .18s cubic-bezier(.2, 1.6, .4, 1);
+}
+.holds-counter.hidden { display: none; }
+.holds-counter-dot { width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff8 0 25%, transparent 26%), linear-gradient(135deg, #8b5cf6, #f72585); }
+.holds-counter.is-rolling { color: var(--accent-fg); }
+.holds-counter.is-bump { animation: holds-bump .22s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes holds-bump { 50% { transform: scale(1.22); } }
+.holds-plus {
+  position: fixed; z-index: 1500; pointer-events: none;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px 6px 8px; border-radius: 999px;
+  background: #fff; color: #1a1238; box-shadow: 0 12px 30px rgba(0,0,0,.3);
+  font: 900 italic 20px var(--font-heading);
+  transform: translate(-50%, -50%);
+  animation: holds-plus 1.6s cubic-bezier(.2, 1.2, .4, 1) forwards;
+}
+.holds-plus svg { width: 24px; height: 24px; }
+.holds-plus.is-big { font-size: 26px; background: linear-gradient(135deg, #7c3aed, #ec4899); color: #fff; }
+@keyframes holds-plus {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(.5); }
+  18% { opacity: 1; transform: translate(-50%, -90%) scale(1.15); }
+  70% { opacity: 1; transform: translate(-50%, -140%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -190%) scale(.95); }
+}
+.holds-fly { position: fixed; z-index: 1500; width: 26px; height: 26px; pointer-events: none; filter: drop-shadow(0 4px 8px rgba(0,0,0,.3)); }
+.holds-fly svg { width: 100%; height: 100%; display: block; }
+@media (prefers-reduced-motion: reduce) { .holds-plus { animation-duration: 1.2s; } .holds-counter.is-bump { animation: none; } }

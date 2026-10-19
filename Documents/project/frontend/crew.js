@@ -437,11 +437,18 @@ const Crew = (() => {
       anim.onfinish = () => {
         el.remove();
         landed++;
-        count.textContent = String(Number(count.textContent) + 1);
+        // the counter climbs a share with each hold that lands, and each lands
+        // a note higher than the last
+        if (typeof finalTotal === 'number') {
+          const start = Number(count.dataset.from || 0);
+          count.textContent = String(Math.round(start + (finalTotal - start) * (landed / n)));
+        } else count.textContent = String(Number(count.textContent) + 1);
+        if (window.HoldsFx) HoldsFx.clink(landed - 1);
         wallet.classList.add('is-bump');
         setTimeout(() => wallet.classList.remove('is-bump'), 180);
         if (landed === n) {
           if (typeof finalTotal === 'number') count.textContent = String(finalTotal);
+          if (window.HoldsFx && n >= 3) setTimeout(() => HoldsFx.fanfare(), 80);
           const plus = document.createElement('div');
           plus.className = 'crew-plus';
           plus.textContent = '+' + (typeof finalTotal === 'number' ? finalTotal - Number(count.dataset.from || 0) : n);
@@ -706,7 +713,7 @@ const Crew = (() => {
       <h2 id="crewCardTitle" class="crew-card-name">${esc(t('crew.walletTitle', { n: $('crewWalletCount').textContent }))}</h2>
       <p class="crew-card-sub">${esc(t('crew.walletSub'))}</p>
       <div class="crew-results" style="margin-top:14px">
-        ${[['crew.earnSolved', 3, 0], ['crew.earnOnTime', 2, 1], ['crew.earnFocus', 1, 2], ['crew.earnStreak', 1, 4], ['crew.earnBreak', 1, 5]].map(([k, n, i]) => `
+        ${[['crew.earnSolved', 25, 0], ['crew.earnOnTime', 20, 1], ['crew.earnFocus', 5, 2], ['crew.earnStreak', 15, 4], ['crew.earnBreak', 10, 5]].map(([k, n, i]) => `
           <div class="crew-result">${holdSvg(i)}<div class="crew-result-text"><strong>${esc(t(k))}</strong></div><b class="crew-stat-n">+${n}</b></div>`).join('')}
       </div>`);
     card.querySelectorAll('.crew-result > .crew-hold').forEach(h => { h.style.width = '34px'; h.style.height = '34px'; h.style.flex = 'none'; });
@@ -747,6 +754,7 @@ const Crew = (() => {
     const gained = before === null ? 0 : total - before;
     render(d, gained > 0 && !calm() ? before : total);
     remember(total);
+    if (window.HoldsFx) HoldsFx.markSeen(total);
     if (gained > 0 && !calm()) {
       $('crewWalletCount').dataset.from = String(before);
       setTimeout(() => earn(Math.min(gained, 6), null, total), 900);
@@ -898,7 +906,9 @@ const Crew = (() => {
     });
     window.addEventListener('climby:focus-live', focusLive);
     window.addEventListener('climby:break-taken', () => {
-      if (window.Auth && Auth.isLoggedIn()) api('/crew/break', { method: 'POST' });
+      if (window.Auth && Auth.isLoggedIn()) {
+        api('/crew/break', { method: 'POST' }).then(() => window.dispatchEvent(new CustomEvent('climby:holds-maybe')));
+      }
     });
     let resizeTimer = 0;
     window.addEventListener('resize', () => {

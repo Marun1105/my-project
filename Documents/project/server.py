@@ -603,9 +603,10 @@ The screens, from the menu on the left:
   you. A deleted task can be undone for a few seconds afterwards.
 - "Done & dusted" — everything already finished, and the questions asked here before.
 - "Crew" — friends on a mountain, placed by the "holds" they earned this week. Holds are
-  Climby's currency: +3 for solving a step on your own, +2 for homework done on time, +1 per
-  15 minutes of focus, +1 for a day in a row, +1 for taking a suggested break, +1 when a
-  friend cheers you (once a day). They never buy hints or answers. Set up once with a
+  Climby's currency: +25 for solving a step on your own, +20 for homework done on time (+10
+  without a deadline), +5 every 5 minutes of focus, +15 for a day in a row, +10 for taking a
+  suggested break, +5 when a friend cheers you (once a day). A counter beside Crew in the menu
+  climbs as they are earned, with sound effects that can be turned off in Settings → The app. They never buy hints or answers. Set up once with a
   username and the month and year of birth; under 12 a linked parent allows it in Family.
   Friends are added by username and both must say yes; a friend studying right now glows
   "LIVE". There is no chat yet. Signed out, the screen shows sample people as a preview.
@@ -678,9 +679,10 @@ something that does not exist trusts you less about the mathematics too.""",
   Изтрита задача може да се върне няколко секунди след това.
 - „Готово и отметнато" — всичко вече свършено и въпросите, задавани тук преди.
 - „Екипът" — приятели на планина, подредени по „хватките“, спечелени тази седмица.
-  Хватките са валутата на Climby: +3 за сам решена стъпка, +2 за задача навреме, +1 на 15
-  минути фокус, +1 за още ден подред, +1 за предложена почивка, +1 когато приятел те подкрепи
-  (веднъж на ден). Никога не купуват подсказки или отговори. Настройва се веднъж с
+  Хватките са валутата на Climby: +25 за сам решена стъпка, +20 за задача навреме (+10 без
+  срок), +5 на всеки 5 минути фокус, +15 за още ден подред, +10 за предложена почивка, +5
+  когато приятел те подкрепи (веднъж на ден). Брояч до Екипа в менюто расте, докато се печелят,
+  със звукови ефекти, които се спират от Настройки → Приложението. Никога не купуват подсказки или отговори. Настройва се веднъж с
   потребителско име и месец и година на раждане; под 12 години свързан родител го разрешава в
   Семейство. Приятели се добавят по потребителско име и двамата трябва да кажат „да“; приятел,
   който учи в момента, свети „НА ЖИВО“. Чат още няма. Без вход екранът показва примерни хора.

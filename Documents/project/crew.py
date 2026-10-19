@@ -232,6 +232,14 @@ def crew(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     }
 
 
+@router.get("/holds")
+def my_holds(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Just the numbers, for the counter in the menu: cheap enough to ask after
+    every tick, answer and session. Holds are earned whether or not Crew is set up."""
+    h = holds.totals(db, [user.id]).get(user.id, {})
+    return {"total": h.get("total", 0), "week": h.get("week", 0)}
+
+
 # ---------------------------------------------------------------------------
 # setting up
 # ---------------------------------------------------------------------------

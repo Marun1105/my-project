@@ -273,7 +273,7 @@ def test_focus_pays_a_hold_per_quarter_hour_capped_per_day():
 def test_breaks_pay_twice_a_day_at_most():
     uid, h = _login("crew-break@example.com")
     got = [client.post("/crew/break", headers=h).json()["holds"] for _ in range(4)]
-    assert got == [1, 1, 0, 0]
+    assert got == [holds.BREAK, holds.BREAK, 0, 0]
 
 
 def test_a_solved_question_pays_three_holds(monkeypatch):
@@ -306,7 +306,7 @@ def test_cheering_a_friend_gives_them_a_hold_once_a_day():
     assert client.post("/crew/cheer", json={"username": "cheer_b"}, headers=ha).status_code == 200
     assert client.post("/crew/cheer", json={"username": "cheer_b"}, headers=ha).status_code == 409
     assert client.post("/crew/cheer", json={"username": "cheer_b"}, headers=hc).status_code == 403   # not friends
-    assert client.get("/crew", headers=hb).json()["me"]["holds_total"] == 1
+    assert client.get("/crew", headers=hb).json()["me"]["holds_total"] == holds.CHEER
     # a cheer is a gift: it keeps nobody's streak alive
     assert client.get("/crew", headers=hb).json()["me"]["streak"] == 0
 
@@ -389,7 +389,7 @@ def test_deleting_an_account_removes_its_crew_and_keeps_the_others_working():
     assert db.get(SocialProfile, kid).parent_approved_by is None
     db.close()
     assert client.get("/crew", headers=hb).json()["friends"] == []
-    assert client.get("/crew", headers=hb).json()["me"]["holds_total"] == 1     # the cheer they got stays theirs
+    assert client.get("/crew", headers=hb).json()["me"]["holds_total"] == holds.CHEER     # the cheer they got stays theirs
     assert client.get("/crew", headers=hk).json()["needs"] == "parent"
 
 
@@ -539,3 +539,11 @@ def test_strangers_see_no_photo_no_holds_no_live():
     assert seen["avatar"] is None and seen["holds_total"] == 0 and seen["live"] is False
     found = client.get("/crew/search?q=stranger_a", headers=hb).json()[0]
     assert found["avatar"] is None and found["holds_total"] == 0
+
+
+def test_the_counter_endpoint_counts_without_crew():
+    uid, h = _login("crew-r-counter@example.com")
+    db = SessionLocal()
+    holds.on_solved(db, uid, "q-counter")
+    db.commit(); db.close()
+    assert client.get("/crew/holds", headers=h).json() == {"total": holds.SOLVED, "week": holds.SOLVED}

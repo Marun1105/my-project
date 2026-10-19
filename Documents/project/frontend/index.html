@@ -636,6 +636,10 @@
       <span data-i18n="settings.tour">Show the tour again</span>
       <button id="tourReplayBtn" class="btn-secondary tour-replay" type="button" data-i18n="settings.tourBtn">Start</button>
     </div>
+    <div class="settings-row" data-icon="speaker">
+      <span><span data-i18n="holds.soundSetting">Sound effects</span><br><small class="settings-note" data-i18n="holds.soundHint">A clink for every hold you earn, and a little fanfare for the big ones.</small></span>
+      <label class="switch"><input id="soundsOn" type="checkbox" role="switch" data-i18n-aria-label="holds.soundSetting" aria-label="Sound effects" checked><span class="switch-track"></span></label>
+    </div>
     <div class="settings-row" data-icon="bell">
       <span><span data-i18n="hw.setting">Homework reminders</span><br><small class="settings-note" data-i18n="hw.settingHint">In the evening, when something is due tomorrow — at most twice, never during a focus session.</small></span>
       <label class="switch"><input id="hwRemindOn" type="checkbox" role="switch" data-i18n-aria-label="hw.setting" aria-label="Homework reminders" checked><span class="switch-track"></span></label>
@@ -1483,6 +1487,7 @@
 <script src="subjects.js"></script>
 <script src="ai-planner.js"></script>
 <script src="history.js"></script>
+<script src="holds-fx.js"></script>
 <script src="crew.js"></script>
 <script src="face-verification.js"></script>
 <script src="focus.js"></script>

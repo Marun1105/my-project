@@ -17,18 +17,20 @@ from sqlalchemy.orm import Session
 
 from models import HoldEntry
 
-SOLVED = 3              # solved it on your own (judged by ClimbAI, not claimed)
-SOLVED_DAILY_CAP = 24   # eight solved steps a day; asking the same thing again pays nothing past it
-ON_TIME = 2             # a task with a deadline, finished by it
-TASK_DONE = 1           # a task without a deadline, finished
-FOCUS_PER_15_MIN = 1    # each full quarter hour of a focus session
-STREAK_DAY = 1          # one more day in a row
-BREAK = 1               # taking the break Climby suggested
-CHEER = 1               # a friend's cheer
+# Plenty of them, often: the counter is meant to keep climbing. (Owner,
+# 2026-10-19: more holds, not fewer — "more and more points".)
+SOLVED = 25             # solved it on your own (judged by ClimbAI, not claimed)
+SOLVED_DAILY_CAP = 250  # ten solved steps a day; asking the same thing again pays nothing past it
+ON_TIME = 20            # a task with a deadline, finished by it
+TASK_DONE = 10          # a task without a deadline, finished
+FOCUS_PER_5_MIN = 5     # every full five minutes of a focus session
+STREAK_DAY = 15         # one more day in a row
+BREAK = 10              # taking the break Climby suggested
+CHEER = 5               # a friend's cheer
 
 # Caps per day, so the honest way is the only way that pays.
-FOCUS_DAILY_CAP = 8     # two hours of focus
-TASKS_DAILY_CAP = 6     # tasks, with or without a deadline
+FOCUS_DAILY_CAP = 120   # two hours of focus
+TASKS_DAILY_CAP = 120   # six tasks on time, or twelve without a deadline
 BREAKS_DAILY_CAP = 2
 
 # Earned by the student themself — what a streak day counts. A cheer received
@@ -136,9 +138,9 @@ def on_task_done(db: Session, user_id: str, task) -> int:
 
 
 def on_focus(db: Session, user_id: str, session) -> int:
-    quarters = int(max(0, session.duration_seconds or 0) // 900) * FOCUS_PER_15_MIN
+    earned = int(max(0, session.duration_seconds or 0) // 300) * FOCUS_PER_5_MIN
     left = FOCUS_DAILY_CAP - _earned_today(db, user_id, ("focus",))
-    return award(db, user_id, "focus", session.id, min(quarters, max(0, left)))
+    return award(db, user_id, "focus", session.id, min(earned, max(0, left)))
 
 
 def on_break(db: Session, user_id: str) -> int:
