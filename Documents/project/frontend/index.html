@@ -159,7 +159,11 @@
           </span>
         </label>
       </fieldset>
-      <p class="settings-note auth-privacy"><span data-i18n="privacy.signup">How Climby handles your data:</span> <a href="https://marun1105.github.io/my-project/privacy.html" target="_blank" rel="noopener" data-i18n="privacy.link">Privacy policy</a></p>
+      <label class="remember-row terms-row">
+        <input id="registerTerms" type="checkbox">
+        <span class="remember-box"></span>
+        <span><span data-i18n="auth.termsAgree">I agree to the</span> <a href="https://marun1105.github.io/my-project/terms.html" target="_blank" rel="noopener" data-i18n="auth.termsLink">Terms</a> <span data-i18n="auth.termsAnd">and the</span> <a href="https://marun1105.github.io/my-project/privacy.html" target="_blank" rel="noopener" data-i18n="privacy.link">Privacy policy</a><span data-i18n="auth.termsUnder14">. If I'm under 14, a parent or guardian agrees too.</span></span>
+      </label>
       <button id="registerBtn" class="btn-primary" type="submit" data-i18n="auth.registerBtn">Регистрирай се</button>
       <p class="auth-switch"><span data-i18n="auth.haveAccount">Вече имаш акаунт?</span> <a href="#" id="showLogin" data-i18n="auth.loginLink">Влез</a></p>
     </form>
@@ -188,6 +192,12 @@
 
     <div id="roleForm" class="auth-form hidden">
       <h2 data-i18n="auth.roleTitle">Which are you?</h2>
+      <label class="remember-row terms-row">
+        <input id="roleTerms" type="checkbox">
+        <span class="remember-box"></span>
+        <span><span data-i18n="auth.termsAgree">I agree to the</span> <a href="https://marun1105.github.io/my-project/terms.html" target="_blank" rel="noopener" data-i18n="auth.termsLink">Terms</a> <span data-i18n="auth.termsAnd">and the</span> <a href="https://marun1105.github.io/my-project/privacy.html" target="_blank" rel="noopener" data-i18n="privacy.link">Privacy policy</a><span data-i18n="auth.termsUnder14">. If I'm under 14, a parent or guardian agrees too.</span></span>
+      </label>
+      <p id="roleTermsError" class="auth-error hidden" data-i18n="auth.termsNeeded">Please tick the box to agree first.</p>
       <button class="btn-primary role-choice" type="button" data-role="student"
               data-i18n="auth.roleStudent">Student</button>
       <button class="btn-secondary role-choice" type="button" data-role="parent"

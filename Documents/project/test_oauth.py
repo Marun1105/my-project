@@ -201,8 +201,14 @@ def _signed_in_via_google(email="role@example.com", sub="sub-role"):
 
 def test_a_new_google_account_can_say_who_it_is():
     headers = _signed_in_via_google()
-    assert client.post("/auth/role", json={"role": "teacher"}, headers=headers).status_code == 200
-    assert client.get("/auth/me", headers=headers).json()["role"] == "teacher"
+    # it never saw the sign-up form, so the Terms are asked here, once
+    res = client.post("/auth/role", json={"role": "teacher"}, headers=headers)
+    assert res.status_code == 400 and "Terms" in res.json()["detail"]
+    assert client.post("/auth/role", json={"role": "teacher", "accept_terms": True}, headers=headers).status_code == 200
+    me = client.get("/auth/me", headers=headers).json()
+    assert me["role"] == "teacher" and me["terms_accepted_at"]
+    # and not again
+    assert client.post("/auth/role", json={"role": "parent"}, headers=headers).status_code == 200
 
 
 def test_setting_a_password_gives_a_second_way_in():
@@ -282,7 +288,7 @@ def test_an_unproven_account_cannot_capture_someone_who_proves_the_address():
     password holder never did, so the proven owner takes the row and the
     unproven password stops working.
     """
-    client.post("/auth/register", json={
+    client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "Squatter", "email": "victim@school.org",
         "phone": "+15550000010", "password": "squatter123",
     })

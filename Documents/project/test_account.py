@@ -26,7 +26,7 @@ PW = "testpass123"
 
 def _login(email, role="student"):
     rate_limit._hits.clear()
-    client.post("/auth/register", json={
+    client.post("/auth/register", json={"accept_terms": True, 
         "display_name": email.split("@")[0], "email": email,
         "phone": "+1555" + str(sum(map(ord, email)) % 10_000_000).zfill(7),
         "password": PW, "role": role,
@@ -176,7 +176,7 @@ def test_deletion_removes_everything_and_the_session_with_it():
     assert client.get("/auth/me", headers=h).status_code == 401
     # the address is free again
     rate_limit._hits.clear()
-    assert client.post("/auth/register", json={
+    assert client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "Again", "email": "del2@example.com",
         "phone": "+15550000009", "password": PW,
     }).status_code == 200

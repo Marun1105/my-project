@@ -292,11 +292,18 @@ def get_current_user_optional(
     return user
 
 
+TERMS_NEEDED = "Please agree to the Terms and the Privacy policy to continue."
+
+
 @router.post("/register")
 def register(body: RegisterRequest, request: Request, background: BackgroundTasks,
              db: Session = Depends(get_db)):
     rate_limit.enforce(request, "register", max_calls=5, window_seconds=3600,
                         message="Too many sign-up attempts. Please wait a moment and try again.")
+    # Before anything looks at the address, so the answer is the same for a
+    # free one and a taken one.
+    if not body.accept_terms:
+        raise HTTPException(400, TERMS_NEEDED)
     email = normalize_email(body.email)
     phone = normalize_phone(body.phone)
 
@@ -338,6 +345,7 @@ def register(body: RegisterRequest, request: Request, background: BackgroundTask
         role=body.role,
         heard_from=body.heard_from,
         password_hash=password_hash,
+        terms_accepted_at=datetime.now(timezone.utc),
     )
     db.add(user)
     try:
@@ -631,6 +639,12 @@ def set_role(body: RoleRequest, request: Request,
     rate_limit.enforce(request, "set-role", max_calls=10, window_seconds=3600,
                        message="Too many attempts. Please wait a moment and try again.",
                        user=user)
+    # Asked once, the first time: a Google sign-up never saw the sign-up form
+    # and its checkbox.
+    if user.terms_accepted_at is None:
+        if not body.accept_terms:
+            raise HTTPException(400, TERMS_NEEDED)
+        user.terms_accepted_at = datetime.now(timezone.utc)
     user.role = body.role
     db.commit()
     return {"status": "ok"}

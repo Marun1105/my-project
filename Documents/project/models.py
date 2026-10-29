@@ -52,6 +52,9 @@ class User(Base):
     # like a picture book or a textbook. Both optional; both editable later.
     grade = Column(Integer, nullable=True)
     city = Column(String, nullable=True)
+    # When this person ticked "I agree to the Terms and the Privacy policy (and,
+    # under 14, a parent agrees)". The record that they did, and when.
+    terms_accepted_at = Column(DateTime(timezone=True), nullable=True)
     # Уникалността тук е буквална: и SQLite, и Postgres смятат "Ivan@Abv.bg" и
     # "ivan@abv.bg" за различни низове. Затова адресът се смъква до малки букви
     # още преди записа (auth.normalize_email), а търсенето минава през

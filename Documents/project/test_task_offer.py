@@ -30,7 +30,7 @@ FENCE = "```"
 
 def _login(email):
     rate_limit._hits.clear()
-    client.post("/auth/register", json={
+    client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "A", "email": email, "phone": phone_for_test_account(email),
         "password": "testpass123",
     })

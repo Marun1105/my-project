@@ -21,7 +21,7 @@ client = TestClient(server.app)
 
 def _login(email):
     rate_limit._hits.clear()
-    client.post("/auth/register", json={"display_name": "T", "email": email,
+    client.post("/auth/register", json={"accept_terms": True, "display_name": "T", "email": email,
                                         "phone": phone_for_test_account(email), "password": "testpass123"})
     db = SessionLocal()
     u = db.query(User).filter(User.email == email).first()

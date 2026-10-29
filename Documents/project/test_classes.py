@@ -29,7 +29,7 @@ def _clear_rate_limits():
 
 
 def _account(email, role="student", password="testpass123"):
-    res = client.post("/auth/register", json={
+    res = client.post("/auth/register", json={"accept_terms": True, 
         "display_name": email.split("@")[0], "email": email,
         "phone": phone_for_test_account(email), "password": password, "role": role,
     })
@@ -52,7 +52,7 @@ def _account(email, role="student", password="testpass123"):
 
 def test_role_defaults_to_student_when_not_sent():
     # стар клиент, който още не знае за ролите, трябва да продължи да работи
-    res = client.post("/auth/register", json={
+    res = client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "Old", "email": "oldclient@example.com",
         "phone": phone_for_test_account("oldclient@example.com"), "password": "testpass123",
     })
@@ -75,7 +75,7 @@ def test_role_is_returned_on_login():
 
 
 def test_invalid_role_is_rejected():
-    res = client.post("/auth/register", json={
+    res = client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "Sneaky", "email": "sneaky@example.com",
         "phone": phone_for_test_account("sneaky@example.com"),
         "password": "testpass123", "role": "admin",

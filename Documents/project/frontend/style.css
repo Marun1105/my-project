@@ -853,8 +853,11 @@ html.settings-open { overflow: hidden; }
 .pw-strength-label.is-good { color: var(--text-dim); }
 .pw-strength-label.is-strong { color: var(--text); }
 
-/* The privacy link on the sign-up form, and the one in Settings drawn as a button */
-.auth-privacy { margin: 4px 0 10px; text-align: center; }
+/* The Terms checkbox: its sentence wraps, so the box sits at the top */
+.terms-row { align-items: flex-start; line-height: 1.45; font-weight: 500; }
+.terms-row .remember-box { margin-top: 1px; }
+.terms-row a { color: var(--blue); font-weight: 600; text-decoration: none; }
+.terms-row a:hover { text-decoration: underline; }
 .family-phone { margin-top: 12px; display: grid; gap: 8px; }
 a.btn-secondary { display: inline-flex; align-items: center; text-decoration: none; }
 

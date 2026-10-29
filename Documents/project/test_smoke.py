@@ -32,7 +32,7 @@ def _clear_rate_limits():
 
 
 def _register_and_login(email="smoke@example.com", password="testpass123", role=None, phone_verified=True):
-    client.post("/auth/register", json={
+    client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "Smoke", "email": email,
         "phone": "+1555" + str(sum(map(ord, email)) % 10_000_000).zfill(7),
         "password": password,
@@ -70,7 +70,7 @@ def test_plan_with_no_tasks_skips_the_model():
 
 
 def test_login_requires_verified_email():
-    client.post("/auth/register", json={
+    client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "Unverified", "email": "unverified@example.com",
         "phone": "+15550000001", "password": "testpass123",
     })
@@ -201,7 +201,7 @@ def test_oversized_inputs_are_rejected_cleanly(monkeypatch):
     monkeypatch.setattr(server.client.messages, "create", lambda **kw: called.append(1))
     monkeypatch.setattr(server.client.beta.messages, "create", lambda **kw: called.append(1))
 
-    res = client.post("/auth/register", json={
+    res = client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "X", "email": "big@example.com",
         "phone": "+15550000002", "password": "a" * 5000,
     })
@@ -220,7 +220,7 @@ def test_oversized_inputs_are_rejected_cleanly(monkeypatch):
 
 
 def test_register_accepts_optional_username_and_phone():
-    res = client.post("/auth/register", json={
+    res = client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "С име", "username": "marto.11", "email": "named@example.com",
         "phone": "+359 888 000 111", "password": "testpass123",
     })
@@ -235,7 +235,7 @@ def test_register_accepts_optional_username_and_phone():
     db.close()
 
     # заето име
-    dup = client.post("/auth/register", json={
+    dup = client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "Друг", "username": "marto.11",
         "email": "other@example.com", "phone": "+359888000222", "password": "testpass123",
     })
@@ -243,7 +243,7 @@ def test_register_accepts_optional_username_and_phone():
 
     # невалидно име и невалиден телефон не стигат до базата
     for bad in ({"username": "a b!"}, {"phone": "не-е-телефон"}):
-        res = client.post("/auth/register", json={
+        res = client.post("/auth/register", json={"accept_terms": True, 
             "display_name": "Х", "email": "bad@example.com",
             "phone": "+359888000333", "password": "testpass123", **bad,
         })
@@ -251,11 +251,11 @@ def test_register_accepts_optional_username_and_phone():
 
 
 def test_registration_needs_neither_phone_nor_username():
-    res = client.post("/auth/register", json={
+    res = client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "Без", "email": "plain@example.com", "password": "testpass123",
     })
     assert res.status_code == 200, res.text
-    res = client.post("/auth/register", json={
+    res = client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "С", "email": "plain-phone@example.com",
         "phone": "+15550000004", "password": "testpass123",
     })
@@ -354,12 +354,12 @@ def test_split_rejects_empty_text():
 
 def test_register_is_rate_limited():
     for i in range(5):
-        res = client.post("/auth/register", json={
+        res = client.post("/auth/register", json={"accept_terms": True, 
             "display_name": f"RL{i}", "email": f"rl{i}@example.com",
             "phone": "+1555" + str(i).zfill(7), "password": "testpass123",
         })
         assert res.status_code == 200, res.text
-    blocked = client.post("/auth/register", json={
+    blocked = client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "RL6", "email": "rl6@example.com",
         "phone": "+15550000006", "password": "testpass123",
     })
@@ -463,7 +463,7 @@ def test_family_endpoints_require_auth():
 
 
 def test_password_minimum_length():
-    res = client.post("/auth/register", json={
+    res = client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "Short", "email": "short@example.com",
         "phone": "+15550000007", "password": "abc",
     })
@@ -510,7 +510,7 @@ def test_a_failing_mailer_does_not_fail_registration(monkeypatch):
 
     monkeypatch.setattr(email_service, "RESEND_API_KEY", "test-key")
     monkeypatch.setattr(email_service.resend.Emails, "send", refuse)
-    res = client.post("/auth/register", json={
+    res = client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "Mail Test", "email": "mailfail@example.com",
         "phone": "+15550000008", "password": "testpass123",
     })

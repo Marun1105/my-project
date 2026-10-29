@@ -54,6 +54,19 @@ def codes(monkeypatch):
     return sent
 
 
+def test_sign_up_needs_the_terms_ticked_and_remembers_when():
+    res = _register("no-terms@example.com", accept_terms=False)
+    assert res.status_code == 400 and "Terms" in res.json()["detail"]
+    db = SessionLocal()
+    assert db.query(User).filter(User.email == "no-terms@example.com").first() is None
+    db.close()
+
+    assert _register("terms@example.com").status_code == 200
+    db = SessionLocal()
+    assert db.query(User).filter(User.email == "terms@example.com").first().terms_accepted_at is not None
+    db.close()
+
+
 def _register(email, password="testpass123", **extra):
     rate_limit._hits.clear()
     phone_suffix = str(sum((index + 1) * ord(char) for index, char in enumerate(email)) % 10_000_000_000).zfill(10)
@@ -62,6 +75,7 @@ def _register(email, password="testpass123", **extra):
         "email": email,
         "phone": "+1" + phone_suffix,
         "password": password,
+        "accept_terms": True,
     }
     body.update(extra)
     return client.post("/auth/register", json=body)
@@ -157,7 +171,7 @@ def test_a_confirmed_email_signs_in_without_waiting_for_an_sms(codes):
 
 def test_the_phone_number_is_optional_at_sign_up(codes):
     rate_limit._hits.clear()
-    res = client.post("/auth/register", json={
+    res = client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "Без телефон", "email": "no-phone@example.com", "password": "testpass123",
     })
     assert res.status_code == 200, res.text

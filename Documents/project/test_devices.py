@@ -53,7 +53,7 @@ def _login(display_name="Мартин"):
     _counter["n"] += 1
     email = f"dev{_counter['n']}@example.com"
     password = "testpass123"
-    client.post("/auth/register", json={
+    client.post("/auth/register", json={"accept_terms": True, 
         "display_name": display_name, "email": email,
         "phone": phone_for_test_account(email), "password": password,
     })

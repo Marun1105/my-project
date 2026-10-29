@@ -91,6 +91,7 @@ const Auth = (() => {
       username: username || null,
       phone: phone || null,
       heard_from: heardFrom || null,
+      accept_terms: true,           // handleRegister stops before here unless it is ticked
     });
   }
 
@@ -235,6 +236,10 @@ const Auth = (() => {
     const role = (document.querySelector('input[name="registerRole"]:checked') || {}).value || 'student';
     if (!name || !email || !password) {
       setError(t('auth.errFillAll'));
+      return;
+    }
+    if (!$('registerTerms').checked) {
+      setError(t('auth.termsNeeded'));
       return;
     }
     try {
@@ -520,13 +525,20 @@ const Auth = (() => {
   }
 
   function chooseRole(role) {
+    // The one question a Google sign-up hasn't answered yet. Asked here, not
+    // after: the server refuses the role without it.
+    if ($('roleTerms') && !$('roleTerms').checked) {
+      $('roleTermsError').classList.remove('hidden');
+      return;
+    }
+    if ($('roleTermsError')) $('roleTermsError').classList.add('hidden');
     // The answer is remembered locally whatever the server says: the person is
     // already signed in, and a failed request here must not trap them on this
     // screen. A wrong role is fixable in Settings; a dead end is not.
     fetch(BACKEND + '/auth/role', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getToken() },
-      body: JSON.stringify({ role }),
+      body: JSON.stringify({ role, accept_terms: true }),
     }).finally(() => {
       // If the session ended while this was in flight (an expired token
       // elsewhere logs out silently), writing the cached user back would leave a

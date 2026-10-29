@@ -528,6 +528,11 @@ def run() -> list:
         if _tolerantly("users.city",
                        lambda: _add_nullable_column("users", "city", "VARCHAR")):
             applied.append("users.city")
+        # Accounts from before the Terms existed stay NULL: they never ticked it.
+        ts = "TIMESTAMP WITH TIME ZONE" if _dialect_name() == "postgresql" else "TIMESTAMP"
+        if _tolerantly("users.terms_accepted_at",
+                       lambda: _add_nullable_column("users", "terms_accepted_at", ts)):
+            applied.append("users.terms_accepted_at")
         # Всички заварени акаунти тръгват от версия 0 — числото важи само спрямо
         # само себе си, така че стойността по подразбиране не ощетява никого.
         # Акаунт през Google няма парола — колоната трябва да приема NULL.

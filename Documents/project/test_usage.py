@@ -162,7 +162,7 @@ def test_recording_failures_are_visible_in_healthz(monkeypatch):
 
 def _signed_in():
     email = "usage-user@example.com"
-    client.post("/auth/register", json={
+    client.post("/auth/register", json={"accept_terms": True, 
         "display_name": "U", "email": email, "phone": phone_for_test_account(email),
         "password": "testpass123",
     })

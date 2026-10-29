@@ -28,7 +28,7 @@ TINY_JPEG = ("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP/////////
 
 def _login(email, role="student"):
     rate_limit._hits.clear()
-    client.post("/auth/register", json={
+    client.post("/auth/register", json={"accept_terms": True, 
         "display_name": email.split("@")[0].title(), "email": email,
         "phone": phone_for_test_account(email), "password": "testpass123",
     })

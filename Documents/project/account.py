@@ -152,6 +152,7 @@ def export_data(
             "email_verified": bool(user.is_email_verified),
             "phone_verified": bool(user.is_phone_verified),
             "created_at": _iso(user.created_at),
+            "terms_accepted_at": _iso(user.terms_accepted_at),
             "sign_in_providers": ["password"] * bool(user.password_hash) + [i.provider for i in identities],
         },
         "tasks": [{

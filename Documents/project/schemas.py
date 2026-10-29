@@ -63,6 +63,9 @@ def _check_heard_from(v):
 
 class RoleRequest(BaseModel):
     role: Literal["student", "parent", "teacher"]
+    # A Google sign-up answers this screen instead of the sign-up form, so the
+    # Terms checkbox lives here for them.
+    accept_terms: bool = False
 
 
 class SetPasswordRequest(BaseModel):
@@ -77,6 +80,9 @@ class RegisterRequest(BaseModel):
     password: str
 
     heard_from: Optional[str] = Field(default=None, max_length=20)
+    # The sign-up checkbox. Optional in the schema so an old client gets a
+    # sentence back, not a validation dump; auth.register refuses False.
+    accept_terms: bool = False
 
     _clean_username = field_validator("username")(_check_username)
     _clean_phone = field_validator("phone")(_check_phone)
@@ -153,6 +159,7 @@ class UserOut(BaseModel):
     grade: Optional[int] = None
     city: Optional[str] = None
     heard_from: Optional[str] = None
+    terms_accepted_at: Optional[datetime] = None
 
 class ProfileUpdate(BaseModel):
     """The first-sign-in questions, and the same fields from Settings later."""
