@@ -242,6 +242,7 @@ function buildMenu() {
       label: 'Help',
       submenu: [
         { label: 'Check for Updates', click: () => checkForUpdatesManually() },
+        { label: 'Privacy Policy', click: () => shell.openExternal('https://marun1105.github.io/my-project/privacy.html') },
         { type: 'separator' },
         {
           label: 'About Climby',

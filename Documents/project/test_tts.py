@@ -39,7 +39,7 @@ def _on(monkeypatch, calls):
         return b"ID3fake-mp3"
     monkeypatch.setattr(tts, "_synthesize", fake)
     tts._cache.clear()
-    tts._used.update(day=None, chars=0)
+    tts._used.update(day=None, chars=0, by_user={})
 
 
 def test_off_without_a_key(monkeypatch):
@@ -84,6 +84,27 @@ def test_the_daily_cap_falls_back(monkeypatch):
     assert client.post("/tts", json={"voice": "en-GB-RyanNeural", "text": "short"}, headers=h).status_code == 200
     assert client.post("/tts", json={"voice": "en-GB-RyanNeural", "text": "a bit longer"}, headers=h).status_code == 429
 
+
+def test_one_student_cannot_use_up_everyone_s_day(monkeypatch):
+    _on(monkeypatch, [])
+    monkeypatch.setenv("TTS_USER_DAILY_CHARS", "10")
+    greedy, other = _login("tts-greedy@example.com"), _login("tts-other@example.com")
+    assert client.post("/tts", json={"voice": "en-GB-RyanNeural", "text": "short"}, headers=greedy).status_code == 200
+    assert client.post("/tts", json={"voice": "en-GB-RyanNeural", "text": "a bit longer"}, headers=greedy).status_code == 429
+    assert client.post("/tts", json={"voice": "en-GB-RyanNeural", "text": "mine now"}, headers=other).status_code == 200
+
+
+def test_a_failed_call_costs_nothing(monkeypatch):
+    _on(monkeypatch, [])
+    monkeypatch.setenv("TTS_USER_DAILY_CHARS", "10")
+
+    def broken(voice, text, rate):
+        raise RuntimeError("azure tts 500")
+    monkeypatch.setattr(tts, "_synthesize", broken)
+    h = _login("tts-refund@example.com")
+    for _ in range(3):
+        assert client.post("/tts", json={"voice": "en-GB-RyanNeural", "text": "abcdefgh"}, headers=h).status_code == 502
+    assert tts._used["chars"] == 0
 
 def test_text_is_escaped_for_the_request(monkeypatch):
     seen = {}

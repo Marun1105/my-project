@@ -146,6 +146,11 @@ def export_data(
             "email": user.email,
             "phone": user.phone,
             "role": user.role,
+            "grade": user.grade,
+            "city": user.city,
+            "heard_from": user.heard_from,
+            "email_verified": bool(user.is_email_verified),
+            "phone_verified": bool(user.is_phone_verified),
             "created_at": _iso(user.created_at),
             "sign_in_providers": ["password"] * bool(user.password_hash) + [i.provider for i in identities],
         },
@@ -155,6 +160,7 @@ def export_data(
         } for t in tasks],
         "questions": [{
             "question": s.question, "answer": s.answer, "lang": s.lang, "asked_at": _iso(s.created_at),
+            "solved_unaided": bool(s.solved_unaided),
         } for s in scans],
         "photographed_pages": [{
             "subject": b.subject, "what_was_read": b.read_text, "worked_solution": b.solution_text,
@@ -197,7 +203,7 @@ def _crew_export(db: Session, user: User) -> dict:
     return {
         "set_up": True,
         "birth": f"{profile.birth_year}-{profile.birth_month:02d}",
-        "has_photo": bool(profile.avatar),
+        "photo": profile.avatar,
         "parent_approved_at": _iso(profile.parent_approved_at),
         "friends": names(friends),
         "requests_sent_to": names(r.to_user_id for r in db.query(FriendRequest).filter(FriendRequest.from_user_id == user.id)),

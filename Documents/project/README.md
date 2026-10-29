@@ -2,7 +2,7 @@
 
 **Climb your way to success.**
 
-Climby is a study app for students aged 12 to 18, and for anyone who finds it
+Climby is a study app for students in grades 1 to 12, and for anyone who finds it
 hard to stay with their homework. Photograph a problem from the textbook and
 ClimbAI works through it with you, step by step, until it makes sense. Around it
 sit the things a study evening actually needs: a list of what is due, a quiet
@@ -25,6 +25,7 @@ The app is in Bulgarian and English and installs on Windows.
 | **Summited** | Everything you have finished and every question you asked — with three numbers on top: done, on time, this week. |
 | **Rope Team** | A parent sees the numbers — how many tasks, how much time, how many days in a row. Never what is in them. |
 | **Base Camp** | A teacher creates a class with a code and sees the same numbers for the whole class, and nothing more. |
+| **Crew** | Friends on one mountain: find classmates by username, become friends when both say yes, and see each other's holds, streak and whether someone is studying right now. Never tasks or questions. Under 12, a linked parent has to allow it first. |
 | **Chat** | The circle in the corner opens ClimbAI over any screen, for "what is a prime number" rather than "check problem 7". It can see your Route, so "what should I start with?" means something. |
 
 | The Route | Ascent |
@@ -82,7 +83,8 @@ in [`docs/superpowers/specs/2026-09-29-study-relay-design.md`](docs/superpowers/
 - **Your phone.** Show a QR code to the phone once, confirm that both screens
   show the same code, and from then on every photo taken on the phone appears
   on the computer by itself. The phone's key can upload a photo and nothing else.
-- **Past exam papers.** The national exams (НВО, матура) from past years, already
+- **Past exam papers.** Grade-7 НВО maths papers from 2016 on (grade 10 and матура are
+  planned), already
   photographed. Pick the year and the page; name the problem; ask.
 
 Or paste a screenshot (Ctrl+V), or drop an image on the screen.
@@ -168,7 +170,10 @@ Environment variables: `ANTHROPIC_API_KEY` and `JWT_SECRET` are required.
 Optional: `DATABASE_URL` (otherwise SQLite), `RESEND_API_KEY` and `RESEND_FROM`
 (email), `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (Google sign-in),
 `TWILIO_*` (SMS), `PAPERS_CACHE_DIR`, `AI_DAILY_TOKEN_CAP` (the whole app's daily
-AI budget in tokens; default 3,000,000, 0 for none).
+AI budget in tokens; default 3,000,000, 0 for none), `AZURE_SPEECH_KEY` and
+`AZURE_SPEECH_REGION` (online voices; use an EU region such as `westeurope`),
+`TTS_DAILY_CHARS` and `TTS_USER_DAILY_CHARS` (the whole app's and one person's
+daily budget for online voices; defaults 16,000 and 4,000).
 
 `python seed_demo_accounts.py` makes a student, a parent and a teacher account on
 the local database, so every screen can be opened without registering.

@@ -15,7 +15,7 @@ import hashlib
 import os
 import threading
 from collections import OrderedDict
-from datetime import date
+from datetime import datetime, timezone
 from typing import Literal
 from xml.sax.saxutils import escape
 
@@ -80,22 +80,41 @@ def _daily_cap() -> int:
         return 16000
 
 
+def _user_daily_cap() -> int:
+    # one student's share, so a single person can't leave everyone else on the
+    # computer's voice for the rest of the day
+    try:
+        return int(os.environ.get("TTS_USER_DAILY_CHARS", "4000"))
+    except ValueError:
+        return 4000
+
+
 # Per process, which is good enough: the cap guards a bill, not a secret, and a
 # second worker can only overshoot it by its own share of one day.
 _lock = threading.Lock()
-_used = {"day": None, "chars": 0}
+_used = {"day": None, "chars": 0, "by_user": {}}
 _cache: "OrderedDict[str, bytes]" = OrderedDict()
 
 
-def _spend(chars: int) -> bool:
+def _spend(user_id: str, chars: int) -> bool:
     with _lock:
-        today = date.today()
+        today = datetime.now(timezone.utc).date()   # the same day usage.py counts in
         if _used["day"] != today:
-            _used["day"], _used["chars"] = today, 0
-        if _used["chars"] + chars > _daily_cap():
+            _used["day"], _used["chars"], _used["by_user"] = today, 0, {}
+        mine = _used["by_user"].get(user_id, 0)
+        if _used["chars"] + chars > _daily_cap() or mine + chars > _user_daily_cap():
             return False
         _used["chars"] += chars
+        _used["by_user"][user_id] = mine + chars
         return True
+
+
+def _refund(user_id: str, chars: int) -> None:
+    """Azure said no, so nothing was billed: give the characters back."""
+    with _lock:
+        _used["chars"] = max(0, _used["chars"] - chars)
+        if user_id in _used["by_user"]:
+            _used["by_user"][user_id] = max(0, _used["by_user"][user_id] - chars)
 
 
 def _cached(key: str):
@@ -162,12 +181,13 @@ def speak(body: SpeakIn, request: Request, user: User = Depends(get_current_user
     key = hashlib.sha256(f"{body.voice}|{rate}|{text}".encode("utf-8")).hexdigest()
     audio = _cached(key)
     if audio is None:
-        if not _spend(len(text)):
+        if not _spend(user.id, len(text)):
             # the app falls back to the computer's voice on this answer
             raise HTTPException(429, "The online voices are resting until tomorrow.")
         try:
             audio = _synthesize(body.voice, text, rate)
         except Exception as err:  # noqa: BLE001 — any failure means: use the computer's voice
+            _refund(user.id, len(text))
             print(f"[tts] {err!r}", flush=True)
             raise HTTPException(502, "The online voice is not answering.")
         _remember(key, audio)

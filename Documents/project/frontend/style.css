@@ -853,6 +853,10 @@ html.settings-open { overflow: hidden; }
 .pw-strength-label.is-good { color: var(--text-dim); }
 .pw-strength-label.is-strong { color: var(--text); }
 
+/* The privacy link on the sign-up form, and the one in Settings drawn as a button */
+.auth-privacy { margin: 4px 0 10px; text-align: center; }
+a.btn-secondary { display: inline-flex; align-items: center; text-decoration: none; }
+
 .auth-switch {
   font-size: 13px;
   color: var(--text-dim);

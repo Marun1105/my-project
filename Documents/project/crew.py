@@ -320,7 +320,9 @@ def set_avatar(body: AvatarIn, request: Request,
 
 
 @router.delete("/avatar")
-def remove_avatar(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def remove_avatar(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    rate_limit.enforce(request, "crew-avatar", max_calls=30, window_seconds=3600,
+                       message="That's a lot of changes at once. Please wait a moment.", user=user)
     profile = db.get(SocialProfile, user.id)
     if profile is not None:
         profile.avatar = None
@@ -404,7 +406,10 @@ def send_request(body: UsernameIn, request: Request,
 
 
 @router.post("/requests/accept")
-def accept(body: UsernameIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def accept(body: UsernameIn, request: Request, user: User = Depends(get_current_user),
+           db: Session = Depends(get_db)):
+    rate_limit.enforce(request, "crew-answer", max_calls=60, window_seconds=3600,
+                       message="That's a lot of changes at once. Please wait a moment.", user=user)
     _me(db, user)
     other = _by_username(db, user, body.username)
     if not db.query(FriendRequest.id).filter(FriendRequest.from_user_id == other.id,
@@ -417,8 +422,11 @@ def accept(body: UsernameIn, user: User = Depends(get_current_user), db: Session
 
 
 @router.post("/requests/decline")
-def decline(body: UsernameIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def decline(body: UsernameIn, request: Request, user: User = Depends(get_current_user),
+            db: Session = Depends(get_db)):
     """Declines theirs, or takes back mine. Says nothing to the other person."""
+    rate_limit.enforce(request, "crew-answer", max_calls=60, window_seconds=3600,
+                       message="That's a lot of changes at once. Please wait a moment.", user=user)
     _me(db, user)
     name = body.username.strip().lstrip("@").lower()
     other = db.query(User).filter(func.lower(User.username) == name).first()
@@ -432,7 +440,10 @@ def decline(body: UsernameIn, user: User = Depends(get_current_user), db: Sessio
 
 
 @router.post("/unfriend")
-def unfriend(body: UsernameIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def unfriend(body: UsernameIn, request: Request, user: User = Depends(get_current_user),
+             db: Session = Depends(get_db)):
+    rate_limit.enforce(request, "crew-unfriend", max_calls=30, window_seconds=3600,
+                       message="That's a lot of changes at once. Please wait a moment.", user=user)
     _me(db, user)
     name = body.username.strip().lstrip("@").lower()
     other = db.query(User).filter(func.lower(User.username) == name).first()

@@ -23,15 +23,20 @@ Answer *no* to everything except where noted. The honest answers give a
 
 - Violence, fear, sexual content, drugs, gambling, bad language: **no**
 - Does the app allow users to interact or exchange content with each other?
-  **No.** Students, parents and teachers never message each other; a parent or
-  teacher sees counts only.
+  **Yes.** Crew lets students find each other by username, send and accept
+  friend requests, send cheers, and see a friend's profile photo, grade and
+  whether they are studying. There is no free-text messaging. Students under
+  12 need a linked parent's approval; anyone can be blocked. (Parents and
+  teachers still see counts only.) Expect this to raise the rating above 3+.
 - Does the app share the user's location? **No.**
 - Does the app share personal information with third parties? **No** for
   marketing. (Photos are processed by an AI provider to answer the question
-  and discarded — that is a processor, not sharing; say so if asked.)
+  and discarded; text read aloud by an online voice goes to Microsoft Azure.
+  Both are processors, not sharing; say so if asked.)
 - In-app purchases, advertising: **No.**
 - Does the app use the camera? **Yes** — to photograph a textbook page, and
-  optionally for an on-device presence check that uploads nothing.
+  for an on-device face check before every Focus session and an optional
+  presence check during it. Neither uploads anything.
 
 ## Store listing — English
 
@@ -44,14 +49,14 @@ The tutor that doesn't do it for you. Photograph a problem; learn the next step.
 
 Climby helps students in grades 1–12 understand their homework instead of copying it.
 
-Photograph a problem from the textbook — with the laptop's camera, with your phone, or from a past national exam paper — and ClimbAI works through it with you. By default it gives a hint and waits for you to try the next step; it shows the full solution only when you ask. That default is the whole idea: a student handed the answer learns nothing, and a student shown the next step learns how to find the rest.
+Photograph a problem from the textbook — with the laptop's camera, with your phone, or from a past grade-7 НВО maths paper — and ClimbAI works through it with you. By default it gives a hint and waits for you to try the next step; it shows the full solution only when you ask. That default is the whole idea: a student handed the answer learns nothing, and a student shown the next step learns how to find the rest.
 
 Around the tutor there is a homework route (today's tasks, most urgent first, with an AI planner that orders them), a quiet study timer, and a history of everything you have finished and asked. A chat is one click away on every screen for questions that don't need a photo. Answers can be read aloud for younger students.
 
 Parents and teachers can be linked with a code. They see numbers — how many tasks, how many minutes, how many days in a row — and never the text of a task or a question. A student who knows every question is being read stops asking honestly.
 
 What Climby does not do:
-• Keep your photos. They are read once and discarded.
+• Keep photos of your pages. They are read once and discarded.
 • Upload anything from the study timer. "Is someone at the desk" is decided on your device.
 • Show advertising, track you, or sell data.
 
@@ -61,7 +66,7 @@ Free. In English and Bulgarian. The source is public on GitHub.
 - Photograph a problem and get the path to the answer, not just the answer
 - Hints first; the full solution only when you ask
 - Send photos from your phone to the computer with one QR scan
-- Every past national exam paper (НВО, матура), ready to ask about
+- Past grade-7 НВО maths papers (2016 onwards), ready to ask about
 - A homework list with an AI planner that orders your day
 - A study timer that never sends a picture anywhere
 - Parents and teachers see numbers, never questions
