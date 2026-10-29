@@ -25,7 +25,7 @@ The app is in Bulgarian and English and installs on Windows.
 | **Summited** | Everything you have finished and every question you asked — with three numbers on top: done, on time, this week. |
 | **Rope Team** | A parent sees the numbers — how many tasks, how much time, how many days in a row. Never what is in them. |
 | **Base Camp** | A teacher creates a class with a code and sees the same numbers for the whole class, and nothing more. |
-| **Crew** | Friends on one mountain: find classmates by username, become friends when both say yes, and see each other's holds, streak and whether someone is studying right now. Never tasks or questions. Under 12, a linked parent has to allow it first. |
+| **Crew** | Friends on one mountain: find classmates by username, become friends when both say yes, and see each other's holds, streak and whether someone is studying right now. Never tasks or questions. Under 14, a linked parent has to allow it first. |
 | **Chat** | The circle in the corner opens ClimbAI over any screen, for "what is a prime number" rather than "check problem 7". It can see your Route, so "what should I start with?" means something. |
 
 | The Route | Ascent |

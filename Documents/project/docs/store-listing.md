@@ -26,7 +26,7 @@ Answer *no* to everything except where noted. The honest answers give a
   **Yes.** Crew lets students find each other by username, send and accept
   friend requests, send cheers, and see a friend's profile photo, grade and
   whether they are studying. There is no free-text messaging. Students under
-  12 need a linked parent's approval; anyone can be blocked. (Parents and
+  14 need a linked parent's approval; anyone can be blocked. (Parents and
   teachers still see counts only.) Expect this to raise the rating above 3+.
 - Does the app share the user's location? **No.**
 - Does the app share personal information with third parties? **No** for

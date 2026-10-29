@@ -40,9 +40,9 @@ def _commit(db: Session) -> None:
     except IntegrityError:
         db.rollback()
 
-# The owner's rule is 12. Bulgaria's age of digital consent is 14 (GDPR art. 8);
-# see the open point in the plan before this ships to real users.
-PARENT_APPROVAL_UNDER = 12
+# Bulgaria's age of digital consent is 14 (GDPR art. 8), so below it Crew
+# needs a parent. Raised from the owner's first choice of 12 on 2026-10-29.
+PARENT_APPROVAL_UNDER = 14
 MIN_AGE, MAX_AGE = 6, 20
 LIVE_FOR = timedelta(minutes=3)          # one missed heartbeat is not the end of a session
 MAX_AVATAR_BYTES = 120_000               # the editor saves 256 px JPEG, about 20 KB
