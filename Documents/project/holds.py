@@ -15,7 +15,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from models import HoldEntry
+from models import FocusSession, HoldEntry, User
 
 # Plenty of them, often: the counter is meant to keep climbing. (Owner,
 # 2026-10-19: more holds, not fewer — "more and more points".)
@@ -32,6 +32,7 @@ CHEER = 5               # a friend's cheer
 FOCUS_DAILY_CAP = 120   # two hours of focus
 TASKS_DAILY_CAP = 120   # six tasks on time, or twelve without a deadline
 BREAKS_DAILY_CAP = 2
+CHEERS_DAILY_CAP = 50   # ten friends' cheers; past that, fake friends pay nothing
 
 # Earned by the student themself — what a streak day counts. A cheer received
 # is a gift and keeps nobody's streak alive.
@@ -137,8 +138,25 @@ def on_task_done(db: Session, user_id: str, task) -> int:
     return award(db, user_id, "task", task.id, min(TASK_DONE, left))
 
 
+def _real_time_before(db: Session, user_id: str, session) -> float:
+    """How long a session saved now could honestly have lasted: two sessions
+    can't overlap, so no longer than since the previous one was saved (or the
+    account was made). The length itself comes from the app; this is the part
+    the server saw with its own clock."""
+    now = _as_utc(session.created_at) if session.created_at else _now()
+    prev = db.query(func.max(FocusSession.created_at)).filter(
+        FocusSession.user_id == user_id, FocusSession.id != session.id).scalar()
+    if prev is None:
+        prev = db.query(User.created_at).filter(User.id == user_id).scalar()
+    if prev is None:
+        return 0
+    return max(0.0, (now - _as_utc(prev)).total_seconds())
+
+
 def on_focus(db: Session, user_id: str, session) -> int:
-    earned = int(max(0, session.duration_seconds or 0) // 300) * FOCUS_PER_5_MIN
+    claimed = max(0, session.duration_seconds or 0)
+    seconds = min(claimed, _real_time_before(db, user_id, session))
+    earned = int(seconds // 300) * FOCUS_PER_5_MIN
     left = FOCUS_DAILY_CAP - _earned_today(db, user_id, ("focus",))
     return award(db, user_id, "focus", session.id, min(earned, max(0, left)))
 
@@ -154,6 +172,8 @@ def on_break(db: Session, user_id: str) -> int:
 
 def on_cheer(db: Session, from_id: str, to_id: str) -> int:
     """Once a day per friend: the ref is who cheered, and on which day."""
+    if CHEERS_DAILY_CAP - _earned_today(db, to_id, ("cheer",)) < CHEER:
+        return 0
     return award(db, to_id, "cheer", f"{from_id}:{day_start().date().isoformat()}", CHEER)
 
 

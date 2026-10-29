@@ -335,6 +335,32 @@ def _normalize_existing_emails() -> int:
     return changed
 
 
+def _normalize_existing_usernames() -> int:
+    """Usernames to lowercase, the same careful way as emails above: row by
+    row, and a row that would collide is left alone and logged for a person."""
+    if not _table_exists("users") or not _column_exists("users", "username"):
+        return 0
+    changed = 0
+    with engine.begin() as conn:
+        rows = conn.execute(text(
+            "SELECT id, username FROM users WHERE username IS NOT NULL AND username <> lower(username)"
+        )).fetchall()
+        for row_id, name in rows:
+            lowered = name.lower()
+            taken = conn.execute(
+                text("SELECT id FROM users WHERE lower(username) = :u AND id <> :id"),
+                {"u": lowered, "id": row_id},
+            ).first()
+            if taken:
+                print(f"[migrations] WARNING: username {name!r} not lowercased — account "
+                      f"{taken[0]} has the same name. Sort the two out by hand.", file=sys.stderr)
+                continue
+            conn.execute(text("UPDATE users SET username = :u WHERE id = :id"),
+                         {"u": lowered, "id": row_id})
+            changed += 1
+    return changed
+
+
 def _normalize_existing_phones() -> int:
     """Подрежда заварените телефони към международния вид, ред по ред.
 
@@ -552,6 +578,9 @@ def run() -> list:
         normalized = _tolerantly("users.email:lower", _normalize_existing_emails)
         if normalized:
             applied.append(f"users.email:lower x{normalized}")
+        usernames = _tolerantly("users.username:lower", _normalize_existing_usernames)
+        if usernames:
+            applied.append(f"users.username:lower x{usernames}")
         # Телефоните — същото подреждане, и чак след него уникалността върху
         # потвърдените, за да не се спъне индексът в номер, който още не е приведен.
         phones = _tolerantly("users.phone:canonical", _normalize_existing_phones)

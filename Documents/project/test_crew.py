@@ -281,13 +281,50 @@ def test_a_late_task_pays_nothing():
 def test_focus_pays_a_hold_per_quarter_hour_capped_per_day():
     uid, h = _login("crew-focus@example.com")
     rate_limit._hits.clear()
+    _backdate_user(uid, hours=6)
     client.post("/focus", json={"duration_seconds": 50 * 60}, headers=h)       # 3 quarters
+    _backdate_sessions(uid, hours=4)
     client.post("/focus", json={"duration_seconds": 3 * 3600}, headers=h)      # 12, capped
     db = SessionLocal()
     focus = sum(r.amount for r in db.query(HoldEntry).filter(HoldEntry.user_id == uid, HoldEntry.reason == "focus"))
     db.close()
     assert focus == holds.FOCUS_DAILY_CAP
 
+
+
+def _backdate_user(uid, hours):
+    db = SessionLocal()
+    db.query(User).filter(User.id == uid).update(
+        {User.created_at: datetime.now(timezone.utc) - timedelta(hours=hours)})
+    db.commit(); db.close()
+
+
+def _backdate_sessions(uid, hours):
+    db = SessionLocal()
+    db.query(FocusSession).filter(FocusSession.user_id == uid).update(
+        {FocusSession.created_at: datetime.now(timezone.utc) - timedelta(hours=hours)})
+    db.commit(); db.close()
+
+
+def test_a_focus_session_cannot_be_longer_than_the_time_that_passed():
+    """The length comes from the app; the server pays only for time it saw pass."""
+    uid, h = _login("crew-focus-fake@example.com")
+    rate_limit._hits.clear()
+    _backdate_user(uid, hours=1)
+    client.post("/focus", json={"duration_seconds": 24 * 3600}, headers=h)     # an hour has passed: 4 quarters at most
+    client.post("/focus", json={"duration_seconds": 24 * 3600}, headers=h)     # and none since the last one
+    db = SessionLocal()
+    focus = sum(r.amount for r in db.query(HoldEntry).filter(HoldEntry.user_id == uid, HoldEntry.reason == "focus"))
+    db.close()
+    assert focus == 12 * holds.FOCUS_PER_5_MIN
+
+
+def test_cheers_pay_only_so_much_a_day_in_total():
+    uid, _ = _login("crew-cheered@example.com")
+    db = SessionLocal()
+    got = sum(holds.on_cheer(db, f"fan-{i}", uid) for i in range(holds.CHEERS_DAILY_CAP // holds.CHEER + 5))
+    db.commit(); db.close()
+    assert got == holds.CHEERS_DAILY_CAP
 
 def test_breaks_pay_twice_a_day_at_most():
     uid, h = _login("crew-break@example.com")

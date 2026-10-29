@@ -57,10 +57,10 @@ const Crew = (() => {
         { id: 'f6', name: 'Krasi', username: 'krasi9', grade: 9, holdsWeek: 36, holdsTotal: 520, streak: 15, mutual: 2, groups: ['g2'], hue: 6 },
         { id: 'f7', name: 'Sisi', username: 'sisi.m', grade: 8, holdsWeek: 7, holdsTotal: 88, streak: 2, mutual: 3, groups: [], hue: 7 },
       ],
-      groups: [
-        { id: 'g1', name: '8B Maths', members: ['f1', 'f2', 'f5'] },
-        { id: 'g2', name: 'Study squad', members: ['f3', 'f6', 'f4'] },
-      ],
+      // Groups don't exist on the server yet, so the preview doesn't promise
+      // them either. The drawing code below stays for when they do:
+      // [{ id: 'g1', name: '8B Maths', members: ['f1', 'f2', 'f5'] }, ...]
+      groups: [],
       suggested: [
         { id: 's1', name: 'Petar', username: 'petar.v', grade: 8, mutual: 3, hue: 2 },
         { id: 's2', name: 'Gabi', username: 'gabi_g', grade: 8, mutual: 2, hue: 4 },
@@ -528,8 +528,7 @@ const Crew = (() => {
         ${isMe
           ? `<button class="crew-cheer" type="button" data-act="edit">${esc(t('crew.editProfile'))}</button>
              <button class="crew-chat" type="button" data-act="photo">${esc(t('crew.changePhoto'))}</button>`
-          : `<button class="crew-cheer" type="button" data-act="cheer">${holdSvg(5, '#fff')}${esc(t('crew.cheer'))}</button>
-             <button class="crew-chat" type="button" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>${esc(t('crew.chat'))} <em class="crew-soon">${esc(t('crew.soon'))}</em></button>`}
+          : `<button class="crew-cheer" type="button" data-act="cheer">${holdSvg(5, '#fff')}${esc(t('crew.cheer'))}</button>`}
       </div>
       ${!isMe && mode === 'live' ? `<div class="crew-more">
         <button class="crew-link" type="button" data-act="unfriend">${esc(t('crew.unfriend'))}</button>

@@ -400,6 +400,8 @@
 .crew-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
 .crew-chip { padding: 5px 11px; border-radius: 999px; background: #fff3e8; color: #b4480f; font: 700 12.5px var(--font-body); }
 .crew-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* a friend's card has Cheer alone until chat exists: let it fill the row */
+.crew-actions > :only-child { grid-column: 1 / -1; }
 .crew-cheer, .crew-chat {
   position: relative; height: 52px; border-radius: 999px; border: 0; cursor: pointer;
   font: 900 italic 18px var(--font-heading); letter-spacing: -0.01em;

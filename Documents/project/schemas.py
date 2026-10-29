@@ -23,7 +23,9 @@ def _check_username(v):
         return None  # празно поле не е избор на име
     if not USERNAME_RE.match(v):
         raise ValueError("Потребителското име може да е 3-20 знака: букви, цифри, _ и .")
-    return v
+    # Stored lowercase, so the unique index means what every lookup (all
+    # lower()) already assumes: "Marti" and "marti" are one name.
+    return v.lower()
 
 
 def _check_phone(v):

@@ -202,6 +202,22 @@ def test_migration_lowercases_emails_and_leaves_collisions_alone(old_engine):
     assert migrations.run() == []
 
 
+def test_migration_lowercases_usernames_and_leaves_collisions_alone(old_engine):
+    _make_populated_schema(old_engine)
+    migrations.run()                       # adds the username column
+    with old_engine.begin() as conn:
+        conn.execute(text("UPDATE users SET username = 'Marti' WHERE id = 'u2'"))
+        conn.execute(text("UPDATE users SET username = 'Ivo' WHERE id = 'u4'"))
+        conn.execute(text("UPDATE users SET username = 'ivo' WHERE id = 'u5'"))
+
+    applied = migrations.run()
+    assert "users.username:lower x1" in applied, applied
+    with old_engine.begin() as conn:
+        names = dict(conn.execute(text("SELECT id, username FROM users WHERE username IS NOT NULL")).fetchall())
+    assert names == {"u2": "marti", "u4": "Ivo", "u5": "ivo"}   # the clash waits for a person
+    assert migrations.run() == []
+
+
 def test_migration_canonicalises_phones_and_protects_the_real_owner(old_engine):
     """Заварен потвърден номер в стария изписване не бива да губи собственика си.
 
