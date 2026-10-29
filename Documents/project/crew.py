@@ -22,6 +22,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import holds
+from family import require_real_parent
 import rate_limit
 from auth import get_current_user
 from db import get_db
@@ -563,6 +564,8 @@ class ApprovalIn(BaseModel):
 
 @router.post("/approvals")
 def set_approval(body: ApprovalIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # checked again here, not only at linking: a role can be changed afterwards
+    require_real_parent(user)
     linked = db.query(FamilyLink.id).filter(FamilyLink.parent_user_id == user.id,
                                             FamilyLink.student_user_id == body.student_id).first()
     profile = db.get(SocialProfile, body.student_id) if linked else None

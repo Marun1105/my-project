@@ -76,6 +76,19 @@ def create_invite(request: Request, user: User = Depends(get_current_user), db: 
     return FamilyInviteOut(code=invite.code, expires_at=invite.expires_at)
 
 
+def require_real_parent(user: User) -> None:
+    """Who may hold a child's rope, and approve Crew for them: a parent account
+    with a phone verified by SMS. Anyone can pick "parent" at sign-up, so the
+    role alone stops only the classmate who didn't bother; the phone is what
+    makes a child's own second account cost a second real number (numbers are
+    unique among verified accounts). The answer is a {"needs": ...} the app
+    turns into the next step."""
+    if (user.role or "student") != "parent":
+        raise HTTPException(403, {"needs": "parent"})
+    if not (user.phone and user.is_phone_verified):
+        raise HTTPException(403, {"needs": "phone"})
+
+
 @router.post("/link")
 def link_student(
     body: FamilyLinkRequest,
@@ -87,6 +100,7 @@ def link_student(
     # може да се налучква масово — ограничаваме опитите за въвеждане на код
     rate_limit.enforce(request, "family-link", max_calls=10, window_seconds=3600,
                         message="Too many code attempts. Please wait a moment and try again.", user=user)
+    require_real_parent(user)
     code = body.code.strip().upper()
     invite = db.query(FamilyInvite).filter(FamilyInvite.code == code).first()
     if not invite or invite.used:

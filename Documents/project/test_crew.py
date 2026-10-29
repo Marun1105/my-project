@@ -137,6 +137,25 @@ def test_only_a_linked_parent_can_approve():
     assert client.post("/crew/approvals", json={"student_id": kid, "allow": True}, headers=stranger).status_code == 404
 
 
+def test_approval_needs_a_parent_with_a_verified_phone_even_after_linking():
+    kid, hk = _login("crew-kid5@example.com")
+    parent, hp = _login("crew-kid5-parent@example.com", role="parent")
+    _setup(hk, "little_five", age=crew.PARENT_APPROVAL_UNDER - 1)
+    db = SessionLocal()
+    db.add(FamilyLink(parent_user_id=parent, student_user_id=kid))
+    db.query(User).filter(User.id == parent).update({User.role: "student"})
+    db.commit(); db.close()
+    res = client.post("/crew/approvals", json={"student_id": kid, "allow": True}, headers=hp)
+    assert res.status_code == 403 and res.json()["detail"] == {"needs": "parent"}
+
+    db = SessionLocal()
+    db.query(User).filter(User.id == parent).update({User.role: "parent", User.is_phone_verified: False})
+    db.commit(); db.close()
+    res = client.post("/crew/approvals", json={"student_id": kid, "allow": True}, headers=hp)
+    assert res.status_code == 403 and res.json()["detail"] == {"needs": "phone"}
+    assert client.get("/crew", headers=hk).json()["needs"] == "parent"
+
+
 def test_a_young_student_cannot_be_found_before_approval():
     _, hk = _login("crew-kid3@example.com")
     _, ho = _login("crew-older3@example.com")

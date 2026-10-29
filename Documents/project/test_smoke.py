@@ -31,7 +31,7 @@ def _clear_rate_limits():
     rate_limit._hits.clear()
 
 
-def _register_and_login(email="smoke@example.com", password="testpass123"):
+def _register_and_login(email="smoke@example.com", password="testpass123", role=None, phone_verified=True):
     client.post("/auth/register", json={
         "display_name": "Smoke", "email": email,
         "phone": "+1555" + str(sum(map(ord, email)) % 10_000_000).zfill(7),
@@ -44,7 +44,9 @@ def _register_and_login(email="smoke@example.com", password="testpass123"):
     db = SessionLocal()
     user = db.query(User).filter(User.email == email).first()
     user.is_email_verified = True
-    user.is_phone_verified = True
+    user.is_phone_verified = phone_verified
+    if role:
+        user.role = role
     db.commit()
     db.close()
 
@@ -379,7 +381,7 @@ def test_rate_limiter_ignores_spoofed_forwarded_for(monkeypatch):
 
 def test_family_invite_link_and_progress():
     student = _register_and_login("kid@example.com")
-    parent = _register_and_login("mum@example.com")
+    parent = _register_and_login("mum@example.com", role="parent")
 
     # ученикът има малко активност, за да има какво да види родителят
     t1 = client.post("/tasks", json={"text": "Готова задача"}, headers=student).json()
@@ -409,12 +411,12 @@ def test_family_invite_link_and_progress():
 
 def test_family_code_cannot_be_reused_or_self_linked():
     student = _register_and_login("kid2@example.com")
-    parent = _register_and_login("dad@example.com")
-    other = _register_and_login("stranger@example.com")
+    parent = _register_and_login("dad@example.com", role="parent")
+    other = _register_and_login("stranger@example.com", role="parent")
 
     code = client.post("/family/invite", headers=student).json()["code"]
-    # собственият код не върши работа за самия ученик
-    assert client.post("/family/link", json={"code": code}, headers=student).status_code == 400
+    # собственият код не върши работа за самия ученик (студентът изобщо не е родител)
+    assert client.post("/family/link", json={"code": code}, headers=student).status_code == 403
     assert client.post("/family/link", json={"code": code}, headers=parent).status_code == 200
     # веднъж използван, кодът е мъртъв — трети човек не може да се закачи с него
     assert client.post("/family/link", json={"code": code}, headers=other).status_code == 400
@@ -424,7 +426,7 @@ def test_family_code_cannot_be_reused_or_self_linked():
 def test_parent_sees_only_aggregates_not_content():
     """Родителят получава числа, но никога текста на задачите или въпросите."""
     student = _register_and_login("kid3@example.com")
-    parent = _register_and_login("parent3@example.com")
+    parent = _register_and_login("parent3@example.com", role="parent")
     client.post("/tasks", json={"text": "ТАЙНА ЗАДАЧА"}, headers=student)
 
     code = client.post("/family/invite", headers=student).json()["code"]
@@ -435,6 +437,23 @@ def test_parent_sees_only_aggregates_not_content():
     # и не може да чете чеклиста/историята на ученика през обикновените ендпойнти
     assert client.get("/tasks", headers=parent).json() == []
     assert client.get("/scans", headers=parent).json() == []
+
+
+def test_only_a_parent_with_a_verified_phone_can_link():
+    """A child's own second account, or a classmate's, must not become their
+    parent: the role has to be parent and the phone verified by SMS."""
+    student = _register_and_login("kid4@example.com")
+    classmate = _register_and_login("classmate4@example.com")
+    no_phone = _register_and_login("parent4-nophone@example.com", role="parent", phone_verified=False)
+    parent = _register_and_login("parent4@example.com", role="parent")
+
+    code = client.post("/family/invite", headers=student).json()["code"]
+    res = client.post("/family/link", json={"code": code}, headers=classmate)
+    assert res.status_code == 403 and res.json()["detail"] == {"needs": "parent"}
+    res = client.post("/family/link", json={"code": code}, headers=no_phone)
+    assert res.status_code == 403 and res.json()["detail"] == {"needs": "phone"}
+    # neither attempt used the code up
+    assert client.post("/family/link", json={"code": code}, headers=parent).status_code == 200
 
 
 def test_family_endpoints_require_auth():

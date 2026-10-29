@@ -23,7 +23,14 @@ const Family = (() => {
       throw new Error(t('family.errGeneric'));
     }
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : t('family.errGeneric'));
+    if (!res.ok) {
+      // {"needs": "phone" | "parent"}: not an error so much as the next step
+      const needs = data.detail && data.detail.needs;
+      const err = new Error(needs ? t('family.needs.' + needs)
+        : typeof data.detail === 'string' ? data.detail : t('family.errGeneric'));
+      err.needs = needs;
+      throw err;
+    }
     return data;
   }
 
@@ -199,8 +206,9 @@ const Family = (() => {
         input.disabled = true;
         try {
           await api('/crew/approvals', { method: 'POST', body: JSON.stringify({ student_id: a.student_id, allow: input.checked }) });
-        } catch {
+        } catch (err) {
           input.checked = !input.checked;     // say no change happened, because none did
+          if (err.needs === 'phone') showPhoneBox();
         } finally {
           input.disabled = false;
         }
@@ -299,6 +307,46 @@ const Family = (() => {
       render();
     } catch (err) {
       showLinkError(err.message);
+      if (err.needs === 'phone') showPhoneBox();
+    }
+  }
+
+  function showPhoneBox() {
+    $('familyPhoneBox').classList.remove('hidden');
+    $('familyPhoneInput').focus();
+  }
+
+  function phoneMsg(text) {
+    const el = $('familyPhoneMsg');
+    el.textContent = text;
+    el.classList.remove('hidden');
+  }
+
+  async function handlePhoneSend() {
+    const phone = $('familyPhoneInput').value.trim();
+    if (!phone) return;
+    try {
+      await api('/auth/phone', { method: 'POST', body: JSON.stringify({ phone }) });
+      $('familyPhoneCodeForm').classList.remove('hidden');
+      $('familyPhoneCode').focus();
+      phoneMsg(t('family.phoneSent'));
+    } catch (err) {
+      phoneMsg(err.message);
+    }
+  }
+
+  async function handlePhoneVerify() {
+    const code = $('familyPhoneCode').value.trim();
+    if (!code) return;
+    try {
+      await api('/auth/verify-phone', { method: 'POST', body: JSON.stringify({ code }) });
+      $('familyPhoneForm').classList.add('hidden');
+      $('familyPhoneCodeForm').classList.add('hidden');
+      $('familyPhoneCode').value = '';
+      $('familyLinkError').classList.add('hidden');
+      phoneMsg(t('family.phoneDone'));
+    } catch (err) {
+      phoneMsg(err.message);
     }
   }
 
@@ -329,6 +377,14 @@ const Family = (() => {
     $('familyLinkForm').addEventListener('submit', e => {
       e.preventDefault();
       Net.guardSubmit(e.currentTarget, () => handleLink(e));
+    });
+    $('familyPhoneForm').addEventListener('submit', e => {
+      e.preventDefault();
+      Net.guardSubmit(e.currentTarget, handlePhoneSend);
+    });
+    $('familyPhoneCodeForm').addEventListener('submit', e => {
+      e.preventDefault();
+      Net.guardSubmit(e.currentTarget, handlePhoneVerify);
     });
     // A double click made two codes, and the first one shown was already dead.
     $('familyInviteBtn').addEventListener('click', () => Net.guardClick($('familyInviteBtn'), handleInvite));

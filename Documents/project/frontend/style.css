@@ -855,6 +855,7 @@ html.settings-open { overflow: hidden; }
 
 /* The privacy link on the sign-up form, and the one in Settings drawn as a button */
 .auth-privacy { margin: 4px 0 10px; text-align: center; }
+.family-phone { margin-top: 12px; display: grid; gap: 8px; }
 a.btn-secondary { display: inline-flex; align-items: center; text-decoration: none; }
 
 .auth-switch {

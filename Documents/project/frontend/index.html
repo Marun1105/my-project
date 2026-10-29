@@ -562,6 +562,20 @@
       <button class="btn-primary" type="submit" data-i18n="family.linkBtn">Свържи</button>
     </form>
     <p id="familyLinkError" class="auth-error hidden"></p>
+    <!-- Linking and Crew approval need a phone verified by SMS. A parent who
+         signed up with Google has none yet, so they add it here. -->
+    <div id="familyPhoneBox" class="family-phone hidden">
+      <p class="settings-note" data-i18n="family.phoneWhy">To link to a child, verify a phone number by SMS. It makes sure a child can't approve themselves from a second account.</p>
+      <form id="familyPhoneForm" class="family-link-form">
+        <input id="familyPhoneInput" type="tel" autocomplete="tel" maxlength="32" data-i18n-placeholder="family.phonePlaceholder" placeholder="Phone number">
+        <button class="btn-secondary" type="submit" data-i18n="family.phoneSend">Send code</button>
+      </form>
+      <form id="familyPhoneCodeForm" class="family-link-form hidden">
+        <input id="familyPhoneCode" class="code-input" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" data-i18n-placeholder="family.phoneCodePlaceholder" placeholder="Code from the SMS">
+        <button class="btn-primary" type="submit" data-i18n="family.phoneVerify">Verify</button>
+      </form>
+      <p id="familyPhoneMsg" class="settings-note hidden" role="status"></p>
+    </div>
     </div>
 
     <div id="familyStudentHalf" class="hidden">
